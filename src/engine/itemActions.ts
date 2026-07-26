@@ -86,6 +86,7 @@ export function applyUseOutcome(
   if (use.charges !== undefined) {
     const remaining = tracker.get(def.id).chargesRemaining ?? use.charges;
     tracker.setCharges(def.id, Math.max(0, remaining - 1));
+    if (use.rechargeAfterRests && remaining > 0) tracker.setRechargeRests(def.id, use.rechargeAfterRests);
   }
   if (outcome === "fail" && use.inertOnFail) tracker.markInert(def.id);
   if (outcome === "criticalFail" && use.breaksOnCriticalFail) tracker.markBroken(def.id);
@@ -103,5 +104,13 @@ export function restoreOnRest(character: Character): void {
     if (!use) continue;
     if (use.inertOnFail) character.itemState.clearInert(def.id);
     if (use.rechargeOnRest && use.charges !== undefined) character.itemState.setCharges(def.id, use.charges);
+    if (use.rechargeAfterRests && use.charges !== undefined) {
+      const state = character.itemState.get(def.id);
+      if ((state.chargesRemaining ?? use.charges) <= 0) {
+        const remaining = Math.max(0, (state.rechargeRestsRemaining ?? use.rechargeAfterRests) - 1);
+        character.itemState.setRechargeRests(def.id, remaining);
+        if (remaining === 0) character.itemState.setCharges(def.id, use.charges);
+      }
+    }
   }
 }

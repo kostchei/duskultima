@@ -181,7 +181,9 @@ export function validatePhysicalDungeon(dungeon: DungeonDefinition): PhysicalVal
       if (!contentIds.has(region.id)) diagnostics.push(`missing-room-content:${region.id}`);
     }
     for (const content of dungeon.roomContents) {
-      if (content.pressures.length === 0) diagnostics.push(`unpressured-room:${content.roomId}`);
+      if (content.pressures.length === 0 && content.templateId !== "empty-short-walk") {
+        diagnostics.push(`unpressured-room:${content.roomId}`);
+      }
     }
     const pressures = new Set(dungeon.roomContents.flatMap((content) => content.pressures));
     for (const required of ["light", "hp", "inventory"] as const) {

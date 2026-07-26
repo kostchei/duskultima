@@ -30,9 +30,9 @@ import {
 import { ALL_TREASURE_TABLES } from "./tables/treasure";
 
 export { classDef, type ClassDef } from "./classes";
-export { allItems, item } from "./items";
+export { allItems, generatedMagicItem, item } from "./items";
 export { monster } from "./monsters";
-export { highestAvailableSpellIndex, highestAvailableDamagingSpellIndex, spell, spellForMagicItem, spellsForClass } from "./spells";
+export { highestAvailableSpellIndex, highestAvailableDamagingSpellIndex, magicItemSpell, spell, spellForMagicItem, spellsForClass } from "./spells";
 export { isPlebName, plebNameForSeed, randomPlebName } from "./names";
 export { ALL_TREASURE_TABLES } from "./tables/treasure";
 

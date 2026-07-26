@@ -18,6 +18,8 @@ export interface CoreTreasureItemSpec {
   benefitRolls?: number;
   curseRolls?: number;
   personality?: MagicItemPersonality;
+  spellTier?: number;
+  spellContainer?: "scroll" | "wand";
 }
 
 interface CoreTreasureRow {
@@ -317,6 +319,15 @@ function tableMagicBonus(text: string): number | undefined {
   return match ? Number(match[1]) : undefined;
 }
 
+function spellContainer(text: string): Pick<CoreTreasureItemSpec, "spellTier" | "spellContainer"> {
+  const match = text.match(/(\d)(?:st|nd|rd|th)-tier spell/i);
+  if (!match || (!/scroll/i.test(text) && !/wand/i.test(text))) return {};
+  return {
+    spellTier: Number(match[1]),
+    spellContainer: text.toLowerCase().includes("wand") ? "wand" : "scroll",
+  };
+}
+
 function table(band: keyof typeof CORE_ROWS, name: string): RollableTable {
   return {
     id: `treasure-${band}`,
@@ -350,6 +361,7 @@ export const CORE_TREASURE_ITEM_SPECS: readonly CoreTreasureItemSpec[] = (
   benefitRolls: rollCount(entry.text, "benefit"),
   curseRolls: rollCount(entry.text, "curse"),
   personality: personalityData(entry.text),
+  ...spellContainer(entry.text),
 })));
 
 export const TREASURE_0_3 = table("0-3", "Treasure 0-3");

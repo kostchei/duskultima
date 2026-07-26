@@ -2,7 +2,7 @@ import { getBaseRole, type Alignment, type ClassName, type SpellClass, type Roll
 import { characterTitle } from "../engine";
 import type { SaveSlot, SavedCharacter } from "./state";
 import type { VisualSkinId, ZonePackId } from "./visual/model";
-import { classDef, item, plebNameForSeed, spellsForClass } from "../data";
+import { generatedMagicItem, item, plebNameForSeed } from "../data";
 import {
   TREASURE_0_3,
   TREASURE_4_6,
@@ -31,6 +31,8 @@ export interface CompanionReward {
   className: ClassName;
   name: string;
   alignment: Alignment;
+  /** Paid on returning this adventurer to civilization when all four slots are occupied. */
+  escortGold: number;
 }
 
 export interface TreasureReward {
@@ -64,22 +66,7 @@ export interface SpellReward {
 
 export type DungeonReward = CompanionReward | TreasureReward | GoldReward | SpellReward;
 
-const REWARD_CYCLE: readonly RewardKind[] = [
-  "companion",
-  "treasure",
-  "treasure",
-  "gold",
-  "spells",
-];
-
-const COMPANION_CLASSES = ["thief", "priest", "wizard"] as const;
-
-const STARTING_SPELLS: Record<SpellClass, readonly string[]> = {
-  wizard: classDef("wizard").startingSpellIds,
-  priest: classDef("priest").startingSpellIds,
-  witch: classDef("witch").startingSpellIds,
-  seer: classDef("seer").startingSpellIds,
-};
+const COMPANION_CLASSES = ["fighter", "thief", "priest", "wizard"] as const;
 
 /** Shadowdark unlock bands: tiers 1-5 arrive at levels 1, 3, 5, 7, and 9. */
 export function maximumSpellTier(level: number): number {
@@ -156,7 +143,9 @@ function rollVaultTreasure(
     const amount = Math.max(1, Math.round(data.cp ?? data.valueGp ?? 0));
     return { kind: "gold", title: "A Meager Find", description: entry.text, amount };
   }
-  const def = item(data.itemId);
+  const baseDef = item(data.itemId);
+  const spellRoll = stableIndex(dungeonIndex * 1877 + partySalt * 43 + slotSalt * 101, 12) + 1;
+  const def = generatedMagicItem(baseDef.id, spellRoll);
   const qty = data.qty ?? 1;
   const valueGp = data.valueGp ?? (def.valueGp ?? 0) * qty;
   const quality = def.treasureQuality
@@ -165,7 +154,7 @@ function rollVaultTreasure(
     kind: "treasure",
     title: def.name,
     description: entry.text,
-    itemId: data.itemId,
+    itemId: def.id,
     qty,
     valueGp,
     quality,
@@ -180,14 +169,15 @@ function missingCompanion(
   party: readonly PartyProgress[],
   dungeonIndex: number,
   zone?: ZonePackId,
-): CompanionReward | null {
+): CompanionReward {
+  const living = party.filter((member) => !member.dead);
   const missing = COMPANION_CLASSES.filter(
     (baseRole) => !party.some((member) => !member.dead && getBaseRole(member.className as ClassName) === baseRole),
   );
-  if (missing.length === 0) return null;
+  const choices = missing.length > 0 ? missing : COMPANION_CLASSES;
   const partySalt = party.reduce((acc, m, i) => acc + m.className.charCodeAt(0) * (i + 1), 0);
-  const pickIndex = stableIndex(dungeonIndex * 1337 + partySalt + 42, missing.length);
-  const baseRole = missing[pickIndex]!;
+  const pickIndex = stableIndex(dungeonIndex * 1337 + partySalt + 42, choices.length);
+  const baseRole = choices[pickIndex]!;
   const roll50 = stableIndex(dungeonIndex * 773 + partySalt + 19, 100) < 50;
   const className = resolveClassForZone(baseRole, zone, roll50);
   const usedNames = new Set(party.flatMap((member) => member.name ? [member.name] : []));
@@ -195,6 +185,9 @@ function missingCompanion(
   const alignmentRoll = stableIndex(dungeonIndex * 131 + 17, 6) + 1;
   const alignment: Alignment = alignmentRoll <= 3 ? "law" : alignmentRoll <= 5 ? "neutral" : "chaos";
   const title = characterTitle(className, alignment, 1);
+  const partyLevel = living.length > 0
+    ? Math.max(1, Math.floor(living.reduce((sum, member) => sum + member.level, 0) / living.length))
+    : 1;
   return {
     kind: "companion",
     title: `${name} the ${title}`,
@@ -202,39 +195,7 @@ function missingCompanion(
     className,
     name,
     alignment,
-  };
-}
-
-function unknownSpell(party: readonly PartyProgress[], dungeonIndex: number): SpellReward | null {
-  const casters = party.flatMap((member, partyIndex) => {
-    if (member.dead || !["wizard", "priest", "witch", "seer"].includes(member.className)) return [];
-    const className = member.className as SpellClass;
-    const firstDiscovery = member.knownSpellIds.every((id) => STARTING_SPELLS[className].includes(id));
-    const maxTier = firstDiscovery ? 1 : maximumSpellTier(member.level);
-    const eligible = spellsForClass(className).filter(
-      (candidate) =>
-        candidate.tier <= maxTier &&
-        !STARTING_SPELLS[className].includes(candidate.id) &&
-        !member.knownSpellIds.includes(candidate.id),
-    );
-    return eligible.length > 0 ? [{ member, partyIndex, className, eligible }] : [];
-  });
-  if (casters.length === 0) return null;
-
-  const partySalt = party.reduce(
-    (total, member, index) => total + member.level * (index + 3) + member.knownSpellIds.length * 17,
-    0,
-  );
-  const caster = casters[stableIndex(dungeonIndex * 131 + partySalt, casters.length)]!;
-  const chosen = caster.eligible[
-    stableIndex(dungeonIndex * 977 + caster.partyIndex * 37 + caster.member.level, caster.eligible.length)
-  ]!;
-  return {
-    kind: "spells",
-    title: `${chosen.name} ${caster.className === "priest" || caster.className === "seer" ? "Litany" : "Grimoire"}`,
-    description: `${caster.member.className} learns the tier ${chosen.tier} spell ${chosen.name}.`,
-    spellId: chosen.id,
-    className: caster.className,
+    escortGold: 10 * partyLevel,
   };
 }
 
@@ -244,36 +205,11 @@ export function chooseDungeonReward(
   zone?: ZonePackId,
 ): DungeonReward {
   if (!Number.isInteger(dungeonIndex)) throw new Error("Dungeon index must be an integer");
-  const rewardSlot = ((dungeonIndex % REWARD_CYCLE.length) + REWARD_CYCLE.length) % REWARD_CYCLE.length;
-  const kind = REWARD_CYCLE[rewardSlot]!;
   const companion = missingCompanion(party, dungeonIndex, zone);
-
-  if (kind === "companion") {
-    return companion ?? {
-      kind: "gold",
-      title: "The Deep Treasury",
-      description: "The full party recovers 500 gold.",
-      amount: 500,
-    };
-  }
-  if (kind === "treasure") {
-    return rollVaultTreasure(rewardSlot, dungeonIndex, party, zone);
-  }
-  if (kind === "gold") {
-    return {
-      kind,
-      title: "The Deep Treasury",
-      description: "A hoard of 500 gold.",
-      amount: 500,
-    };
-  }
-
-  return unknownSpell(party, dungeonIndex) ?? companion ?? {
-    kind: "gold",
-    title: "The Deep Treasury",
-    description: "Every secret here is already known, so the vault yields 500 gold.",
-    amount: 500,
-  };
+  const partySalt = party.reduce((acc, member, index) =>
+    acc + member.className.charCodeAt(0) * (index + 1) + member.level * 17, 0);
+  const rescue = stableIndex(dungeonIndex * 4099 + partySalt + 211, 2) === 0;
+  return rescue ? companion : rollVaultTreasure(0, dungeonIndex, party, zone);
 }
 
 export function progressFromSavedParty(party: readonly SavedCharacter[]): PartyProgress[] {

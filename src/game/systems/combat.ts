@@ -225,7 +225,7 @@ export function meleeSwing(deps: MeleeDeps, attacker: CharacterSprite): SwingOut
     attacker: attacker.character,
     targetAc: target.def.ac,
     damage: attacker.weaponDamage,
-    weapon: attacker.character.weapon,
+    weapon: attacker.character.wieldedWeapon ?? undefined,
     extraDamageDice: (backstab ? 1 + Math.floor(attacker.character.level / 2) : 0) + assassinDice,
     advantage: posCtx.advantage,
     disadvantage: posCtx.disadvantage,

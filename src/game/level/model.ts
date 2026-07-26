@@ -1,5 +1,5 @@
 /**
- * The Phaser-free data model for non-linear five-room dungeons.
+ * The Phaser-free data model for non-linear dungeons.
  *
  * This is the abstract layer: graph nodes, connector specifications, keys and
  * switches, and the validated progression contract. It knows nothing about tiles,
@@ -55,16 +55,18 @@ export type ConnectorDirection = "two-way" | "from-to" | "to-from";
 export type RelativeDirection = "above" | "below" | "beside" | "non-adjacent";
 
 export interface MacroPoint {
-  column: 0 | 1 | 2 | 3 | 4;
-  row: 0 | 1 | 2 | 3;
+  column: number;
+  row: number;
 }
 
 export interface DungeonRoomNode {
   id: string;
-  /** Topology node index 0-4, stable across embedding transforms. */
+  /** Topology node index, stable across embedding transforms. */
   node: number;
   position: MacroPoint;
   beat: Beat;
+  /** The d10 site-content roll. The guaranteed vault is always result 9. */
+  contentRoll?: number;
   contentFamily: ContentFamily;
   tags: readonly string[];
   /** True when the cell touches the macro-grid perimeter (entrance/exit eligible). */
@@ -107,8 +109,8 @@ export interface AbstractDungeon {
   /** Which orientation transform was applied to the canonical embedding. */
   orientation: string;
   themeId: string;
-  macroWidth: 5;
-  macroHeight: 4;
+  macroWidth: number;
+  macroHeight: number;
   rooms: readonly DungeonRoomNode[];
   connections: readonly DungeonConnection[];
   requirements: readonly Requirement[];

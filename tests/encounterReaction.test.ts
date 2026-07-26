@@ -2,11 +2,21 @@ import { describe, expect, it } from "vitest";
 import {
   availableEncounterChoices,
   Dice,
+  Engine,
+  encounterStealthDc,
+  resolvePartyEncounterStealth,
   rollActivity,
   rollDistance,
   rollReaction,
   type EncounterChoice,
 } from "../src/engine";
+import { createCharacter, item, registerTables } from "../src/data";
+
+function fighterForStealth(seed = 1) {
+  const engine = new Engine({ seed });
+  registerTables(engine);
+  return { engine, fighter: createCharacter(engine, "stealth-fighter", "Fighter", "fighter") };
+}
 
 describe("encounter reaction rolls", () => {
   it("rollActivity always returns one of the five defined activities", () => {
@@ -62,5 +72,38 @@ describe("availableEncounterChoices", () => {
         expect(has(choices, "retreat")).toBe(true);
       }
     }
+  });
+});
+
+describe("encounter stealth", () => {
+  it("makes distance and monster activity matter to detection", () => {
+    expect(encounterStealthDc("far", "sleeping")).toBe(9);
+    expect(encounterStealthDc("far", "guarding")).toBe(9);
+    expect(encounterStealthDc("near", "guarding")).toBe(12);
+    expect(encounterStealthDc("close", "guarding")).toBe(15);
+    expect(encounterStealthDc("close", "hunting")).toBe(18);
+  });
+
+  it("gives a default chainmail fighter disadvantage but leather removes it", () => {
+    const { engine, fighter } = fighterForStealth();
+    const noisy = resolvePartyEncounterStealth(engine.dice, [fighter], "near", "guarding");
+    expect(fighter.wornArmor?.id).toBe("chainmail");
+    expect(noisy.checks[0]!.mode).toBe("disadvantage");
+    expect(noisy.checks[0]!.disadvantageReasons).toContain("Chainmail");
+
+    fighter.equipArmor(item("leather-armor"));
+    const quiet = resolvePartyEncounterStealth(engine.dice, [fighter], "near", "guarding");
+    expect(quiet.checks[0]!.mode).toBe("normal");
+  });
+
+  it("requires a strict majority rather than making every party member pass", () => {
+    const { engine, fighter } = fighterForStealth(2);
+    const party = [
+      fighter,
+      createCharacter(engine, "stealth-thief", "Thief", "thief"),
+      createCharacter(engine, "stealth-priest", "Priest", "priest"),
+      createCharacter(engine, "stealth-wizard", "Wizard", "wizard"),
+    ];
+    expect(resolvePartyEncounterStealth(engine.dice, party, "near", "guarding").required).toBe(3);
   });
 });

@@ -50,6 +50,19 @@ function openConnected(grid: readonly string[], from: { x: number; y: number }):
 }
 
 describe("tile expansion", () => {
+  it.each([
+    { roomCount: 8 as const, width: 6, height: 5 },
+    { roomCount: 12 as const, width: 8, height: 6 },
+  ])("expands $roomCount result slots across the extended playable grid", ({ roomCount, width, height }) => {
+    for (let seed = 0; seed < 40; seed++) {
+      const expanded = expandDungeon(generateAbstractDungeon(seed, { roomCount }));
+      expect(expanded.width).toBe(width * CELL_W);
+      expect(expanded.height).toBe(height * CELL_H);
+      expect(expanded.regions).toHaveLength(roomCount);
+      expect(validatePhysicalDungeon(expanded).ok).toBe(true);
+    }
+  });
+
   it("produces a rectangular grid of the macro-grid size, legal tiles only", () => {
     const d = expandDungeon(generateAbstractDungeon(0));
     expect(d.width).toBe(5 * CELL_W);
@@ -128,8 +141,8 @@ describe("tile expansion", () => {
     expect([...families].sort()).toEqual([
       "challenge", "discovery", "hazard", "opportunity", "pressure", "twist",
     ]);
-    expect(runsWithNpc).toBeGreaterThanOrEqual(35);
-    expect(runsWithNpc).toBeLessThanOrEqual(65);
+    expect(runsWithNpc).toBeGreaterThanOrEqual(20);
+    expect(runsWithNpc).toBeLessThanOrEqual(45);
   });
 
   it("generates every authored NPC outcome with valid targets", () => {

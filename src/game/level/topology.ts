@@ -1,5 +1,5 @@
 /**
- * Topology catalogue: five-node connected graphs, independent of tile geometry.
+ * Topology catalogue: connected room graphs, independent of tile geometry.
  *
  * A form describes potential room-to-room adjacency only. Whether a given edge
  * becomes an open passage, a gated door, a secret, or a one-way drop is decided
@@ -24,7 +24,11 @@ export type TopologyId =
   | "stingray"
   | "house"
   | "hourglass"
-  | "kite";
+  | "kite"
+  | "eight-room-expedition"
+  | "twelve-room-expedition";
+
+export type DungeonRoomCount = 5 | 8 | 12;
 
 export type Edge = readonly [number, number];
 
@@ -32,7 +36,7 @@ export interface TopologyForm {
   id: TopologyId;
   label: string;
   tier: 1 | 2 | 3;
-  /** Undirected edges over node indices 0-4. */
+  /** Undirected edges over this form's node indices. */
   edges: readonly Edge[];
   /**
    * Selection weight. Railroad is deliberately low so it stays a minority: with
@@ -40,6 +44,10 @@ export interface TopologyForm {
    * cap even before richer forms ship.
    */
   weight: number;
+  /** Room count and macro-grid dimensions carried by this form. */
+  nodeCount?: DungeonRoomCount;
+  macroWidth?: number;
+  macroHeight?: number;
 }
 
 export const TOPOLOGIES: readonly TopologyForm[] = [
@@ -144,15 +152,46 @@ export const TOPOLOGIES: readonly TopologyForm[] = [
 
 export const NODE_COUNT = 5;
 
+export const LARGE_TOPOLOGIES: readonly TopologyForm[] = [
+  {
+    id: "eight-room-expedition",
+    label: "Eight-Room Expedition",
+    tier: 2,
+    nodeCount: 8,
+    macroWidth: 6,
+    macroHeight: 5,
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [2, 5], [5, 6], [3, 7]],
+    weight: 1,
+  },
+  {
+    id: "twelve-room-expedition",
+    label: "Twelve-Room Expedition",
+    tier: 2,
+    nodeCount: 12,
+    macroWidth: 8,
+    macroHeight: 6,
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [2, 7], [7, 8], [4, 9], [9, 10], [5, 11]],
+    weight: 1,
+  },
+];
+
+export function nodeCount(form: TopologyForm): DungeonRoomCount {
+  return form.nodeCount ?? NODE_COUNT;
+}
+
+export function topologiesForRoomCount(count: DungeonRoomCount): readonly TopologyForm[] {
+  return count === 5 ? TOPOLOGIES : LARGE_TOPOLOGIES.filter((form) => nodeCount(form) === count);
+}
+
 export function topologyById(id: TopologyId): TopologyForm {
-  const form = TOPOLOGIES.find((t) => t.id === id);
+  const form = [...TOPOLOGIES, ...LARGE_TOPOLOGIES].find((t) => t.id === id);
   if (!form) throw new Error(`Unknown topology "${id}"`);
   return form;
 }
 
 /** Adjacency list keyed by node index. */
 export function adjacency(form: TopologyForm): number[][] {
-  const adj: number[][] = Array.from({ length: NODE_COUNT }, () => []);
+  const adj: number[][] = Array.from({ length: nodeCount(form) }, () => []);
   for (const [a, b] of form.edges) {
     if (a === b) throw new Error(`Self-loop on node ${a} in ${form.id}`);
     adj[a]!.push(b);
@@ -165,7 +204,7 @@ export function degrees(form: TopologyForm): number[] {
   return adjacency(form).map((neighbours) => neighbours.length);
 }
 
-/** Every released form must be a single connected component over all five nodes. */
+/** Every released form must be a single connected component over all its nodes. */
 export function isConnected(form: TopologyForm): boolean {
   const adj = adjacency(form);
   const seen = new Set<number>([0]);
@@ -179,5 +218,5 @@ export function isConnected(form: TopologyForm): boolean {
       }
     }
   }
-  return seen.size === NODE_COUNT;
+  return seen.size === nodeCount(form);
 }

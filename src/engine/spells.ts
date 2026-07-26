@@ -98,6 +98,10 @@ function dropFocus(caster: Character): void {
   caster.effects = caster.effects.filter((effect) => effect.duration?.unit !== "focus");
 }
 
+function consumeOneShotCastEffects(caster: Character): void {
+  caster.removeEffect("item:witchknife-blood");
+}
+
 function pendingMishap(
   dice: Dice,
   tables: TableRegistry,
@@ -137,6 +141,7 @@ export function castSpell(
     ],
     disadvantage: opts.disadvantage,
   });
+  consumeOneShotCastEffects(caster);
 
   if (check.fumble) {
     return pendingMishap(dice, tables, caster, spell, check);
@@ -180,6 +185,7 @@ export function castSpellFromItem(
     advantage: opts.advantage,
     disadvantage: opts.disadvantage,
   });
+  consumeOneShotCastEffects(caster);
 
   if (check.fumble) {
     return pendingMishap(dice, tables, caster, spell, check);

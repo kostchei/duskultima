@@ -1,5 +1,6 @@
 import type { ItemDef } from "../engine";
 import { CORE_TREASURE_ITEM_SPECS } from "./tables/treasure";
+import { magicItemSpell } from "./spells";
 
 /** All item definitions, keyed by id. Unknown lookups throw via item(). */
 const BASE_ITEM_LIST: readonly ItemDef[] = [
@@ -35,11 +36,13 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   },
   {
     id: "chainmail", name: "Chainmail", slotCost: 2, bundleSize: 1, tags: ["armor"],
-    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf"] }, armorVisual: "chain", valueGp: 60,
+    description: "Disadvantage on stealth checks.",
+    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf"], stealthDisadvantage: true }, armorVisual: "chain", valueGp: 60,
   },
   {
     id: "plate-mail", name: "Plate Mail", slotCost: 3, bundleSize: 1, tags: ["armor"],
-    armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest", "pit-fighter", "sea-wolf"] }, armorVisual: "plate", valueGp: 130,
+    description: "Disadvantage on stealth checks.",
+    armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest", "pit-fighter", "sea-wolf"], stealthDisadvantage: true }, armorVisual: "plate", valueGp: 130,
   },
   {
     id: "mithral-chainmail", name: "Mithral Chainmail", slotCost: 1, bundleSize: 1, tags: ["armor", "magic"],
@@ -62,13 +65,13 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "crown-of-the-deep", name: "Crown of the Deep", slotCost: 0, bundleSize: 1, tags: ["treasure"], xpValue: 10, treasureQuality: "legendary" },
 
   // Potions & Consumables
-  { id: "potion-healing", name: "Potion of Healing", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], valueGp: 75, treasureQuality: "normal", benefits: ["Restores hit points based on the drinker's level."], description: "Restore 1d6 HP to a living or dying party member.", use: { actions: ["consume", "inspect"], target: "ally" } },
-  { id: "potion-invisibility", name: "Potion of Invisibility", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["The drinker becomes invisible until the duration ends, they attack, or they cast a spell."], description: "Become invisible for 5 rounds; attacking or casting ends it.", use: { actions: ["consume", "inspect"], target: "self" } },
+  { id: "potion-healing", name: "Potion of Healing", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], valueGp: 75, treasureQuality: "normal", benefits: ["Restores hit points based on the drinker's level."], description: "Restore 1d6/2d8/3d10/4d12 HP at levels 0-3/4-6/7-9/10+.", use: { actions: ["consume", "inspect"], target: "ally" } },
+  { id: "potion-invisibility", name: "Potion of Invisibility", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["The drinker becomes invisible until the duration ends, they attack, or they cast a spell."], description: "Become invisible for 10 rounds; attacking or casting ends it.", use: { actions: ["consume", "inspect"], target: "self" } },
   { id: "potion-water-breathing", name: "Potion of Water Breathing", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["The drinker can breathe underwater."], description: "Breathe underwater for 20 rounds.", use: { actions: ["consume", "inspect"], target: "self" } },
-  { id: "potion-flying", name: "Potion of Flying", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["The drinker can fly a near distance as movement."], description: "Fly with the normal movement controls for 5 rounds.", use: { actions: ["consume", "inspect"], target: "self" } },
-  { id: "potion-giant-strength", name: "Potion of Giant Strength", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["The drinker's Strength becomes 18 (+4) and their melee attacks deal double damage."], description: "Your Strength becomes at least 18 for 5 rounds.", use: { actions: ["consume", "inspect"], target: "self" } },
-  { id: "potion-polymorph", name: "Potion of Polymorph", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["Casts polymorph on the drinker for one hour."] },
-  { id: "potion-extirpation", name: "Potion of Extirpation", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "fabulous", benefits: ["Utterly removes one close-sized creature or object from reality; only wish can restore it."], personality: { alignment: "chaos", trait: "Protests its use and insists the chosen target is wrong." } },
+  { id: "potion-flying", name: "Potion of Flying", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["The drinker can fly a near distance as movement."], description: "Fly with the normal movement controls for 10 rounds.", use: { actions: ["consume", "inspect"], target: "self" } },
+  { id: "potion-giant-strength", name: "Potion of Giant Strength", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["The drinker's Strength becomes 18 (+4) and their melee attacks deal double damage."], description: "Your Strength becomes at least 18 and melee damage doubles for 10 rounds.", use: { actions: ["consume", "inspect"], target: "self" } },
+  { id: "potion-polymorph", name: "Potion of Polymorph", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["Casts polymorph on the drinker for one hour."], description: "Assume a powerful natural form for one hour.", use: { actions: ["consume", "inspect"], target: "self" } },
+  { id: "potion-extirpation", name: "Potion of Extirpation", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "fabulous", benefits: ["Utterly removes one close-sized creature or object from reality; only wish can restore it."], personality: { alignment: "chaos", trait: "Protests its use and insists the chosen target is wrong." }, namedEffect: { kind: "extirpate" }, description: "Remove one close-sized target from reality; only wish can restore it.", use: { actions: ["activate", "inspect"], target: "enemy" } },
   {
     id: "serpent-venom",
     name: "Serpent Venom",
@@ -85,27 +88,27 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "scroll-light", name: "Scroll of Light", slotCost: 1, bundleSize: 1, tags: ["scroll", "magic"], treasureQuality: "normal", benefits: ["Contains one casting of light."], use: { actions: ["cast", "inspect"], target: "none" } },
   { id: "scroll-burning-hands", name: "Scroll of Burning Hands", slotCost: 1, bundleSize: 1, tags: ["scroll", "magic"], treasureQuality: "normal", benefits: ["Contains one casting of burning hands."], use: { actions: ["cast", "inspect"], target: "none" } },
   { id: "scroll-feather-fall", name: "Scroll of Feather Fall", slotCost: 1, bundleSize: 1, tags: ["scroll", "magic"], treasureQuality: "normal", benefits: ["Contains one casting of feather fall."], use: { actions: ["cast", "inspect"], target: "none" } },
-  { id: "scroll-covenant", name: "Scroll of the Covenant", slotCost: 1, bundleSize: 1, tags: ["scroll", "magic"], treasureQuality: "fabulous", benefits: ["Bestows three Divine Halo blessings."] },
+  { id: "scroll-covenant", name: "Scroll of the Covenant", slotCost: 1, bundleSize: 1, tags: ["scroll", "magic"], treasureQuality: "fabulous", benefits: ["Bestows three Divine Halo blessings."], namedEffect: { kind: "divineHalo", count: 3 }, description: "Bestow three Divine Halo blessings (hostile targeted spells are DC 15).", use: { actions: ["activate", "inspect"], target: "self" } },
 
   // Wands, Rings & Utility Items
-  { id: "wand-fireball", name: "Wand of Fireballs", slotCost: 1, bundleSize: 1, tags: ["wand", "magic"], treasureQuality: "normal", benefits: ["Casts fireball using the wielder's spellcasting check."], curses: ["A failed casting makes the wand inert until rest; a critical failure breaks it permanently."], use: { actions: ["cast", "inspect"], target: "none", charges: 1, rechargeOnRest: true, inertOnFail: true, breaksOnCriticalFail: true } },
+  { id: "wand-fireball", name: "Wand of Fireballs", slotCost: 1, bundleSize: 1, tags: ["wand", "magic"], treasureQuality: "normal", benefits: ["Casts fireball using the wielder's spellcasting check."], curses: ["A failed casting makes the wand inert until rest; a critical failure breaks it permanently."], use: { actions: ["cast", "inspect"], target: "none", inertOnFail: true, breaksOnCriticalFail: true } },
   { id: "ring-feather-falling", name: "Ring of Feather Falling", slotCost: 1, bundleSize: 1, tags: ["ring", "magic"], treasureQuality: "fabulous", benefits: ["Once per day, casts feather fall on its wearer when they fall."], personality: { alignment: "neutral", trait: "Fearful of heights and mentally hoots warnings near edges.", flaws: ["Fearful of heights."] }, description: "Automatically prevents one dangerous fall, then recharges on rest.", use: { actions: ["activate", "inspect"], target: "self", charges: 1, rechargeOnRest: true } },
-  { id: "egg-of-cockatrice", name: "Egg of the Cockatrice", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "fabulous", benefits: ["Once per week, hatches a cockatrice that follows commands for 5 rounds; the egg repairs itself over a week."] },
-  { id: "bag-of-holding", name: "Bag of Holding", slotCost: 1, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Contains an interdimensional storage space."], curses: ["Putting it inside another Bag of Holding or Portable Hole destroys both and everything inside."], capacityBonus: 5, description: "Adds 5 gear slots while carried. It cannot be dropped while over capacity.", use: { actions: ["inspect"], target: "none" } },
-  { id: "kytherian-cog", name: "Kytherian Cog", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "fabulous", benefits: ["The bearer starts every session with a luck token."] },
-  { id: "crystal-ball", name: "Crystal Ball", slotCost: 1, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["A wizard can use it to cast scrying."], curses: ["A failed scrying check makes it cease functioning for one day."] },
-  { id: "immovable-rod", name: "Immovable Rod", slotCost: 1, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Its button fixes it in space, where it holds up to 5,000 pounds."] },
-  { id: "portable-hole", name: "Portable Hole", slotCost: 0, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Opens into a six-foot-deep extradimensional space with 20 gear slots."], curses: ["Putting it inside a Bag of Holding or another Portable Hole destroys both and everything inside."] },
-  { id: "brak-cube", name: "Brak's Cube of Perfection", slotCost: 1, bundleSize: 1, tags: ["artifact", "magic"], treasureQuality: "fabulous", benefits: ["Permanently raises one randomly selected stat to 18 (+4)."], curses: ["After use, teleports to a random location in the multiverse."] },
-  { id: "flying-carpet", name: "Flying Carpet", slotCost: 2, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Carries two riders and flies double near on the driver's turn."], personality: { alignment: "neutral", trait: "Playful and mischievous; gets restless without frequent travel.", virtues: ["Enjoys visiting new places."] } },
+  { id: "egg-of-cockatrice", name: "Egg of the Cockatrice", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "fabulous", benefits: ["Once per week, hatches a cockatrice that follows commands for 5 rounds; the egg repairs itself over a week."], namedEffect: { kind: "summon", monsterId: "cockatrice", rounds: 5 }, description: "Summon a cockatrice follower for 5 rounds (once per week).", use: { actions: ["activate", "inspect"], target: "none", charges: 1, rechargeAfterRests: 7 } },
+  { id: "bag-of-holding", name: "Bag of Holding", slotCost: 1, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Contains an interdimensional storage space."], curses: ["Putting it inside another Bag of Holding or Portable Hole destroys both and everything inside."], capacityBonus: 10, description: "Adds 10 gear slots while carried. It cannot be dropped while over capacity.", use: { actions: ["inspect"], target: "none" } },
+  { id: "kytherian-cog", name: "Kytherian Cog", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "fabulous", benefits: ["The bearer starts every session with a luck token."], namedEffect: { kind: "sessionLuck" }, description: "Begin each session with a luck token.", use: { actions: ["inspect"], target: "none" } },
+  { id: "crystal-ball", name: "Crystal Ball", slotCost: 1, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["A wizard can use it to cast scrying."], curses: ["A failed scrying check makes it cease functioning for one day."], requiredClass: "wizard", boundSpellId: "scrying", description: "Cast scrying; a failed check makes the ball inert until rest.", use: { actions: ["cast", "inspect"], target: "none", inertOnFail: true } },
+  { id: "immovable-rod", name: "Immovable Rod", slotCost: 1, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Its button fixes it in space, where it holds up to 5,000 pounds."], namedEffect: { kind: "fixInSpace", capacityLb: 5000 }, description: "Toggle fixed-in-space mode; holds up to 5,000 pounds.", use: { actions: ["activate", "inspect"], target: "none" } },
+  { id: "portable-hole", name: "Portable Hole", slotCost: 0, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Opens into a six-foot-deep extradimensional space with 20 gear slots."], curses: ["Putting it inside a Bag of Holding or another Portable Hole destroys both and everything inside."], capacityBonus: 20, description: "Adds 20 extradimensional gear slots while carried; never nest it with extradimensional storage.", use: { actions: ["inspect"], target: "none" } },
+  { id: "brak-cube", name: "Brak's Cube of Perfection", slotCost: 1, bundleSize: 1, tags: ["artifact", "magic"], treasureQuality: "fabulous", benefits: ["Permanently raises one randomly selected stat to 18 (+4)."], curses: ["After use, teleports to a random location in the multiverse."], namedEffect: { kind: "statTo18" }, description: "Roll d6 to permanently set the corresponding stat to 18; the cube then vanishes.", use: { actions: ["activate", "inspect"], target: "self" } },
+  { id: "flying-carpet", name: "Flying Carpet", slotCost: 2, bundleSize: 1, tags: ["utility", "magic"], treasureQuality: "fabulous", benefits: ["Carries two riders and flies double near on the driver's turn."], personality: { alignment: "neutral", trait: "Playful and mischievous; gets restless without frequent travel.", virtues: ["Enjoys visiting new places."] }, namedEffect: { kind: "flyingMount", riders: 2, speed: "doubleNear" }, description: "Carries two riders and flies double near on the driver's turn.", use: { actions: ["activate", "inspect"], target: "self" } },
 
   // Weapons & Armor Artifacts
   { id: "blade-of-vengeance", name: "Blade of Vengeance (+2)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic"], treasureQuality: "fabulous", magicBonus: 2, benefitRolls: 1, curseRolls: 1, damage: "1d8", finesse: true, reachTiles: 1.8, weaponVisual: "longsword" },
   { id: "greataxe-of-horde", name: "Greataxe of the Horde (+3)", slotCost: 2, bundleSize: 1, tags: ["weapon", "magic"], treasureQuality: "fabulous", magicBonus: 3, benefitRolls: 2, damage: "1d12", twoHanded: true, reachTiles: 2.0, weaponVisual: "mace" },
   { id: "scimitar-of-speed", name: "Scimitar of Speed (+1)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic"], treasureQuality: "fabulous", magicBonus: 1, benefitRolls: 1, damage: "1d6", finesse: true, reachTiles: 1.7, weaponVisual: "dagger" },
-  { id: "obsidian-witchknife", name: "Obsidian Witchknife (+2)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 2, benefits: ["When casting while holding it, the wielder may take damage and add that amount to the spellcasting check."], curses: ["A lawful being cannot wield it."], damage: "1d10", finesse: true, reachTiles: 1.8, weaponVisual: "dagger" },
-  { id: "armor-saint-terragnis", name: "Armor of Saint Terragnis (+3)", slotCost: 3, bundleSize: 1, tags: ["armor", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Hostile spells targeting the wearer are DC 18 to cast.", "Once per month, summons an avatar of Saint Terragnis for 10 rounds."], curses: ["Only a lawful worshipper of Saint Terragnis can wear it."], armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest"] }, armorVisual: "plate" },
-  { id: "staff-of-ord", name: "Staff of Ord (+3)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Functions as wands of dimension door, fireball, sending, and telekinesis without breaking on a natural 1.", "Hostile spells targeting the wielder are DC 18 to cast."], curses: ["Only a wizard can wield it."], damage: "1d4", twoHanded: true, reachTiles: 2.2, weaponVisual: "staff" },
+  { id: "obsidian-witchknife", name: "Obsidian Witchknife (+2)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 2, benefits: ["When casting while holding it, the wielder may take damage and add that amount to the spellcasting check."], curses: ["A lawful being cannot wield it."], forbiddenAlignment: "law", namedEffect: { kind: "spellcastBloodBonus" }, damage: "1d4", finesse: true, reachTiles: 1.8, weaponVisual: "dagger" },
+  { id: "armor-saint-terragnis", name: "Armor of Saint Terragnis (+3)", slotCost: 3, bundleSize: 1, tags: ["armor", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Hostile spells targeting the wearer are DC 18 to cast.", "Once per month, summons an avatar of Saint Terragnis for 10 rounds."], curses: ["Only a lawful worshipper of Saint Terragnis can wear it."], requiredAlignment: "law", hostileSpellDc: 18, namedEffect: { kind: "summon", monsterId: "archangel", rounds: 10 }, use: { actions: ["activate", "inspect"], target: "none", charges: 1, rechargeAfterRests: 30 }, armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest"], stealthDisadvantage: true }, armorVisual: "plate" },
+  { id: "staff-of-ord", name: "Staff of Ord (+3)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Functions as wands of dimension door, fireball, sending, and telekinesis without breaking on a natural 1.", "Hostile spells targeting the wielder are DC 18 to cast."], curses: ["Only a wizard can wield it."], requiredClass: "wizard", hostileSpellDc: 18, boundSpellIds: ["dimension-door", "fireball", "sending", "telekinesis"], use: { actions: ["cast", "inspect"], target: "none", inertOnFail: true }, damage: "1d4", twoHanded: true, reachTiles: 2.2, weaponVisual: "staff" },
 
   // Cursed Scrolls (1-3) Relics & Drops
   { id: "carved-flame-bone", name: "Carved Flame Bone", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "normal", benefits: ["Ignites in flame once per day for 1d4 rounds."] },
@@ -125,6 +128,7 @@ const BASE_ITEMS = new Map(BASE_ITEM_LIST.map((entry) => [entry.id, entry]));
 const CORE_TREASURE_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.map((spec) => {
   const base = spec.baseItemId ? BASE_ITEMS.get(spec.baseItemId) : undefined;
   if (spec.baseItemId && !base) throw new Error(`Unknown core treasure base item "${spec.baseItemId}"`);
+  const generatedSpell = spec.spellTier ? magicItemSpell(spec.spellTier, 1) : undefined;
   return {
     ...(base ?? { slotCost: 1, bundleSize: 1, tags: ["treasure"] }),
     id: spec.id,
@@ -138,10 +142,36 @@ const CORE_TREASURE_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.map((sp
     benefitRolls: spec.benefitRolls ?? base?.benefitRolls,
     curseRolls: spec.curseRolls ?? base?.curseRolls,
     personality: spec.personality ?? base?.personality,
+    boundSpellId: generatedSpell?.id ?? base?.boundSpellId,
+    use: spec.spellContainer
+      ? {
+          actions: ["cast", "inspect"],
+          target: "none",
+          ...(spec.spellContainer === "wand"
+            ? { inertOnFail: true, breaksOnCriticalFail: true }
+            : {}),
+        }
+      : base?.use,
   };
 });
 
-const ITEM_LIST: readonly ItemDef[] = [...BASE_ITEM_LIST, ...CORE_TREASURE_ITEMS];
+const GENERATED_SPELL_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.flatMap((spec) => {
+  if (!spec.spellTier || !spec.spellContainer) return [];
+  const base = CORE_TREASURE_ITEMS.find((candidate) => candidate.id === spec.id)!;
+  return Array.from({ length: 12 }, (_, index) => {
+    const contained = magicItemSpell(spec.spellTier!, index + 1);
+    return {
+      ...base,
+      id: `${spec.id}--${contained.id}`,
+      rulesId: spec.spellContainer === "wand" ? "generated-wand" : "generated-scroll",
+      name: `${spec.spellContainer === "wand" ? "Wand" : "Scroll"} of ${contained.name}`,
+      boundSpellId: contained.id,
+      description: `${spec.description} Contains ${contained.name}, a tier ${spec.spellTier} spell.`,
+    };
+  });
+});
+
+const ITEM_LIST: readonly ItemDef[] = [...BASE_ITEM_LIST, ...CORE_TREASURE_ITEMS, ...GENERATED_SPELL_ITEMS];
 
 const ITEMS = new Map(ITEM_LIST.map((i) => [i.id, i]));
 if (ITEMS.size !== ITEM_LIST.length) throw new Error("Duplicate item ids in data");
@@ -154,4 +184,12 @@ export function item(id: string): ItemDef {
 
 export function allItems(): readonly ItemDef[] {
   return ITEM_LIST;
+}
+
+/** Resolve one exact d12 spell face for a generic core-table scroll or wand. */
+export function generatedMagicItem(baseItemId: string, d12: number): ItemDef {
+  const spec = CORE_TREASURE_ITEM_SPECS.find((candidate) => candidate.id === baseItemId);
+  if (!spec?.spellTier || !spec.spellContainer) return item(baseItemId);
+  const contained = magicItemSpell(spec.spellTier, d12);
+  return item(`${baseItemId}--${contained.id}`);
 }

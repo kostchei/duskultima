@@ -276,6 +276,9 @@ export class Character {
     if (!def.armor.classes.includes(this.className)) {
       throw new Error(`A ${this.className} cannot wear ${def.name}`);
     }
+    if (def.requiredClass && def.requiredClass !== this.className) throw new Error(`Only a ${def.requiredClass} can wear ${def.name}`);
+    if (def.requiredAlignment && def.requiredAlignment !== this.alignment) throw new Error(`${def.name} requires ${def.requiredAlignment} alignment`);
+    if (def.forbiddenAlignment === this.alignment) throw new Error(`${def.name} cannot be worn by a ${this.alignment} being`);
     this.wornArmor = def;
   }
 
@@ -284,6 +287,9 @@ export class Character {
     if (!def.tags.includes("weapon") || !def.damage || def.reachTiles === undefined) {
       throw new Error(`${def.name} is not a melee weapon`);
     }
+    if (def.requiredClass && def.requiredClass !== this.className) throw new Error(`Only a ${def.requiredClass} can wield ${def.name}`);
+    if (def.requiredAlignment && def.requiredAlignment !== this.alignment) throw new Error(`${def.name} requires ${def.requiredAlignment} alignment`);
+    if (def.forbiddenAlignment === this.alignment) throw new Error(`${def.name} cannot be wielded by a ${this.alignment} being`);
     this.wieldedWeapon = def;
   }
 

@@ -6,7 +6,7 @@ import {
   nextDungeonSave,
   type PartyProgress,
 } from "../src/game/progression";
-import { isPlebName, item, spell } from "../src/data";
+import { isPlebName, item } from "../src/data";
 import { skinsForZone } from "../src/game/visual/skins";
 
 const fighter: PartyProgress = { className: "fighter", level: 1, knownSpellIds: [] };
@@ -46,8 +46,9 @@ function saved(id: string, className: string, dead = false): SavedCharacter {
 }
 
 describe("campaign rewards", () => {
-  it("gives a solo first run one companion, not the whole party", () => {
-    const reward = chooseDungeonReward(0, [fighter]);
+  it("can turn the guaranteed treasure result into one rescued companion", () => {
+    const reward = Array.from({ length: 50 }, (_, dungeonIndex) => chooseDungeonReward(dungeonIndex, [fighter]))
+      .find((candidate) => candidate.kind === "companion")!;
     expect(reward.kind).toBe("companion");
     if (reward.kind !== "companion") throw new Error("Expected a companion reward");
     expect(["thief", "priest", "wizard"]).toContain(reward.className);
@@ -55,12 +56,15 @@ describe("campaign rewards", () => {
     expect(reward.title).toContain(reward.name);
   });
 
-  it("cycles through five reward positions with two general treasure finds", () => {
+  it("splits guaranteed finds approximately 50/50 between treasure and rescues", () => {
     const fullParty = [fighter, thief, priest, wizard];
-    expect(chooseDungeonReward(1, fullParty).kind).toBe("treasure");
-    expect(chooseDungeonReward(2, fullParty).kind).toBe("treasure");
-    expect(chooseDungeonReward(3, fullParty).kind).toBe("gold");
-    expect(chooseDungeonReward(4, fullParty).kind).toBe("spells");
+    const rewards = Array.from({ length: 1000 }, (_, dungeonIndex) => chooseDungeonReward(dungeonIndex, fullParty));
+    const rescues = rewards.filter((reward) => reward.kind === "companion");
+    const treasures = rewards.filter((reward) => reward.kind === "treasure" || reward.kind === "gold");
+    expect(rescues.length).toBeGreaterThan(450);
+    expect(rescues.length).toBeLessThan(550);
+    expect(treasures).toHaveLength(1000 - rescues.length);
+    expect(rescues.every((reward) => reward.kind === "companion" && reward.escortGold === 10)).toBe(true);
   });
 
   it("rolls the vault treasure tables instead of always the same item", () => {
@@ -139,7 +143,6 @@ describe("campaign rewards", () => {
     const fullParty = [fighter, thief, priest, wizard];
     for (let dungeonIndex = 1; dungeonIndex < 100; dungeonIndex += 5) {
       const reward = chooseDungeonReward(dungeonIndex, fullParty);
-      expect(reward.kind).toBe("treasure");
       if (reward.kind !== "treasure") continue;
       const def = item(reward.itemId);
       expect(reward).toMatchObject({
@@ -156,28 +159,10 @@ describe("campaign rewards", () => {
     throw new Error("No treasure reward produced");
   });
 
-  it("always makes a caster's first discovered spell tier 1, even at high level", () => {
-    const veteranWizard = { ...wizard, level: 9 };
-    const reward = chooseDungeonReward(4, [fighter, thief, priest, veteranWizard]);
-    expect(reward.kind).toBe("spells");
-    if (reward.kind !== "spells") throw new Error("Expected a spell reward");
-    expect(spell(reward.spellId).tier).toBe(1);
-  });
-
-  it("limits later random discoveries to tiers unlocked by caster level", () => {
+  it("retains spell-tier progression for scroll and item effects", () => {
     expect([1, 1, 2, 2, 3, 3, 4, 4, 5, 5].map((_, index) => maximumSpellTier(index + 1)))
       .toEqual([1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
 
-    const developingPriest: PartyProgress = {
-      ...priest,
-      level: 3,
-      knownSpellIds: [...priest.knownSpellIds, "holy-weapon"],
-    };
-    const reward = chooseDungeonReward(9, [fighter, thief, developingPriest]);
-    expect(reward.kind).toBe("spells");
-    if (reward.kind !== "spells") throw new Error("Expected a spell reward");
-    expect(reward.className).toBe("priest");
-    expect(spell(reward.spellId).tier).toBeLessThanOrEqual(2);
   });
 
   it("keeps the random reward stable when the same save is reloaded", () => {
@@ -185,16 +170,21 @@ describe("campaign rewards", () => {
     expect(chooseDungeonReward(9, party)).toEqual(chooseDungeonReward(9, party));
   });
 
-  it("turns an unusable spell reward into the next missing caster", () => {
-    const reward = chooseDungeonReward(4, [fighter, thief]);
+  it("chooses a missing base role when the treasure result is a rescue", () => {
+    const reward = Array.from({ length: 50 }, (_, dungeonIndex) => chooseDungeonReward(dungeonIndex, [fighter, thief]))
+      .find((candidate) => candidate.kind === "companion")!;
     expect(reward.kind).toBe("companion");
     if (reward.kind !== "companion") throw new Error("Expected a companion reward");
     expect(["priest", "wizard"]).toContain(reward.className);
   });
 
-  it("does not offer duplicate companions and falls back to gold", () => {
-    const fullParty = [fighter, thief, priest, wizard];
-    expect(chooseDungeonReward(5, fullParty)).toMatchObject({ kind: "gold", amount: 500 });
+  it("scales the full-party escort reward to 10 gp times average party level", () => {
+    const fullParty = [
+      { ...fighter, level: 2 }, { ...thief, level: 3 }, { ...priest, level: 4 }, { ...wizard, level: 5 },
+    ];
+    const reward = Array.from({ length: 50 }, (_, dungeonIndex) => chooseDungeonReward(dungeonIndex, fullParty))
+      .find((candidate) => candidate.kind === "companion")!;
+    expect(reward).toMatchObject({ kind: "companion", escortGold: 30 });
   });
 });
 

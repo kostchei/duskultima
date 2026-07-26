@@ -76,12 +76,12 @@ const MONSTER_GLYPH: Record<string, string> = {
   "gloom-ogre": "O",
 };
 
-const BEAT_LABEL: Record<Beat, { title: string; ordinal: string }> = {
-  entrance: { title: "THE GATE", ordinal: "I" },
-  challenge: { title: "THE TEST", ordinal: "II" },
-  setback: { title: "THE SETBACK", ordinal: "III" },
-  climax: { title: "THE CLIMAX", ordinal: "IV" },
-  reward: { title: "THE VAULT", ordinal: "V" },
+const BEAT_LABEL: Record<Beat, { title: string }> = {
+  entrance: { title: "THE GATE" },
+  challenge: { title: "THE TEST" },
+  setback: { title: "THE SETBACK" },
+  climax: { title: "THE CLIMAX" },
+  reward: { title: "THE VAULT" },
 };
 
 const SOLID = new Set(["#", "%", "="]);
@@ -292,7 +292,7 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
   // template never perturbs topology or connector selection. Standard runs get
   // zero or one talkable NPC, targeting half of seeds.
   const npcEligible = abstract.rooms.filter((room) =>
-    room.contentFamily === "discovery" || room.contentFamily === "twist",
+    (room.contentRoll ?? 3) > 2 && (room.contentFamily === "discovery" || room.contentFamily === "twist"),
   );
   const npcRoom = npcEligible.length > 0 && templateHash(abstract.seed, "talkable-npc") % 2 === 0
     ? npcEligible[templateHash(abstract.seed, "talkable-npc-room") % npcEligible.length]
@@ -342,7 +342,12 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
       roomId: room.id,
       family: room.contentFamily,
       templateId: stamped.templateId,
-      pressures: stamped.pressures,
+      pressures: [...new Set([
+        ...stamped.pressures,
+        ...(room.id === abstract.entranceRoomId ? (["light"] as const) : []),
+        ...(room.id === abstract.climaxRoomId ? (["hp"] as const) : []),
+        ...(room.id === abstract.rewardRoomId ? (["inventory"] as const) : []),
+      ])],
     });
     if (stamped.npcLocalX !== undefined) {
       const npcHash = templateHash(abstract.seed, `npc:${room.id}`);
@@ -383,14 +388,14 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
   // coordinates for the scene's interaction/persistence layer.
   for (const connector of connectors) stampBlocker(grid, connector);
 
-  const regions: RoomRegion[] = abstract.rooms.map((room) => {
+  const regions: RoomRegion[] = abstract.rooms.map((room, index) => {
     const ox = cellOx(room.position.column);
     const oy = cellOy(room.position.row);
     const label = BEAT_LABEL[room.beat];
     return {
       id: room.id,
       title: label.title,
-      hud: `ROOM ${label.ordinal}  |  ${label.title}`,
+      hud: `ROOM ${index + 1}  |  ${label.title}`,
       x1: ox,
       y1: oy,
       x2: ox + CELL_W - 1,

@@ -49,6 +49,8 @@ export interface ItemUseDef {
   charges?: number;
   /** Charges refill to full on rest instead of being spent for the run. */
   rechargeOnRest?: boolean;
+  /** Longer recharge measured in completed rests (week = 7, month = 30). */
+  rechargeAfterRests?: number;
   /** A normal failed cast/activate makes the item inert until the wielder rests (wands). */
   inertOnFail?: boolean;
   /** A critical failure destroys the item permanently (wands). */
@@ -60,6 +62,9 @@ export interface ItemInstanceState {
   chargesRemaining?: number;
   inert: boolean;
   broken: boolean;
+  /** Toggle state for permanent activations such as an Immovable Rod. */
+  active?: boolean;
+  rechargeRestsRemaining?: number;
 }
 
 const DEFAULT_INSTANCE_STATE: ItemInstanceState = { inert: false, broken: false };
@@ -101,6 +106,17 @@ export class ItemStateTracker {
     this.put(itemId, { ...s, inert: false, broken: false });
   }
 
+  toggleActive(itemId: string): boolean {
+    const s = this.get(itemId);
+    const active = !s.active;
+    this.put(itemId, { ...s, active });
+    return active;
+  }
+
+  setRechargeRests(itemId: string, rests: number): void {
+    this.put(itemId, { ...this.get(itemId), rechargeRestsRemaining: rests });
+  }
+
   entries(): readonly (readonly [string, ItemInstanceState])[] {
     return [...this.state.entries()];
   }
@@ -116,6 +132,26 @@ export interface ItemDef {
   /** Optional canonical rules identity for a named treasure-table instance that
    * keeps its own inventory id, description, and value. */
   rulesId?: string;
+  /** Exact spell contained by a scroll, wand, or multi-spell artifact. */
+  boundSpellId?: string;
+  /** Additional selectable spells contained by an artifact such as the Staff of Ord. */
+  boundSpellIds?: readonly string[];
+  /** Minimum DC for hostile spells that directly target the bearer. */
+  hostileSpellDc?: number;
+  /** Class/alignment restrictions intrinsic to a named item. */
+  requiredClass?: string;
+  requiredAlignment?: "law" | "neutral" | "chaos";
+  forbiddenAlignment?: "law" | "neutral" | "chaos";
+  /** Structured named effects used by the engine and game layer. */
+  namedEffect?:
+    | { kind: "summon"; monsterId: string; rounds: number }
+    | { kind: "sessionLuck" }
+    | { kind: "fixInSpace"; capacityLb: number }
+    | { kind: "extirpate" }
+    | { kind: "statTo18" }
+    | { kind: "flyingMount"; riders: number; speed: "doubleNear" }
+    | { kind: "divineHalo"; count: number }
+    | { kind: "spellcastBloodBonus" };
   name: string;
   /** Slots one instance occupies. 0 = free to carry. */
   slotCost: number;
@@ -160,6 +196,8 @@ export interface ItemDef {
     dexCap: number;
     /** Class names permitted to wear it. */
     classes: readonly string[];
+    /** Noisy, restrictive armor imposes disadvantage on stealth checks. */
+    stealthDisadvantage?: boolean;
   };
   /** Pixel-art material used independently of the item's rules identity. */
   armorVisual?: ArmorVisual;

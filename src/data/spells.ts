@@ -1,6 +1,6 @@
 import type { Character, SpellDef } from "../engine";
 
-const SPELL_LIST: readonly SpellDef[] = [
+const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
   {
     id: "magic-missile",
     name: "Magic Missile",
@@ -350,6 +350,33 @@ const SPELL_LIST: readonly SpellDef[] = [
   },
 ];
 
+/** Exact d12 spell faces from the core Scrolls and Wands table (pp. 288-289). */
+export const MAGIC_ITEM_SPELL_IDS_BY_TIER: Readonly<Record<number, readonly string[]>> = {
+  1: ["alarm", "burning-hands", "charm-person", "detect-magic", "feather-fall", "floating-disk", "hold-portal", "light", "mage-armor", "magic-missile", "protection-from-evil", "sleep"],
+  2: ["acid-arrow", "alter-self", "detect-thoughts", "fixed-object", "hold-person", "invisibility", "knock", "levitate", "mirror-image", "misty-step", "silence", "web"],
+  3: ["animate-dead", "dispel-magic", "fabricate", "fireball", "fly", "gaseous-form", "illusion", "lightning-bolt", "magic-circle", "protection-from-energy", "sending", "speak-with-dead"],
+  4: ["arcane-eye", "cloudkill", "confusion", "control-water", "dimension-door", "divination", "passwall", "polymorph", "resilient-sphere", "stoneskin", "telekinesis", "wall-of-force"],
+  5: ["antimagic-shell", "create-undead", "disintegrate", "hold-monster", "plane-shift", "power-word-kill", "prismatic-orb", "scrying", "shapechange", "summon-extraplanar", "teleport", "wish"],
+};
+
+const SPELL_NAMES: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.values(MAGIC_ITEM_SPELL_IDS_BY_TIER).flat().map((id) => [id, id.split("-").map((word) => word[0]!.toUpperCase() + word.slice(1)).join(" ")]),
+);
+
+const implementedIds = new Set(IMPLEMENTED_SPELL_LIST.map((entry) => entry.id));
+const GENERATED_MAGIC_ITEM_SPELLS: readonly SpellDef[] = Object.entries(MAGIC_ITEM_SPELL_IDS_BY_TIER).flatMap(
+  ([tier, ids]) => ids.filter((id) => !implementedIds.has(id)).map((id) => ({
+    id,
+    name: SPELL_NAMES[id]!,
+    tier: Number(tier),
+    class: "wizard" as const,
+    range: "near",
+    focus: false,
+    description: `A tier ${tier} wizard spell from the core scroll and wand table.`,
+  })),
+);
+
+const SPELL_LIST: readonly SpellDef[] = [...IMPLEMENTED_SPELL_LIST, ...GENERATED_MAGIC_ITEM_SPELLS];
 const SPELLS = new Map(SPELL_LIST.map((s) => [s.id, s]));
 if (SPELLS.size !== SPELL_LIST.length) throw new Error("Duplicate spell ids in data");
 
@@ -367,9 +394,17 @@ const ITEM_SPELLS: Readonly<Record<string, string>> = {
   "wand-fireball": "fireball",
 };
 
-export function spellForMagicItem(itemId: string, rulesId?: string): SpellDef | undefined {
-  const spellId = ITEM_SPELLS[rulesId ?? itemId];
+export function spellForMagicItem(itemId: string, rulesId?: string, boundSpellId?: string): SpellDef | undefined {
+  const spellId = boundSpellId ?? ITEM_SPELLS[rulesId ?? itemId];
   return spellId ? spell(spellId) : undefined;
+}
+
+export function magicItemSpell(tier: number, d12: number): SpellDef {
+  const ids = MAGIC_ITEM_SPELL_IDS_BY_TIER[tier];
+  if (!ids || !Number.isInteger(d12) || d12 < 1 || d12 > 12) {
+    throw new Error(`Invalid magic-item spell roll: tier ${tier}, d12 ${d12}`);
+  }
+  return spell(ids[d12 - 1]!);
 }
 
 export function spellsForClass(cls: SpellDef["class"]): readonly SpellDef[] {

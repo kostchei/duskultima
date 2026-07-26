@@ -55,6 +55,15 @@ const templates: readonly RoomTemplate[] = [
     stamp: (_s, place) => { place(9, "N"); place(13, "I"); } },
 ];
 
+const EMPTY_SHORT_WALK: RoomTemplate = {
+  id: "empty-short-walk",
+  family: "discovery",
+  pressures: [],
+  minDegree: 0,
+  maxDegree: Number.POSITIVE_INFINITY,
+  stamp: () => {},
+};
+
 export const ROOM_TEMPLATES: readonly RoomTemplate[] = templates;
 
 function hash(seed: number, text: string): number {
@@ -84,6 +93,8 @@ export function chooseRoomTemplate(
   connectorKinds: readonly ConnectorKind[],
   npcMode: "required" | "forbidden" | "optional" = "optional",
 ): RoomTemplate {
+  if ((room.contentRoll ?? 3) <= 2) return EMPTY_SHORT_WALK;
+  if (room.contentRoll === 9) return templates.find((template) => template.id === "opportunity-cache")!;
   const compatible = templates.filter((template) =>
     template.family === room.contentFamily &&
     degree >= template.minDegree && degree <= template.maxDegree &&

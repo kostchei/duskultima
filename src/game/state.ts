@@ -10,7 +10,7 @@ import type {
   Stats,
   VoiceRegister,
 } from "../engine";
-import { Character as EngineCharacter, initializeClassState } from "../engine";
+import { Character as EngineCharacter, applySessionItemEffects, initializeClassState } from "../engine";
 import { item } from "../data";
 import type { VisualSkinId, ZonePackId } from "./visual/model";
 
@@ -196,6 +196,7 @@ export function deserializeCharacter(state: SavedCharacter, _engine: Engine): Ch
     }
     c.inventory.add(item(itemState.itemId), itemState.qty, true);
   }
+  applySessionItemEffects(c);
 
   // Restore equipment
   if (state.wornArmorId) c.wornArmor = item(state.wornArmorId);

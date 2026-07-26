@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateAbstractDungeon } from "../src/game/level/generate";
+import { generateAbstractDungeon, roomCountForSeed } from "../src/game/level/generate";
 import { validate } from "../src/game/level/progression";
 import { ORIENTATIONS } from "../src/game/level/embedding";
 import { TOPOLOGIES, type TopologyId } from "../src/game/level/topology";
@@ -36,6 +36,39 @@ describe("per-released-topology validity", () => {
 });
 
 describe("abstract dungeon generation", () => {
+  it.each([
+    { roomCount: 5 as const, width: 5, height: 4, minimum: 5 },
+    { roomCount: 8 as const, width: 6, height: 5, minimum: 6 },
+    { roomCount: 12 as const, width: 8, height: 6, minimum: 7 },
+  ])("builds $roomCount result slots on a $width x $height grid", ({ roomCount, width, height, minimum }) => {
+    let sawExtraTreasure = false;
+    let sawAllowedEmpty = false;
+    for (let seed = 0; seed < 250; seed++) {
+      const dungeon = generateAbstractDungeon(seed, { roomCount });
+      expect(dungeon.rooms).toHaveLength(roomCount);
+      expect(dungeon.macroWidth).toBe(width);
+      expect(dungeon.macroHeight).toBe(height);
+      expect(validate(dungeon).ok).toBe(true);
+      const rolls = dungeon.rooms.map((room) => room.contentRoll!);
+      expect(dungeon.rooms.find((room) => room.id === dungeon.rewardRoomId)!.contentRoll).toBe(9);
+      expect(rolls.filter((roll) => roll > 2).length).toBeGreaterThanOrEqual(minimum);
+      if (rolls.filter((roll) => roll === 9).length > 1) sawExtraTreasure = true;
+      if (rolls.some((roll) => roll <= 2)) sawAllowedEmpty = true;
+    }
+    expect(sawExtraTreasure).toBe(true);
+    expect(sawAllowedEmpty).toBe(roomCount !== 5);
+  });
+
+  it("uses a deterministic d6 distribution for playable site size", () => {
+    const counts = new Map<number, number>();
+    for (let seed = 0; seed < 600; seed++) {
+      const size = roomCountForSeed(seed);
+      expect(roomCountForSeed(seed)).toBe(size);
+      counts.set(size, (counts.get(size) ?? 0) + 1);
+    }
+    expect(counts.get(5)).toBeGreaterThan(counts.get(8)!);
+    expect(counts.get(8)).toBeGreaterThan(counts.get(12)!);
+  });
   it("produces a validated dungeon for every seed via the default weighted roll", () => {
     for (let seed = 0; seed < DIST_SAMPLE; seed++) {
       const d = generateAbstractDungeon(seed);

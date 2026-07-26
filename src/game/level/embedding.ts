@@ -1,12 +1,12 @@
 /**
- * Embedding: place a topology's five nodes into the 4-row x 5-column macro-grid,
+ * Embedding: place a topology's nodes into its rectangular macro-grid,
  * route each edge through at most two filler cells, and report how rooms sit
  * relative to one another so connector kinds can be chosen.
  *
  * Following the plan's steer, we do NOT run a general planar embedder. Each Tier 1
  * form has one hand-authored canonical placement (drawn from the plan's own
- * example layouts), and variety comes from the grid's symmetry group. The grid is
- * 5x4, not square, so only the four rectangle symmetries apply: identity, flip-x,
+ * example layouts), and variety comes from the grid's symmetry group. The grids
+ * are rectangular, so only the four rectangle symmetries apply: identity, flip-x,
  * flip-y, and 180-degree rotation. 90-degree rotations are excluded.
  *
  * Edge routing is automatic: a breadth-first search finds the shortest orthogonal
@@ -136,6 +136,20 @@ const CANONICAL: Record<TopologyId, readonly Placement[]> = {
     { node: 2, column: 3, row: 1 }, { node: 3, column: 2, row: 2 },
     { node: 4, column: 2, row: 3 },
   ],
+  "eight-room-expedition": [
+    { node: 0, column: 0, row: 2 }, { node: 1, column: 1, row: 2 },
+    { node: 2, column: 2, row: 2 }, { node: 3, column: 3, row: 2 },
+    { node: 4, column: 5, row: 2 }, { node: 5, column: 2, row: 0 },
+    { node: 6, column: 4, row: 0 }, { node: 7, column: 3, row: 4 },
+  ],
+  "twelve-room-expedition": [
+    { node: 0, column: 0, row: 3 }, { node: 1, column: 1, row: 3 },
+    { node: 2, column: 2, row: 3 }, { node: 3, column: 3, row: 3 },
+    { node: 4, column: 4, row: 3 }, { node: 5, column: 5, row: 3 },
+    { node: 6, column: 7, row: 3 }, { node: 7, column: 2, row: 1 },
+    { node: 8, column: 4, row: 1 }, { node: 9, column: 4, row: 5 },
+    { node: 10, column: 6, row: 5 }, { node: 11, column: 6, row: 1 },
+  ],
 };
 
 const CANONICAL_JUNCTIONS: Partial<Record<TopologyId, Placement>> = {
@@ -165,19 +179,19 @@ function key(column: number, row: number): string {
   return `${column},${row}`;
 }
 
-function inBounds(column: number, row: number): boolean {
-  return column >= 0 && column < MACRO_COLUMNS && row >= 0 && row < MACRO_ROWS;
+function inBounds(column: number, row: number, columns: number, rows: number): boolean {
+  return column >= 0 && column < columns && row >= 0 && row < rows;
 }
 
-function isBoundary(p: MacroPoint): boolean {
-  return p.column === 0 || p.column === MACRO_COLUMNS - 1 || p.row === 0 || p.row === MACRO_ROWS - 1;
+function isBoundary(p: MacroPoint, columns: number, rows: number): boolean {
+  return p.column === 0 || p.column === columns - 1 || p.row === 0 || p.row === rows - 1;
 }
 
-function transform(p: Placement, orientation: Orientation): Placement {
+function transform(p: Placement, orientation: Orientation, columns: number, rows: number): Placement {
   const column =
-    orientation === "flip-x" || orientation === "rot180" ? MACRO_COLUMNS - 1 - p.column : p.column;
+    orientation === "flip-x" || orientation === "rot180" ? columns - 1 - p.column : p.column;
   const row =
-    orientation === "flip-y" || orientation === "rot180" ? MACRO_ROWS - 1 - p.row : p.row;
+    orientation === "flip-y" || orientation === "rot180" ? rows - 1 - p.row : p.row;
   return { node: p.node, column, row };
 }
 
@@ -200,6 +214,8 @@ function routeEdge(
   to: MacroPoint,
   rooms: ReadonlySet<string>,
   claimed: ReadonlySet<string>,
+  columns: number,
+  rows: number,
 ): MacroPoint[] | null {
   const start = key(from.column, from.row);
   const goal = key(to.column, to.row);
@@ -218,7 +234,7 @@ function routeEdge(
     for (const [dc, dr] of steps) {
       const nc = cur.column + dc;
       const nr = cur.row + dr;
-      if (!inBounds(nc, nr)) continue;
+      if (!inBounds(nc, nr, columns, rows)) continue;
       const k = key(nc, nr);
       if (seen.has(k)) continue;
       if (k === goal) return cur.path; // endpoints excluded from routedCells
@@ -238,7 +254,9 @@ function routeEdge(
  * Tier 1 catalogue, but a signal the generator can catch for future dense forms.
  */
 export function embed(form: TopologyForm, orientation: Orientation): Embedding {
-  const placements = CANONICAL[form.id].map((p) => transform(p, orientation));
+  const columns = form.macroWidth ?? MACRO_COLUMNS;
+  const rows = form.macroHeight ?? MACRO_ROWS;
+  const placements = CANONICAL[form.id].map((p) => transform(p, orientation, columns, rows));
   const cells = new Map<number, MacroPoint>();
   const rooms = new Set<string>();
   for (const p of placements) {
@@ -251,13 +269,13 @@ export function embed(form: TopologyForm, orientation: Orientation): Embedding {
   }
 
   const boundaryNodes = new Set<number>();
-  for (const [node, cell] of cells) if (isBoundary(cell)) boundaryNodes.add(node);
+  for (const [node, cell] of cells) if (isBoundary(cell, columns, rows)) boundaryNodes.add(node);
 
   const claimed = new Set<string>();
   const edges: EmbeddedEdge[] = [];
   const canonicalJunction = CANONICAL_JUNCTIONS[form.id];
   const junctionCells = canonicalJunction
-    ? [transform(canonicalJunction, orientation)].map((p) => ({
+    ? [transform(canonicalJunction, orientation, columns, rows)].map((p) => ({
         column: p.column as MacroPoint["column"],
         row: p.row as MacroPoint["row"],
       }))
@@ -270,7 +288,7 @@ export function embed(form: TopologyForm, orientation: Orientation): Embedding {
     const from = cells.get(edge[0])!;
     const to = cells.get(edge[1])!;
     const usesJunction = form.id === "kite" && edge[0] < 4 && edge[1] < 4;
-    const routed = usesJunction ? [...junctionCells] : routeEdge(from, to, rooms, claimed);
+    const routed = usesJunction ? [...junctionCells] : routeEdge(from, to, rooms, claimed, columns, rows);
     if (!routed) {
       throw new Error(
         `Cannot route edge ${edge[0]}-${edge[1]} of ${form.id} (${orientation}) within ${MAX_ROUTE_FILLERS} filler cells`,

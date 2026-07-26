@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { Engine } from "../src/engine";
+import { createCharacter, registerTables } from "../src/data";
+import { appearanceForCharacter } from "../src/game/entities/appearance";
 import {
   PORTER_CAPACITY_SLOTS,
   PORTER_HIRE_PRICE,
@@ -38,5 +41,18 @@ describe("porter hiring rules", () => {
     const porter = { id: "porter", distance: 1 };
     expect(chooseMonsterTarget([adventurer], porter, (target) => target.distance)).toBe(adventurer);
     expect(chooseMonsterTarget([], porter, (target) => target.distance)).toBe(porter);
+  });
+
+  it("handles appearance and stats for unequipped porters without throwing", () => {
+    const engine = new Engine({ seed: 1 });
+    registerTables(engine);
+    const character = createCharacter(engine, "porter-1", "Brim", "fighter", "human", "neutral");
+    character.wieldedWeapon = null;
+    character.wornArmor = null;
+
+    const app = appearanceForCharacter(character);
+    expect(app.weapon).toBe("none");
+    expect(app.armor).toBe("unarmored");
+    expect(character.wieldedWeapon).toBeNull();
   });
 });

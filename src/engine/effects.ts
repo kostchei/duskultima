@@ -34,6 +34,7 @@ export type EffectHook =
   | { kind: "armorAcBonus"; armorId: string; bonus: number }
   | { kind: "damageBonus"; bonus: number }
   | { kind: "meleeDamageBonus"; bonus: number }
+  | { kind: "meleeDamageMultiplier"; value: number }
   /** Weapon Mastery scaling: +floor(level / 2) damage. */
   | { kind: "damageBonusHalfLevel" }
   | { kind: "maxHpBonus"; bonus: number }
@@ -54,6 +55,7 @@ export type EffectHook =
   | { kind: "focusSpell"; spellId: string; tier: number }
   | { kind: "focusTarget"; targetId: string }
   | { kind: "focusPoint"; x: number; y: number }
+  | { kind: "hostileSpellDc"; value: number }
   /** Ancestry/talent immunity to a named status condition (see ./conditions). */
   | { kind: "conditionImmunity"; condition: string }
   | { kind: "resourceBonus"; resource: ClassResource; bonus: number }

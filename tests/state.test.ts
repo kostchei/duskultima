@@ -131,7 +131,7 @@ describe("Save slots / serialization", () => {
 
     const restored = deserializeCharacter(serializeCharacter(thief), makeEngine());
 
-    expect(restored.inventory.capacity).toBe(baseCapacity + 5);
+    expect(restored.inventory.capacity).toBe(baseCapacity + 10);
     expect(restored.inventory.has("bag-of-holding")).toBe(true);
     expect(restored.itemState.get("ring-feather-falling").chargesRemaining).toBe(0);
   });

@@ -50,7 +50,7 @@ describe("core potions", () => {
     usePotion(user, user, item(itemId), fixedDice(1));
     expect(hasCapability(user, capability)).toBe(true);
 
-    const rounds = itemId === "potion-water-breathing" ? 20 : 5;
+    const rounds = itemId === "potion-water-breathing" ? 20 : 10;
     engine.advance(rounds * 100);
     expect(hasCapability(user, capability)).toBe(false);
   });
@@ -64,15 +64,15 @@ describe("core potions", () => {
     usePotion(user, user, item("potion-giant-strength"), fixedDice(1));
     expect(user.stats.STR).toBe(8);
     expect(user.mod("STR")).toBe(4);
-    engine.advance(500);
+    engine.advance(1000);
     expect(user.stats.STR).toBe(8);
     expect(user.mod("STR")).toBe(-1);
   });
 
   it("rejects unsupported potion definitions without consuming them", () => {
     const user = fighter("user");
-    user.inventory.add(item("potion-polymorph"));
-    expect(() => usePotion(user, user, item("potion-polymorph"), fixedDice(1))).toThrow("cannot be used");
-    expect(user.inventory.has("potion-polymorph")).toBe(true);
+    user.inventory.add(item("potion-extirpation"));
+    expect(() => usePotion(user, user, item("potion-extirpation"), fixedDice(1))).toThrow("cannot be used");
+    expect(user.inventory.has("potion-extirpation")).toBe(true);
   });
 });

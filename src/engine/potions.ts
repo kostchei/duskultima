@@ -11,6 +11,7 @@ export const POTION_EFFECT_IDS = {
   waterBreathing: "potion:water-breathing",
   flying: "potion:flying",
   giantStrength: "potion:giant-strength",
+  polymorph: "potion:polymorph",
 } as const;
 
 export interface PotionUseResult {
@@ -33,10 +34,13 @@ export function hasCapability(
   character: Character,
   capability: "invisible" | "waterBreathing" | "canFly",
 ): boolean {
-  return hasHook(character.effects, capability);
+  if (hasHook(character.effects, capability)) return true;
+  return capability === "canFly" && character.inventory.all().some(
+    (stack) => stack.def.namedEffect?.kind === "flyingMount",
+  );
 }
 
-/** Drink one of the five fully implemented core potions. */
+/** Drink one of the core named potions. */
 export function usePotion(
   user: Character,
   target: Character,
@@ -52,15 +56,16 @@ export function usePotion(
     case "potion-healing": {
       if (target.hp >= target.maxHp && !target.dying) throw new Error(`${target.name} is already at full HP.`);
       const before = target.hp;
-      target.heal(dice.roll("1d6"));
+      const healingDie = target.level <= 3 ? "1d6" : target.level <= 6 ? "2d8" : target.level <= 9 ? "3d10" : "4d12";
+      target.heal(dice.roll(healingDie));
       const healed = target.hp - before;
       result = { itemId: def.id, healed, message: `${target.name} recovers ${healed} HP.` };
       break;
     }
     case "potion-invisibility": {
-      const effect = timedPotion(POTION_EFFECT_IDS.invisibility, "Invisible", [{ kind: "invisible" }], 5);
+      const effect = timedPotion(POTION_EFFECT_IDS.invisibility, "Invisible", [{ kind: "invisible" }], 10);
       addReplacing(target, effect);
-      result = { itemId: def.id, healed: 0, effect, message: `${target.name} fades from sight for 5 rounds.` };
+      result = { itemId: def.id, healed: 0, effect, message: `${target.name} fades from sight for 10 rounds.` };
       break;
     }
     case "potion-water-breathing": {
@@ -70,15 +75,27 @@ export function usePotion(
       break;
     }
     case "potion-flying": {
-      const effect = timedPotion(POTION_EFFECT_IDS.flying, "Flying", [{ kind: "canFly" }], 5);
+      const effect = timedPotion(POTION_EFFECT_IDS.flying, "Flying", [{ kind: "canFly" }], 10);
       addReplacing(target, effect);
-      result = { itemId: def.id, healed: 0, effect, message: `${target.name} can fly for 5 rounds.` };
+      result = { itemId: def.id, healed: 0, effect, message: `${target.name} can fly for 10 rounds.` };
       break;
     }
     case "potion-giant-strength": {
-      const effect = timedPotion(POTION_EFFECT_IDS.giantStrength, "Giant Strength", [{ kind: "statMinimum", stat: "STR", value: 18 }], 5);
+      const effect = timedPotion(POTION_EFFECT_IDS.giantStrength, "Giant Strength", [
+        { kind: "statMinimum", stat: "STR", value: 18 },
+        { kind: "meleeDamageMultiplier", value: 2 },
+      ], 10);
       addReplacing(target, effect);
-      result = { itemId: def.id, healed: 0, effect, message: `${target.name}'s Strength becomes 18 for 5 rounds.` };
+      result = { itemId: def.id, healed: 0, effect, message: `${target.name}'s Strength becomes 18 and melee damage doubles for 10 rounds.` };
+      break;
+    }
+    case "potion-polymorph": {
+      const effect = timedPotion(POTION_EFFECT_IDS.polymorph, "Polymorphed", [
+        { kind: "statMinimum", stat: "STR", value: 18 },
+        { kind: "canFly" },
+      ], 60);
+      addReplacing(target, effect);
+      result = { itemId: def.id, healed: 0, effect, message: `${target.name} assumes a powerful natural form for one hour.` };
       break;
     }
     default:

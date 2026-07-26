@@ -7,7 +7,7 @@ import {
   embed,
   occupiedCells,
 } from "../src/game/level/embedding";
-import { TOPOLOGIES } from "../src/game/level/topology";
+import { LARGE_TOPOLOGIES, TOPOLOGIES } from "../src/game/level/topology";
 
 const cases = TOPOLOGIES.flatMap((form) => ORIENTATIONS.map((o) => ({ form, orientation: o })));
 
@@ -59,6 +59,20 @@ describe("macro-grid embedding", () => {
       const b = fx.cells.get(node)!;
       expect(b.column).toBe(MACRO_COLUMNS - 1 - a.column);
       expect(b.row).toBe(a.row);
+    }
+  });
+
+  it.each(LARGE_TOPOLOGIES)("embeds every orientation of $id in its extended grid", (form) => {
+    for (const orientation of ORIENTATIONS) {
+      const embedding = embed(form, orientation);
+      expect(embedding.cells.size).toBe(form.nodeCount);
+      for (const cell of embedding.cells.values()) {
+        expect(cell.column).toBeGreaterThanOrEqual(0);
+        expect(cell.column).toBeLessThan(form.macroWidth!);
+        expect(cell.row).toBeGreaterThanOrEqual(0);
+        expect(cell.row).toBeLessThan(form.macroHeight!);
+      }
+      expect(embedding.edges.every((edge) => edge.routedCells.length <= MAX_ROUTE_FILLERS)).toBe(true);
     }
   });
 });

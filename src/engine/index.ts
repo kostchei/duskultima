@@ -33,9 +33,11 @@ export * from "./conditions";
 export * from "./dice";
 export * from "./effects";
 export * from "./encounterReaction";
+export * from "./encounterStealth";
 export * from "./events";
 export * from "./inventory";
 export * from "./itemActions";
+export * from "./magicItems";
 export * from "./monster";
 export * from "./potions";
 export * from "./spells";
@@ -212,6 +214,11 @@ export class Engine {
         }
       }
       damage += a.damageBonus + (input.weapon?.magicBonus ?? 0);
+      const meleeMultiplier = a.effects.flatMap((effect) => effect.hooks).reduce(
+        (highest, hook) => hook.kind === "meleeDamageMultiplier" ? Math.max(highest, hook.value) : highest,
+        1,
+      );
+      if (!input.weapon?.tags.includes("ranged")) damage *= meleeMultiplier;
       if (melee) for (const effect of a.effects) for (const hook of effect.hooks) {
         if (hook.kind === "meleeDamageBonus") damage += hook.bonus;
       }

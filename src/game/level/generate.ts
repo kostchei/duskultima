@@ -29,9 +29,10 @@ import { rngFor, type Rng } from "./rng";
 import { validate } from "./progression";
 import {
   adjacency,
-  NODE_COUNT,
-  TOPOLOGIES,
+  nodeCount,
+  topologiesForRoomCount,
   topologyById,
+  type DungeonRoomCount,
   type TopologyForm,
   type TopologyId,
 } from "./topology";
@@ -72,9 +73,9 @@ function undirectedReach(form: TopologyForm, from: number, omit?: readonly [numb
   return seen;
 }
 
-/** Edges whose removal keeps all five nodes connected — safe to make optional. */
+/** Edges whose removal keeps every node connected — safe to make optional. */
 function redundantEdges(form: TopologyForm): (readonly [number, number])[] {
-  return form.edges.filter((e) => undirectedReach(form, 0, e).size === NODE_COUNT);
+  return form.edges.filter((e) => undirectedReach(form, 0, e).size === nodeCount(form));
 }
 
 /**
@@ -114,7 +115,7 @@ function edgeKey(from: string, to: string): string {
 /** Graph distance in edges from `from` to every node (undirected). */
 function graphDistances(form: TopologyForm, from: number): number[] {
   const adj = adjacency(form);
-  const dist = Array.from({ length: NODE_COUNT }, () => Infinity);
+  const dist = Array.from({ length: nodeCount(form) }, () => Infinity);
   dist[from] = 0;
   const queue = [from];
   while (queue.length > 0) {
@@ -154,7 +155,7 @@ function pickKind(direction: RelativeDirection, rng: Rng): ConnectorKind {
 }
 
 /**
- * Assign the five beats to nodes. The starting-point axis and the narrative-order
+ * Assign the landmark beats to nodes. The starting-point axis and narrative-order
  * axis are kept independent by drawing from two separate streams: `entranceRng`
  * selects the entrance and nothing else, while `orderRng` decides which of the
  * remaining beats land where. A change in entrance draws therefore cannot perturb
@@ -167,7 +168,7 @@ function assignBeats(
   orderRng: Rng,
 ): { beats: Map<number, Beat>; entrance: number; climax: number; reward: number; exit: number } {
   const deg = adjacency(form).map((a) => a.length);
-  const nodes = [0, 1, 2, 3, 4];
+  const nodes = Array.from({ length: nodeCount(form) }, (_, node) => node);
 
   // Entrance: a boundary node, preferring a leaf (degree 1) for a clean mouth.
   const boundary = nodes.filter((n) => boundaryNodes.has(n));
@@ -207,24 +208,14 @@ function assignBeats(
   return { beats, entrance, climax, reward, exit };
 }
 
-function familyForBeat(beat: Beat, rng: Rng): ContentFamily {
-  // Draw exactly one value for every beat, even the ones whose family is fixed, so
-  // the content stream advances the same amount regardless of which beat landed on
-  // this node. That keeps the contents axis independent of the order axis: changing
-  // beat assignment cannot shift the downstream content draws for later rooms.
-  const roll = rng.next();
-  switch (beat) {
-    case "entrance":
-      return "discovery";
-    case "reward":
-      return "opportunity";
-    case "climax":
-      return "pressure";
-    case "challenge":
-      return roll < 0.75 ? "challenge" : "twist";
-    case "setback":
-      return roll < 0.75 ? "hazard" : "challenge";
-  }
+function familyForContentRoll(roll: number): ContentFamily {
+  if (roll <= 2) return "discovery"; // empty in the source table: a short exploratory walk here
+  if (roll === 3 || roll === 7) return "pressure";
+  if (roll === 4 || roll === 8) return "hazard";
+  if (roll === 5) return "challenge";
+  if (roll === 6) return "discovery";
+  if (roll === 9) return "opportunity";
+  return "twist";
 }
 
 function pickTags(family: ContentFamily, rng: Rng): string[] {
@@ -233,14 +224,21 @@ function pickTags(family: ContentFamily, rng: Rng): string[] {
   return pool.slice(0, count);
 }
 
+const MIN_NON_EMPTY: Record<DungeonRoomCount, number> = { 5: 5, 8: 6, 12: 7 };
+
 function tryBuild(seed: number, candidate: number, opts: GenerateOptions): AbstractDungeon | null {
   const suffix = `#${candidate}`;
 
-  const form = opts.topology
-    ? topologyById(opts.topology)
+  const forcedForm = opts.topology ? topologyById(opts.topology) : undefined;
+  const requestedCount = opts.roomCount ?? (forcedForm ? nodeCount(forcedForm) : 5);
+  const form = forcedForm
+    ? forcedForm
     : rngFor(seed, `topology${suffix}`).weighted(
-        TOPOLOGIES.map((t) => ({ value: t, weight: t.weight })),
+        topologiesForRoomCount(requestedCount).map((t) => ({ value: t, weight: t.weight })),
       );
+  if (nodeCount(form) !== requestedCount) {
+    throw new Error(`Topology ${form.id} has ${nodeCount(form)} rooms, not ${requestedCount}`);
+  }
 
   const embRng = rngFor(seed, `embedding${suffix}`);
   const orientation = opts.orientation ?? embRng.pick(ORIENTATIONS);
@@ -259,18 +257,32 @@ function tryBuild(seed: number, candidate: number, opts: GenerateOptions): Abstr
   );
 
   const contentRng = rngFor(seed, `content${suffix}`);
+  const contentRolls = Array.from({ length: nodeCount(form) }, (_, node) =>
+    node === reward ? 9 : contentRng.between(1, 10));
+  let nonEmpty = contentRolls.filter((roll) => roll > 2).length;
+  // Keep natural 1-2 results where the site size permits them, but reroll only
+  // enough empty slots to meet the configured minimum of keyed results.
+  for (let node = 0; node < contentRolls.length && nonEmpty < MIN_NON_EMPTY[requestedCount]; node++) {
+    if (contentRolls[node]! > 2) continue;
+    let reroll = contentRng.between(1, 10);
+    while (reroll <= 2) reroll = contentRng.between(1, 10);
+    contentRolls[node] = reroll;
+    nonEmpty++;
+  }
   const rooms: DungeonRoomNode[] = [];
-  for (let node = 0; node < NODE_COUNT; node++) {
+  for (let node = 0; node < nodeCount(form); node++) {
     const cell = embedding.cells.get(node)!;
     const beat = beats.get(node)!;
-    const family = familyForBeat(beat, contentRng);
+    const contentRoll = contentRolls[node]!;
+    const family = familyForContentRoll(contentRoll);
     rooms.push({
       id: roomId(node),
       node,
       position: cell as MacroPoint,
       beat,
+      contentRoll,
       contentFamily: family,
-      tags: pickTags(family, contentRng),
+      tags: contentRoll <= 2 ? ["empty", "short-walk"] : pickTags(family, contentRng),
       boundary: embedding.boundaryNodes.has(node),
     });
   }
@@ -402,8 +414,8 @@ function tryBuild(seed: number, candidate: number, opts: GenerateOptions): Abstr
     topologyId: form.id,
     orientation,
     themeId,
-    macroWidth: 5,
-    macroHeight: 4,
+    macroWidth: form.macroWidth ?? 5,
+    macroHeight: form.macroHeight ?? 4,
     rooms,
     connections,
     requirements,
@@ -417,10 +429,18 @@ function tryBuild(seed: number, candidate: number, opts: GenerateOptions): Abstr
 
 export interface GenerateOptions {
   candidateBudget?: number;
+  /** Number of keyed rooms: 5 (5x4), 8 (6x5), or 12 (8x6). */
+  roomCount?: DungeonRoomCount;
   /** Force a topology instead of the weighted roll (authoring, debugging, tests). */
   topology?: TopologyId;
   /** Force an embedding orientation instead of the seeded roll. */
   orientation?: Orientation;
+}
+
+/** A d6 site-size roll: compact on 1-3, extended on 4-5, sprawling on 6. */
+export function roomCountForSeed(seed: number): DungeonRoomCount {
+  const roll = rngFor(seed, "site-size").between(1, 6);
+  return roll <= 3 ? 5 : roll <= 5 ? 8 : 12;
 }
 
 /** Generate a validated abstract dungeon, deterministic in `seed`. */

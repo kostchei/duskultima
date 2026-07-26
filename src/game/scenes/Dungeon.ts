@@ -25,8 +25,10 @@ import {
   DC,
   MAX_LEVEL,
   availableEncounterChoices,
+  resolvePartyEncounterStealth,
   availableMishapDecisions,
   activateShieldWall,
+  activateNamedItem,
   applyCondition,
   armPoisonedWeapon,
   applyUseOutcome,
@@ -119,8 +121,8 @@ import {
   type ExpandedConnector,
   type TalkableNpcSpec,
 } from "../level/dungeons";
-import { expandDungeon } from "../level/expand";
-import { generateAbstractDungeon, type GenerateOptions } from "../level/generate";
+import { CELL_H, CELL_W, expandDungeon } from "../level/expand";
+import { generateAbstractDungeon, roomCountForSeed, type GenerateOptions } from "../level/generate";
 import {
   betrayalCharismaDc,
   persistedBetrayalFoe,
@@ -181,15 +183,13 @@ import { startingClassesForZone } from "../startingChoices";
  * or leaves reach, retaliation lapses.
  */
 const RETALIATE_WINDOW_MS = 4000;
-/** Gold granted when a companion vault reward cannot recruit (full or duplicate class). */
-const COMPANION_SUBSTITUTE_GOLD = 500;
 /** Player-facing label for each wandering-encounter reaction choice. */
 const ENCOUNTER_CHOICE_LABEL: Record<EncounterChoice, string> = {
   ambush: "Ambush (strike first, advantage)",
   parley: "Parley (CHA check)",
   offer: "Offer food or treasure",
   threaten: "Threaten (CHA check)",
-  hide: "Hide (slip away unnoticed)",
+  hide: "Hide (party DEX stealth)",
   retreat: "Retreat (back off)",
 };
 /** Compact-map marker precedence: player > landmark beat > plain room > empty. */
@@ -859,7 +859,7 @@ export class DungeonScene extends Phaser.Scene {
     const plural = wave.length > 1 ? `${wave.length} ${monsterName}s` : monsterName;
     const options: Interaction[] = choices.map((choice) => ({
       label: ENCOUNTER_CHOICE_LABEL[choice],
-      run: () => this.resolveEncounterChoice(wave, choice, reaction),
+      run: () => this.resolveEncounterChoice(wave, choice, reaction, distance, activity),
     }));
     this.openActionChoice(options, {
       title: `${plural.toUpperCase()} — ${distance.toUpperCase()}`,
@@ -873,6 +873,8 @@ export class DungeonScene extends Phaser.Scene {
     wave: MonsterSprite[],
     choice: EncounterChoice,
     reaction: MonsterReaction,
+    distance: EncounterDistance,
+    activity: MonsterActivity,
   ): void {
     const live = wave.filter((m) => m.active);
     const leader = this.party.leader;
@@ -888,9 +890,30 @@ export class DungeonScene extends Phaser.Scene {
     };
     switch (choice) {
       case "hide":
-        this.ctx.say("The party keeps to the shadows and slips past unnoticed.", "#9da7ec");
+        {
+          const result = resolvePartyEncounterStealth(
+            this.ctx.engine.dice,
+            this.party.aliveMembers().map((member) => member.character),
+            distance,
+            activity,
+          );
+          if (result.success) {
+            for (const m of live) m.flee();
+            this.ctx.say(
+              `The party slips past unnoticed (${result.successes}/${result.checks.length} pass DC ${result.dc}).`,
+              "#9da7ec",
+            );
+          } else {
+            engage();
+            this.ctx.say(
+              `Armor and footfalls give the party away (${result.successes}/${result.required} needed at DC ${result.dc})!`,
+              "#d07070",
+            );
+          }
+        }
         return;
       case "retreat":
+        for (const m of live) m.flee();
         this.ctx.say("The party backs away without engaging.", "#9da7ec");
         return;
       case "ambush": {
@@ -2004,7 +2027,7 @@ export class DungeonScene extends Phaser.Scene {
     if (def.use?.actions.includes("activate")) {
       options.push({
         label: def.id === "serpent-venom" ? "Coat weapon" : "Activate",
-        run: () => def.id === "serpent-venom" ? this.applySerpentVenom(user, def) : this.ctx.say(`${def.name} activates automatically when needed.`),
+        run: () => def.id === "serpent-venom" ? this.applySerpentVenom(user, def) : this.activateInventoryItem(user, def),
       });
     }
     if (def.use?.actions.includes("inspect")) {
@@ -2016,6 +2039,31 @@ export class DungeonScene extends Phaser.Scene {
       options[0]!.run();
     } else {
       this.openActionChoice(options, { title: def.name, subtitle: "Choose an item action" });
+    }
+  }
+
+  private activateInventoryItem(user: CharacterSprite, def: ReturnType<typeof item>): void {
+    try {
+      const extirpationTarget = def.namedEffect?.kind === "extirpate"
+        ? this.monsters
+          .filter((candidate) => candidate.aliveInFight && Phaser.Math.Distance.Between(user.x, user.y, candidate.x, candidate.y) <= CLOSE_PX)
+          .sort((a, b) => Phaser.Math.Distance.Between(user.x, user.y, a.x, a.y) - Phaser.Math.Distance.Between(user.x, user.y, b.x, b.y))[0]
+        : undefined;
+      const result = activateNamedItem(user.character, def, this.ctx.engine.dice, extirpationTarget !== undefined);
+      if (result.extirpated && extirpationTarget) this.killMonster(extirpationTarget);
+      if (result.summoned) {
+        user.character.removeEffect(`item:summon:${result.summoned.monsterId}`);
+        user.character.addEffect({
+          id: `item:summon:${result.summoned.monsterId}`,
+          name: `${result.summoned.monsterId} follower`,
+          hooks: [{ kind: "extraDamageDice", dice: "1d4" }],
+          duration: { unit: "rounds", remaining: result.summoned.rounds },
+        });
+      }
+      this.ctx.say(result.message, "#c8a5e8");
+      if (this.modes.is("gear")) this.refreshGearOverlay();
+    } catch (error) {
+      this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
     }
   }
 
@@ -2041,7 +2089,7 @@ export class DungeonScene extends Phaser.Scene {
 
   private inspectInventoryItem(user: CharacterSprite, def: ReturnType<typeof item>): void {
     const state = user.character.itemState.get(def.id);
-    const boundSpell = spellForMagicItem(def.id, def.rulesId);
+    const boundSpell = spellForMagicItem(def.id, def.rulesId, def.boundSpellId);
     const chargeText = def.use?.charges === undefined
       ? ""
       : ` Charges: ${state.chargesRemaining ?? def.use.charges}/${def.use.charges}.`;
@@ -2095,8 +2143,15 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
-  private castFromMagicItem(caster: CharacterSprite, def: ReturnType<typeof item>): void {
-    const suppliedSpell = spellForMagicItem(def.id, def.rulesId);
+  private castFromMagicItem(caster: CharacterSprite, def: ReturnType<typeof item>, selectedSpellId?: string): void {
+    if (!selectedSpellId && def.boundSpellIds && def.boundSpellIds.length > 1) {
+      this.openActionChoice(
+        def.boundSpellIds.map((spellId) => ({ label: spell(spellId).name, run: () => this.castFromMagicItem(caster, def, spellId) })),
+        { title: def.name, subtitle: "Choose a spell" },
+      );
+      return;
+    }
+    const suppliedSpell = selectedSpellId ? spell(selectedSpellId) : spellForMagicItem(def.id, def.rulesId, def.boundSpellId);
     if (!suppliedSpell) {
       this.ctx.say(`${def.name} has no spell bound to it.`, "#d07070");
       return;
@@ -2150,8 +2205,8 @@ export class DungeonScene extends Phaser.Scene {
       def,
       result.outcome === "mishap" ? "criticalFail" : result.outcome === "fail" ? "fail" : "success",
     );
-    if (result.outcome === "fail") this.ctx.say(`${def.name} goes inert until rest.`, "#d07070");
-    if (result.outcome === "mishap") this.ctx.say(`${def.name} cracks and is permanently broken!`, "#ff4060");
+    if (result.outcome === "fail" && def.use?.inertOnFail) this.ctx.say(`${def.name} goes inert until rest.`, "#d07070");
+    if (result.outcome === "mishap" && def.use?.breaksOnCriticalFail) this.ctx.say(`${def.name} cracks and is permanently broken!`, "#ff4060");
   }
 
   private resolveKnownCastResult(
@@ -2390,6 +2445,7 @@ export class DungeonScene extends Phaser.Scene {
     this.ctx.spendGold(PORTER_HIRE_PRICE);
     const porter = this.createPorter(this.nextPlebName(), hirer.character.id);
     this.partyGroup.add(porter);
+    if (this.trapSystem) this.trapSystem.registerActor(porter);
     this.ctx.say(
       `${porter.character.name} signs on as porter: ${PORTER_CAPACITY_SLOTS} loot slots, ${PORTER_UPKEEP_GP}g each new vault.`,
       "#60e080",
@@ -2899,8 +2955,8 @@ export class DungeonScene extends Phaser.Scene {
       this.ctx.say(`${leader.character.name} already carries a lit torch.`);
       return;
     }
-    const weapon = leader.character.weapon;
-    if (weapon.twoHanded) {
+    const weapon = leader.character.wieldedWeapon;
+    if (weapon && weapon.twoHanded) {
       this.ctx.say(
         `${leader.character.name} needs both hands for the ${weapon.name} — someone else must carry the light.`,
         "#d07070",
@@ -3131,7 +3187,7 @@ export class DungeonScene extends Phaser.Scene {
       });
     }
 
-    // 3. Claim the single campaign reward in the fifth room.
+    // 3. Claim the site's single guaranteed campaign reward.
     const reward = this.rewardMarker;
     if (
       reward &&
@@ -3320,7 +3376,7 @@ export class DungeonScene extends Phaser.Scene {
         label: this.rewardClaimed ? `leave with ${this.currentReward.title}` : "claim the vault reward first",
         run: () => {
           if (!this.rewardClaimed) {
-            this.ctx.say("The dungeon is not complete — claim the reward in room five first.", "#e0c060");
+            this.ctx.say("The dungeon is not complete — claim the vault reward first.", "#e0c060");
             return;
           }
           sfx.doorThump();
@@ -3541,11 +3597,11 @@ export class DungeonScene extends Phaser.Scene {
         }))),
       );
       if (decision.kind === "skip") {
-        this.grantGoldReward(COMPANION_SUBSTITUTE_GOLD);
+        this.grantGoldReward(reward.escortGold);
         if (eligibleNpc) this.departNpc(eligibleNpc);
         message = decision.reason === "party-full"
-          ? `Four already march together — the recruit leaves ${COMPANION_SUBSTITUTE_GOLD} gold and parts ways.`
-          : `A ${decision.className} already travels with you — the recruit leaves ${COMPANION_SUBSTITUTE_GOLD} gold instead.`;
+          ? `Four already march together — you escort ${reward.name} back to civilization for ${reward.escortGold} gold.`
+          : `A ${decision.className} already travels with you — you escort ${reward.name} home for ${reward.escortGold} gold.`;
       } else {
         const { candidate } = decision;
         for (const casualty of this.party.pruneDeadMembers()) casualty.destroy();
@@ -4479,10 +4535,10 @@ export class DungeonScene extends Phaser.Scene {
     return region ? region.id : this.lastRoomId;
   }
 
-  /** Four-by-five discovered-room map; connectors stay hidden to preserve secrets. */
+  /** Dimension-aware discovered-room map; connectors stay hidden to preserve secrets. */
   get compactMap(): string {
-    const columns = 5;
-    const rows = 4;
+    const columns = Math.max(1, Math.round(this.activeDungeon.width / CELL_W));
+    const rows = Math.max(1, Math.round(this.activeDungeon.height / CELL_H));
     const cells = Array.from({ length: rows }, () => Array<string>(columns).fill("·"));
     for (const region of this.activeDungeon.regions) {
       if (!this.discoveredRoomIds.has(region.id) && region.id !== this.currentRoomId) continue;
@@ -4526,6 +4582,12 @@ export class DungeonScene extends Phaser.Scene {
     const orient = params.get("nlorient");
     if (topo) opts.topology = topo as TopologyId;
     if (orient) opts.orientation = orient as Orientation;
+    const roomOverride = Number(params.get("nlrooms"));
+    if (roomOverride === 5 || roomOverride === 8 || roomOverride === 12) {
+      opts.roomCount = roomOverride;
+    } else if (!topo) {
+      opts.roomCount = roomCountForSeed(nlSeed);
+    }
     return expandDungeon(generateAbstractDungeon(nlSeed, opts));
   }
 

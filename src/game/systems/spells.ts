@@ -398,6 +398,33 @@ function resolveSpellEffect(
       ctx.say("A yellow poison cloud spreads around the chosen point for 5 rounds.", "#a8b84e");
       return;
     }
+    case "dimension-door": {
+      const point = selection.point ?? { x: caster.x + caster.facing * FAR_PX, y: caster.y };
+      const bounds = scene.physics.world.bounds;
+      caster.setPosition(
+        Phaser.Math.Clamp(point.x, bounds.left + 64, bounds.right - 64),
+        Phaser.Math.Clamp(point.y, bounds.top + 32, bounds.bottom - 32),
+      );
+      ctx.say(`${caster.character.name} steps through a dimensional door.`, "#b8c4df");
+      return;
+    }
+    case "sending": {
+      ctx.say(`${caster.character.name}'s brief mental message crosses any distance on this plane.`, "#b8c4df");
+      return;
+    }
+    case "telekinesis": {
+      const target = isValidSpellTarget(caster, preferredTarget, FAR_PX) ? preferredTarget : nearestMonster(deps, caster, FAR_PX);
+      if (!target) { ctx.say("Telekinesis finds no target in range."); return; }
+      target.setVelocityX(caster.facing * 520 * mult);
+      target.setVelocityY(-180);
+      ctx.say(`${target.def.name} is hurled by invisible force.`, "#b8c4df");
+      return;
+    }
+    case "scrying": {
+      const revealed = deps.revealSecrets?.(caster);
+      ctx.say(revealed ? `The crystal vision reveals ${revealed}.` : "Distant sights and sounds swirl through the vision.", "#b8c4df");
+      return;
+    }
     case "prismatic-orb": {
       const target = isValidSpellTarget(caster, preferredTarget, FAR_PX) ? preferredTarget : nearestMonster(deps, caster, FAR_PX);
       if (!target) { ctx.say("No target is in range for Prismatic Orb."); return; }

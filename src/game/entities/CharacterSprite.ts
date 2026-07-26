@@ -142,15 +142,15 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   get weaponDamage(): string {
-    const weapon = this.character.weapon;
-    if (!weapon.damage) throw new Error(`${weapon.name} has no damage dice`);
+    const weapon = this.character.wieldedWeapon;
+    if (!weapon || !weapon.damage) return "1d4";
     return weapon.damage;
   }
 
   /** How far this character's melee swing lands, in pixels. */
   get weaponReachPx(): number {
-    const weapon = this.character.weapon;
-    if (weapon.reachTiles === undefined) throw new Error(`${weapon.name} has no reach`);
+    const weapon = this.character.wieldedWeapon;
+    if (!weapon || weapon.reachTiles === undefined) return 1.6 * TILE;
     return weapon.reachTiles * TILE;
   }
 
