@@ -782,14 +782,19 @@ export class DungeonScene extends Phaser.Scene {
     });
   }
 
-  /**
-   * Queue a named action from an on-screen control. Replayed as a press before
-   * the next tick and released after it, so held-style reads (`held("restart")`)
-   * and edge reads (`pressed("menuUp")`) both see it exactly once.
-   */
+
   tapAction(action: GameAction): void {
     noteTouchActivity();
     this.pendingTaps.push(action);
+  }
+
+  pressAction(action: GameAction, source = "touch"): void {
+    noteTouchActivity();
+    this.actions.press(action, source);
+  }
+
+  releaseAction(action: GameAction, source = "touch"): void {
+    this.actions.release(action, source);
   }
 
   get presentationPalette(): VisualPalette {

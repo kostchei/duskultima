@@ -183,15 +183,9 @@ export function deserializeCharacter(state: SavedCharacter, _engine: Engine): Ch
   c.itemState.load((state.itemState ?? []).map(([id, s]) => [id, { ...s }]));
   c.shieldStowed = state.shieldStowed;
 
-  // Restore inventory (stripping legacy unused items and coins which live in shared party purse).
-  // Iron spikes are excluded from the strip — they're wired to force open a
-  // locked/switched gate, so they're worth persisting across a save/load.
+  // Restore inventory (stripping legacy coins which live in shared party purse).
   for (const itemState of state.inventory) {
-    if (
-      itemState.itemId === "grappling-hook" ||
-      itemState.itemId === "rope" ||
-      itemState.itemId === "coins"
-    ) {
+    if (itemState.itemId === "coins") {
       continue;
     }
     c.inventory.add(item(itemState.itemId), itemState.qty, true);

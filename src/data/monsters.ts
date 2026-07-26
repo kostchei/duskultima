@@ -27,6 +27,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: false,
     xpTier: "minor",
     biome: "diablerie",
+    specialAbility: "engulf",
   },
   {
     id: "bogthorn",
@@ -95,6 +96,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: false,
     xpTier: "minor",
     biome: "red-sands",
+    specialAbility: "poison",
   },
 
   // --- MIDNIGHT SUN BIOME (Rime Sea Caves & Frost Tombs) ---
@@ -165,6 +167,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: false,
     xpTier: "minor",
     biome: "river-of-night",
+    specialAbility: "web",
   },
   {
     id: "viperian",
@@ -178,6 +181,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: false,
     xpTier: "minor",
     biome: "river-of-night",
+    specialAbility: "poison",
   },
   {
     id: "rot-flower",

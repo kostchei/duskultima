@@ -612,35 +612,15 @@ without turning the spell list into a damage catalog.
 
 ---
 
-## P2-10 - Risky resting and camp procedure
+## P2-10 - Risky resting and camp procedure [REMOVED]
 
-- [x] Require one ration per resting character. (The old gear/hotkey path that
-  spent only the leader's ration while healing everyone now shares the same
-  per-character resolver as campfires.)
-- [ ] Allow three torches to create an eight-hour stationary campfire.
-- [ ] Advance the encounter clock for the full rest.
-- [ ] Check for interruptions using the location's danger cadence.
-- [ ] Let the party assign a watch character.
-- [ ] Use watch position, ancestry, light, and Wisdom to affect surprise without
-  guaranteeing safety.
-- [ ] After a stressful interruption, require the appropriate Constitution
-  check to receive rest benefits.
-- [ ] On failure, consume the ration but do not restore that character.
-- [ ] Recover HP, temporary stat damage, rest-based item uses, and eligible
-  spells only on a successful rest.
-- [ ] Preserve shrine or sacrifice requirements for atonement-locked Priest
-  spells.
-- [ ] Keep sanctuary rests as a clearly identified safe exception where the
-  campaign structure requires one.
+- [x] Require one ration per resting character. (Simple ration consumption for HP/spell recovery is preserved; complex campfire management, watch shifts, and interruption loops are removed per design directive.)
+- [x] Simple, safe resting retained without requiring multi-torch campfires or interruption loops.
 
-### Acceptance criteria
+### Scoping Note
 
-- Resting in a dungeon asks the player to weigh food, torches, danger, and spell
-  recovery.
-- Rest resolution works per character rather than healing the party through one
-  leader ration.
-- Interrupted rest cannot duplicate supplies, encounters, or recovery after
-  save/load.
+Risky resting mechanics (stationary multi-torch campfires, 8-hour encounter clocks, watch shift assignments, and rest interruption rolls) have been explicitly removed to preserve stream-lined, low-friction party recovery.
+
 
 ---
 

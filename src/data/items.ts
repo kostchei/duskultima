@@ -9,9 +9,9 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "ration", name: "Ration", slotCost: 1, bundleSize: 3, tags: ["food"], valueGp: 1 },
   { id: "backpack", name: "Backpack", slotCost: 0, bundleSize: 1, tags: ["gear"], valueGp: 2 },
   { id: "flint-and-steel", name: "Flint and Steel", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 5 },
-  { id: "iron-spikes", name: "Iron Spikes", slotCost: 1, bundleSize: 10, tags: ["gear"], valueGp: 1 },
-  { id: "grappling-hook", name: "Grappling Hook", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 1 },
-  { id: "rope", name: "Rope (60')", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 1 },
+  { id: "iron-spikes", name: "Iron Spikes", slotCost: 1, bundleSize: 10, tags: ["gear"], valueGp: 1, use: { actions: ["place"], target: "object" } },
+  { id: "grappling-hook", name: "Grappling Hook", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 1, use: { actions: ["place", "activate"], target: "surface" } },
+  { id: "rope", name: "Rope (60')", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 1, use: { actions: ["place", "activate"], target: "surface" } },
 
   // Weapons — reachTiles: how far the swing lands; monsters strike at 1.6, so
   // the spear (and staff) can poke from beyond a monster's claws.

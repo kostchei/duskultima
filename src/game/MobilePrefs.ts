@@ -14,6 +14,7 @@ const KEY = "shadowdork_prefs";
 interface StoredPrefs {
   quality?: QualityLevel;
   muted?: boolean;
+  touchControls?: TouchControlSetting;
 }
 
 function readRaw(): StoredPrefs {
@@ -50,6 +51,28 @@ export function loadMobilePrefs(): void {
 
 export function saveQualityPref(level: QualityLevel): void {
   writeRaw({ ...readRaw(), quality: level });
+}
+
+export type TouchControlSetting = "auto" | "on" | "off";
+
+export function shouldShowTouchControls(): boolean {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const override = params.get("touch");
+    if (override === "on") return true;
+    if (override === "off") return false;
+  } catch {
+    // Ignore URL parsing errors
+  }
+  const prefs = readRaw();
+  const setting = prefs.touchControls ?? "auto";
+  if (setting === "on") return true;
+  if (setting === "off") return false;
+  return typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0);
+}
+
+export function saveTouchControlsPref(setting: TouchControlSetting): void {
+  writeRaw({ ...readRaw(), touchControls: setting });
 }
 
 export function saveMutedPref(muted: boolean): void {

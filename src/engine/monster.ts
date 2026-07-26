@@ -28,6 +28,7 @@ export interface MonsterDef {
   leader?: boolean;
   xpTier: "minor" | "major" | "legendary";
   biome?: MonsterBiome;
+  specialAbility?: "web" | "poison" | "engulf" | "shadow-extinct";
 }
 
 export interface MonsterAttackResult {
@@ -36,6 +37,7 @@ export interface MonsterAttackResult {
   hit: boolean;
   crit: boolean;
   damage: number;
+  appliedCondition?: "webbed" | "poisoned" | "paralyzed";
 }
 
 export function monsterAttackRoll(
@@ -49,11 +51,15 @@ export function monsterAttackRoll(
   const crit = roll.natural === 20;
   const hit = roll.natural !== 1 && (crit || total >= targetAc);
   let damage = 0;
+  let appliedCondition: "webbed" | "poisoned" | "paralyzed" | undefined;
   if (hit) {
     damage = dice.roll(monster.damage);
     if (crit) damage += dice.roll(monster.damage); // crits double damage dice
+    if (monster.specialAbility === "web") appliedCondition = "webbed";
+    else if (monster.specialAbility === "poison") appliedCondition = "poisoned";
+    else if (monster.specialAbility === "engulf") appliedCondition = "paralyzed";
   }
-  return { natural: roll.natural, total, hit, crit, damage };
+  return { natural: roll.natural, total, hit, crit, damage, appliedCondition };
 }
 
 /**

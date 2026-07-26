@@ -8,6 +8,7 @@ import {
   WIZARD_MISHAP_TABLE_TIER_1_2,
   WIZARD_MISHAP_TABLE_TIER_3_4,
   WIZARD_MISHAP_TABLE_TIER_5,
+  monsterAttackRoll,
   resolveCheck,
   rollStats,
   statModifier,
@@ -728,5 +729,27 @@ describe("fighter class feature rules", () => {
 
     expect(f.stats.STR).toBeGreaterThanOrEqual(originalStats[bestStat!]);
     expect(f.stats[bestStat!]).toBe(originalStats.STR);
+  });
+});
+
+describe("monster attack special abilities", () => {
+  it("applies condition effects on hit for monsters with special abilities", () => {
+    const dice = new Dice(10);
+    const spider = {
+      id: "spider",
+      name: "Giant Spider",
+      ac: 13,
+      hitDice: "3d8",
+      attackBonus: 100, // Guaranteed hit
+      damage: "1d6",
+      wisMod: 0,
+      darkvision: true,
+      undead: false,
+      xpTier: "minor" as const,
+      specialAbility: "web" as const,
+    };
+    const res = monsterAttackRoll(dice, spider, 10);
+    expect(res.hit).toBe(true);
+    expect(res.appliedCondition).toBe("webbed");
   });
 });

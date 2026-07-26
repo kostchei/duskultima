@@ -29,6 +29,7 @@ import { speak } from "../audio/voice";
 import { skinsForZone, zonePackInfo } from "../visual/skins";
 import type { ShopRow, ShopView } from "../systems/shop";
 import { showAlert, showConfirm } from "../ui/modal";
+import { shouldShowTouchControls } from "../MobilePrefs";
 
 const UI_STYLE = {
   fontFamily: '"Trebuchet MS", Arial, sans-serif',
@@ -236,6 +237,10 @@ export class HudScene extends Phaser.Scene {
       ["MENU", "pause"],
     ] as const).entries()) {
       this.actionButton(w - 26 - i * 62, h - 14, label, action, "11px").setDepth(1000);
+    }
+
+    if (shouldShowTouchControls()) {
+      this.createTouchOverlay();
     }
 
     this.ctx.events.on("gameover", () => this.showOverlay(this.dungeon.gameOverTitle, "#ff6159"));
@@ -1512,5 +1517,59 @@ export class HudScene extends Phaser.Scene {
       if (msg) text.setText(msg.text).setColor(msg.color);
       else text.setText("");
     });
+  }
+
+  private createTouchOverlay(): void {
+    const container = this.add.container(0, 0).setDepth(2000);
+
+    const padX = 70;
+    const padY = 460;
+    const dpadButtons: { name: string; x: number; y: number; action: GameAction }[] = [
+      { name: "▲", x: padX, y: padY - 35, action: "moveUp" },
+      { name: "▼", x: padX, y: padY + 35, action: "moveDown" },
+      { name: "◄", x: padX - 35, y: padY, action: "moveLeft" },
+      { name: "►", x: padX + 35, y: padY, action: "moveRight" },
+    ];
+
+    for (const btn of dpadButtons) {
+      const circle = this.add.circle(btn.x, btn.y, 16, 0x1f2430, 0.75).setInteractive();
+      const text = this.add.text(btn.x, btn.y, btn.name, { ...UI_STYLE, fontSize: "14px", fontStyle: "bold" }).setOrigin(0.5);
+      circle.on("pointerdown", () => {
+        circle.setFillStyle(0x3e485e, 0.9);
+        this.dungeon.pressAction(btn.action);
+      });
+      const release = () => {
+        circle.setFillStyle(0x1f2430, 0.75);
+        this.dungeon.releaseAction(btn.action);
+      };
+      circle.on("pointerup", release);
+      circle.on("pointerout", release);
+      container.add([circle, text]);
+    }
+
+    const actX = 890;
+    const actY = 460;
+    const actionButtons: { label: string; x: number; y: number; action: GameAction; color: number }[] = [
+      { label: "ATK", x: actX, y: actY - 35, action: "attack", color: 0x9e2a2b },
+      { label: "LGT", x: actX + 35, y: actY, action: "torch", color: 0x2a9d8f },
+      { label: "USE", x: actX - 35, y: actY, action: "interact", color: 0xe76f51 },
+      { label: "CAST", x: actX, y: actY + 35, action: "cast", color: 0x4a4e69 },
+    ];
+
+    for (const btn of actionButtons) {
+      const circle = this.add.circle(btn.x, btn.y, 18, btn.color, 0.8).setInteractive();
+      const text = this.add.text(btn.x, btn.y, btn.label, { ...UI_STYLE, fontSize: "10px", fontStyle: "bold" }).setOrigin(0.5);
+      circle.on("pointerdown", () => {
+        circle.setAlpha(1.0);
+        this.dungeon.pressAction(btn.action);
+      });
+      const release = () => {
+        circle.setAlpha(0.8);
+        this.dungeon.releaseAction(btn.action);
+      };
+      circle.on("pointerup", release);
+      circle.on("pointerout", release);
+      container.add([circle, text]);
+    }
   }
 }

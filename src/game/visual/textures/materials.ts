@@ -2552,6 +2552,133 @@ function generateSunkenThievesGuild(scene: Phaser.Scene): void {
   });
 }
 
+function generateSubterraneanSeaFort(scene: Phaser.Scene): void {
+  const p = "skin-subterranean-sea-fort";
+  for (let i = 0; i < 3; i++) {
+    texture(scene, `${p}-wall-${i}`, TILE, TILE, (g) => {
+      g.fillStyle(0x131f28, 1); g.fillRect(0, 0, 32, 32);
+      g.fillStyle(0x273b47, 1); g.fillRect(2, 2, 28, 28);
+      g.fillStyle(0x1d2d38, 1); g.fillRect(4, 4, 24, 24);
+      g.fillStyle(0x3ea7a2, 0.7); g.fillRect(6 + i * 5, 8, 4, 3);
+      g.fillStyle(0x58c3c9, 0.8); g.fillRect(18 - i * 3, 20, 5, 3);
+    });
+  }
+  texture(scene, `${p}-platform`, TILE, TILE, (g) => {
+    g.fillStyle(0x0f1821, 1); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x354c5a, 1); g.fillRect(1, 0, 30, 8);
+    g.fillStyle(0x58c3c9, 0.6); g.fillRect(2, 2, 28, 2);
+  });
+  texture(scene, `${p}-weak`, TILE, TILE, (g) => {
+    g.fillStyle(0x131f28, 1); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x3d291e, 1); g.fillRect(4, 4, 24, 24);
+    g.lineStyle(1.5, 0x58c3c9, 0.8); g.lineBetween(6, 6, 26, 26);
+  });
+  texture(scene, `${p}-climb`, TILE, TILE, (g) => {
+    g.fillStyle(0x131f28, 0.9); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x273b47, 1); g.fillRect(6, 0, 4, 32); g.fillRect(22, 0, 4, 32);
+    for (let y = 4; y < 32; y += 8) {
+      g.fillStyle(0x58c3c9, 1); g.fillRect(6, y, 20, 3);
+    }
+  });
+  texture(scene, `${p}-portcullis`, TILE, TILE, (g) => {
+    g.fillStyle(0x0f1821, 0.95); g.fillRect(1, 1, 30, 5); g.fillRect(1, 26, 30, 5);
+    for (let x = 4; x < 30; x += 6) {
+      g.fillStyle(0x273b47, 1); g.fillRect(x, 2, 4, 28);
+      g.fillStyle(0x58c3c9, 0.9); g.fillRect(x + 1, 3, 1, 25);
+    }
+  });
+  texture(scene, `${p}-door`, TILE, TILE * 2, (g) => {
+    g.fillStyle(0x0f1821, 1); g.fillRect(1, 4, 30, 60);
+    g.fillStyle(0x1d2d38, 1); g.fillRect(4, 8, 24, 54);
+    g.fillStyle(0x58c3c9, 0.9); g.fillRect(4, 28, 24, 4);
+    g.fillCircle(16, 30, 4);
+  });
+  texture(scene, `${p}-backdrop`, 320, 180, (g) => {
+    g.fillStyle(0x030b12, 1); g.fillRect(0, 0, 320, 180);
+    g.fillStyle(0x10303d, 0.7); g.fillRect(0, 90, 320, 90);
+    g.fillStyle(0x58c3c9, 0.5); g.fillRect(0, 140, 320, 40);
+  });
+  texture(scene, `${p}-gong`, 30, 24, (g) => {
+    g.fillStyle(0x273b47, 1); g.fillCircle(15, 12, 10);
+    g.fillStyle(0x58c3c9, 0.9); g.fillCircle(15, 12, 5);
+  });
+  texture(scene, `${p}-rack`, 30, 18, (g) => {
+    g.fillStyle(0x1d2d38, 1); g.fillRect(4, 4, 22, 10);
+    g.fillStyle(0x58c3c9, 0.8); g.fillRect(4, 4, 22, 2);
+  });
+  texture(scene, `${p}-banner`, 18, 40, (g) => {
+    g.fillStyle(0x273b47, 1); g.fillRect(2, 0, 14, 36);
+    g.fillStyle(0x58c3c9, 0.9); g.fillRect(4, 4, 10, 28);
+  });
+  texture(scene, `${p}-crenel`, 14, 24, (g) => {
+    g.fillStyle(0x1d2d38, 1); g.fillTriangle(0, 0, 14, 0, 7, 24);
+    g.fillStyle(0x58c3c9, 0.7); g.fillTriangle(2, 0, 12, 0, 7, 18);
+  });
+}
+
+function generateHiddenFaceTemple(scene: Phaser.Scene): void {
+  const p = "skin-hidden-face-temple";
+  for (let i = 0; i < 3; i++) {
+    texture(scene, `${p}-wall-${i}`, TILE, TILE, (g) => {
+      g.fillStyle(0x100b12, 1); g.fillRect(0, 0, 32, 32);
+      g.fillStyle(0x2b1d2d, 1); g.fillRect(2, 2, 28, 28);
+      g.fillStyle(0x402b42, 1); g.fillRect(4, 4, 24, 24);
+      g.fillStyle(0xd4a45f, 0.85); g.fillRect(6 + i * 4, 10, 4, 4);
+    });
+  }
+  texture(scene, `${p}-platform`, TILE, TILE, (g) => {
+    g.fillStyle(0x100b12, 1); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x402b42, 1); g.fillRect(1, 0, 30, 8);
+    g.fillStyle(0xd4a45f, 0.9); g.fillRect(2, 2, 28, 2);
+  });
+  texture(scene, `${p}-weak`, TILE, TILE, (g) => {
+    g.fillStyle(0x100b12, 1); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x392334, 1); g.fillRect(4, 4, 24, 24);
+    g.lineStyle(1.5, 0xd4a45f, 0.8); g.lineBetween(6, 6, 26, 26);
+  });
+  texture(scene, `${p}-climb`, TILE, TILE, (g) => {
+    g.fillStyle(0x100b12, 0.9); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x2b1d2d, 1); g.fillRect(6, 0, 4, 32); g.fillRect(22, 0, 4, 32);
+    for (let y = 4; y < 32; y += 8) {
+      g.fillStyle(0xd4a45f, 1); g.fillRect(6, y, 20, 3);
+    }
+  });
+  texture(scene, `${p}-portcullis`, TILE, TILE, (g) => {
+    g.fillStyle(0x100b12, 0.95); g.fillRect(1, 1, 30, 5); g.fillRect(1, 26, 30, 5);
+    for (let x = 4; x < 30; x += 6) {
+      g.fillStyle(0x2b1d2d, 1); g.fillRect(x, 2, 4, 28);
+      g.fillStyle(0xd4a45f, 0.9); g.fillRect(x + 1, 3, 1, 25);
+    }
+  });
+  texture(scene, `${p}-door`, TILE, TILE * 2, (g) => {
+    g.fillStyle(0x100b12, 1); g.fillRect(1, 4, 30, 60);
+    g.fillStyle(0x2b1d2d, 1); g.fillRect(4, 8, 24, 54);
+    g.fillStyle(0xd4a45f, 0.9); g.fillRect(4, 28, 24, 4);
+    g.fillCircle(16, 30, 4);
+  });
+  texture(scene, `${p}-backdrop`, 320, 180, (g) => {
+    g.fillStyle(0x100b12, 1); g.fillRect(0, 0, 320, 180);
+    g.fillStyle(0x392334, 0.7); g.fillRect(0, 90, 320, 90);
+    g.fillStyle(0xd4a45f, 0.5); g.fillRect(0, 140, 320, 40);
+  });
+  texture(scene, `${p}-gong`, 30, 24, (g) => {
+    g.fillStyle(0x2b1d2d, 1); g.fillCircle(15, 12, 10);
+    g.fillStyle(0xd4a45f, 0.9); g.fillCircle(15, 12, 5);
+  });
+  texture(scene, `${p}-rack`, 30, 18, (g) => {
+    g.fillStyle(0x2b1d2d, 1); g.fillRect(4, 4, 22, 10);
+    g.fillStyle(0xd4a45f, 0.8); g.fillRect(4, 4, 22, 2);
+  });
+  texture(scene, `${p}-banner`, 18, 40, (g) => {
+    g.fillStyle(0x2b1d2d, 1); g.fillRect(2, 0, 14, 36);
+    g.fillStyle(0xd4a45f, 0.9); g.fillRect(4, 4, 10, 28);
+  });
+  texture(scene, `${p}-crenel`, 14, 24, (g) => {
+    g.fillStyle(0x2b1d2d, 1); g.fillTriangle(0, 0, 14, 0, 7, 24);
+    g.fillStyle(0xd4a45f, 0.7); g.fillTriangle(2, 0, 12, 0, 7, 18);
+  });
+}
+
 const genericKeys = (backdrop: string): EnvironmentTextureKeys => ({
   wall: (variant) => `tile-wall-${variant % 3}`,
   platform: "tile-platform",
@@ -2629,6 +2756,12 @@ export function ensureVisualSkinTextures(
   } else if (skin.id === "sunken-thieves-guild") {
     prefix = "skin-sunken-thieves-guild";
     generateSunkenThievesGuild(scene);
+  } else if (skin.id === "subterranean-sea-fort") {
+    prefix = "skin-subterranean-sea-fort";
+    generateSubterraneanSeaFort(scene);
+  } else if (skin.id === "hidden-face-temple") {
+    prefix = "skin-hidden-face-temple";
+    generateHiddenFaceTemple(scene);
   } else {
     return genericKeys(legacyBackdrop);
   }

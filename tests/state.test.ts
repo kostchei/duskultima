@@ -136,7 +136,7 @@ describe("Save slots / serialization", () => {
     expect(restored.itemState.get("ring-feather-falling").chargesRemaining).toBe(0);
   });
 
-  it("keeps iron spikes across a save/load, but still strips rope and grappling hook", () => {
+  it("keeps iron spikes, rope, and grappling hook across a save/load", () => {
     const engine = makeEngine();
     const t = createCharacter(engine, "t", "Rook", "thief");
     t.inventory.add(item("iron-spikes"), 3, true);
@@ -147,8 +147,8 @@ describe("Save slots / serialization", () => {
     const restored = deserializeCharacter(saved, makeEngine());
 
     expect(restored.inventory.count("iron-spikes")).toBe(3);
-    expect(restored.inventory.has("rope")).toBe(false);
-    expect(restored.inventory.has("grappling-hook")).toBe(false);
+    expect(restored.inventory.has("rope")).toBe(true);
+    expect(restored.inventory.has("grappling-hook")).toBe(true);
   });
 
   it("loads legacy saves with no itemState field as empty, not a crash", () => {
