@@ -6,11 +6,25 @@
 import { awardXp, canLevelUp, levelUp, type LevelUpResult, type XpAward } from "./advancement";
 import { Character } from "./character";
 import { ignoreAttackDamage, pitFighterLastStandThreshold, restoreClassResources } from "./classAbilities";
-import { DC, resolveCheck, type CheckInput, type CheckResult } from "./check";
+import {
+  DC,
+  resolveCheck,
+  resolveContestedCheck,
+  type CheckInput,
+  type CheckResult,
+  type ContestedCheckResult,
+  type ContestedCheckSide,
+} from "./check";
 import { Dice } from "./dice";
 import { EventLog } from "./events";
 import type { ItemDef } from "./inventory";
 import { restoreOnRest } from "./itemActions";
+import {
+  resolveClimbing,
+  resolveSwimming,
+  type ClimbingResult,
+  type SwimmingResult,
+} from "./movement";
 import {
   castSpell,
   castSpellFromItem,
@@ -41,6 +55,7 @@ export * from "./inventory";
 export * from "./itemActions";
 export * from "./magicItems";
 export * from "./monster";
+export * from "./movement";
 export * from "./potions";
 export * from "./spells";
 export * from "./tables";
@@ -198,6 +213,48 @@ export class Engine {
     return result;
   }
 
+  contestedCheck(a: ContestedCheckSide, b: ContestedCheckSide): ContestedCheckResult {
+    const result = resolveContestedCheck(this.dice, a, b);
+    this.log.append(this.clock.elapsedMs, "check.contested", {
+      winner: result.winner.id,
+      loser: result.loser.id,
+      rounds: result.rounds,
+      winnerTotal: result.winnerResult.total,
+      loserTotal: result.loserResult.total,
+    });
+    return result;
+  }
+
+  climb(
+    character: Character,
+    opts?: Parameters<typeof resolveClimbing>[2],
+  ): ClimbingResult {
+    const result = resolveClimbing(this.dice, character, opts);
+    this.log.append(this.clock.elapsedMs, "movement.climb", {
+      who: character.id,
+      success: result.success,
+      fell: result.fell,
+      total: result.check.total,
+      dc: result.check.dc,
+      automatic: result.check.automatic,
+    });
+    return result;
+  }
+
+  swim(character: Character, roundsSwimming: number, roughWater: boolean): SwimmingResult {
+    const result = resolveSwimming(this.dice, character, roundsSwimming, roughWater);
+    this.log.append(this.clock.elapsedMs, "movement.swim", {
+      who: character.id,
+      round: roundsSwimming,
+      roughWater,
+      safe: result.safe,
+      canProgress: result.canProgress,
+      drowning: result.drowning,
+      damage: result.damage,
+    });
+    return result;
+  }
+
   attack(input: AttackInput): AttackResult {
     // Ranged weapons use DEX. Finesse melee weapons use the better of STR/DEX.
     const finesse = input.weapon?.finesse === true;
@@ -224,6 +281,7 @@ export class Engine {
         }
       }
       damage += a.damageBonus + (input.weapon?.magicBonus ?? 0);
+      if (melee && a.ancestry === "half-orc") damage += 1;
       const meleeMultiplier = a.effects.flatMap((effect) => effect.hooks).reduce(
         (highest, hook) => hook.kind === "meleeDamageMultiplier" ? Math.max(highest, hook.value) : highest,
         1,

@@ -1,6 +1,7 @@
 import {
   Character,
   applyTalentResult,
+  getBaseRole,
   initializeClassState,
   rollAlignment,
   rollStats,
@@ -10,6 +11,7 @@ import {
   type StatName,
   type Stats,
   type Alignment,
+  type Ancestry,
 } from "../engine";
 import { classDef } from "./classes";
 import { item } from "./items";
@@ -95,7 +97,7 @@ export function createCharacter(
   id: string,
   name: string,
   cls: ClassName,
-  ancestry = "human",
+  ancestry: Ancestry = "human",
   alignment?: Alignment,
 ): Character {
   const def = classDef(cls);
@@ -114,8 +116,11 @@ export function createCharacter(
     ancestry,
     alignment: alignment ?? rollAlignment(engine.dice),
   });
-  for (const f of def.features) c.addEffect(structuredClone(f) as typeof f);
+  for (const f of def.features) c.addEffect(structuredClone(f));
   initializeClassState(c);
+  if (getBaseRole(cls) === "thief") {
+    for (const skill of ["thievery", "stealth", "climbing", "swimming"]) c.trainSkill(skill);
+  }
 
   // Grit is a Fighter feature; the alternate martial classes use their own features.
   if (cls === "fighter") {

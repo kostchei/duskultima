@@ -133,6 +133,7 @@ export class TrapSystem {
   private readonly rollingStones: RollingStoneRuntime[] = [];
   private readonly collapsingFloors: CollapsingFloorRuntime[] = [];
   private readonly swimmers = new Set<CharacterSprite>();
+  private readonly swimmingState = new Map<string, { rounds: number; nextRoundAt: number }>();
   private readonly nextAutoDisarmAt = new Map<string, number>();
 
   constructor(
@@ -180,7 +181,7 @@ export class TrapSystem {
     for (const runtime of this.dartTraps) this.updateDarts(runtime, time);
     for (const runtime of this.lifts) this.updateLift(runtime);
     for (const runtime of this.lightRunes) this.updateLightRunes(runtime, time);
-    for (const runtime of this.floods) this.updateFlood(runtime);
+    for (const runtime of this.floods) this.updateFlood(runtime, time);
     for (const runtime of this.rollingStones) this.updateRollingStone(runtime, time);
     for (const runtime of this.collapsingFloors) this.updateCollapsingFloor(runtime, time);
   }
@@ -797,7 +798,7 @@ export class TrapSystem {
     }
   }
 
-  private updateFlood(runtime: FloodRuntime): void {
+  private updateFlood(runtime: FloodRuntime, time: number): void {
     const surfaceY = this.tileY(runtime.high ? runtime.spec.highY : runtime.spec.lowY);
     const bottomY = 17 * TILE;
     runtime.water.setY((surfaceY + bottomY) / 2).setDisplaySize(runtime.water.width, bottomY - surfaceY);
@@ -816,12 +817,41 @@ export class TrapSystem {
         const seafarer = hasHook(member.character.effects, "seafarer");
         body.setGravityY(seafarer ? -980 : -850);
         if (body.velocity.y > (seafarer ? 45 : 110)) body.setVelocityY(seafarer ? 45 : 110);
-        if (seafarer) body.setVelocityX(body.velocity.x * 0.88);
+        // Swimming is half-speed by default. Seafarers retain most of their
+        // movement, matching their dungeon-adapted water expertise.
+        body.setVelocityX(body.velocity.x * (seafarer ? 0.88 : 0.5));
         if (member.torchLit) this.snuffTorch(member);
+
+        let state = this.swimmingState.get(member.character.id);
+        if (!state) {
+          state = { rounds: 0, nextRoundAt: time + this.ctx.engine.config.roundMs };
+          this.swimmingState.set(member.character.id, state);
+        }
+        while (member.alive && time >= state.nextRoundAt) {
+          state.rounds++;
+          state.nextRoundAt += this.ctx.engine.config.roundMs;
+          const result = this.ctx.engine.swim(member.character, state.rounds, runtime.high);
+          if (!result.canProgress) body.setVelocityX(body.velocity.x * 0.15);
+          if (result.damage > 0) {
+            const wentDown = this.ctx.engine.damageCharacter(member.character, result.damage);
+            floatText(this.scene, member.x, member.y - 20, `-${result.damage} SUFFOCATION`, "#5ca9d6", 11);
+            this.ctx.say(
+              `${member.character.name} ${result.drowning ? "is drowning" : "struggles for air"} and takes ${result.damage} damage.${wentDown ? " They go down!" : ""}`,
+              "#5ca9d6",
+            );
+          } else if (result.drowning && state.rounds === 1) {
+            this.ctx.say(`${member.character.name}'s plate drags them under; they cannot swim.`, "#5ca9d6");
+          } else if (result.swimCheck && !result.swimCheck.success) {
+            this.ctx.say(`${member.character.name} makes no progress in the rough water.`, "#5ca9d6");
+          }
+        }
       }
     }
     for (const member of this.swimmers) {
-      if (!submerged.has(member)) (member.body as Phaser.Physics.Arcade.Body).setGravityY(0);
+      if (!submerged.has(member)) {
+        (member.body as Phaser.Physics.Arcade.Body).setGravityY(0);
+        this.swimmingState.delete(member.character.id);
+      }
     }
     this.swimmers.clear();
     for (const member of submerged) this.swimmers.add(member);

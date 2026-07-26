@@ -25,6 +25,7 @@ describe("Save slots / serialization", () => {
     const thief = createCharacter(engine1, "t", "Vex", "thief");
     thief.xp = 5;
     thief.hp = 3;
+    thief.trainSkill("lore");
     
     // Add extra items to inventory
     thief.inventory.add(item("torch"), 3);
@@ -44,6 +45,9 @@ describe("Save slots / serialization", () => {
     expect(serialized.alignment).toBe(thief.alignment);
     expect(serialized.ancestry).toBe(thief.ancestry);
     expect(serialized.voiceRegister).toBe(thief.voiceRegister);
+    expect(serialized.trainedSkills).toEqual(
+      expect.arrayContaining(["thievery", "stealth", "climbing", "swimming", "lore"]),
+    );
     expect(serialized.hp).toBe(3);
     expect(serialized.wornArmorId).toBe("leather-armor");
     expect(serialized.wieldedWeaponId).toBe("dagger");
@@ -59,6 +63,8 @@ describe("Save slots / serialization", () => {
     expect(restored.alignment).toBe(thief.alignment);
     expect(restored.ancestry).toBe(thief.ancestry);
     expect(restored.voiceRegister).toBe(thief.voiceRegister);
+    expect(restored.isTrainedIn("lore")).toBe(true);
+    expect(restored.isTrainedIn("climbing")).toBe(true);
     expect(restored.level).toBe(1);
     expect(restored.xp).toBe(5);
     expect(restored.hp).toBe(3);

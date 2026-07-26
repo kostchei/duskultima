@@ -1,5 +1,6 @@
 import type {
   Alignment,
+  Ancestry,
   Character,
   ClassState,
   DyingState,
@@ -12,11 +13,11 @@ import type {
   Stats,
   VoiceRegister,
 } from "../engine";
-import { Character as EngineCharacter, applySessionItemEffects, initializeClassState } from "../engine";
+import { Character as EngineCharacter, applySessionItemEffects, initializeClassState, parseAncestry } from "../engine";
 import { item } from "../data";
 import type { VisualSkinId, ZonePackId } from "./visual/model";
 
-export interface SavedInventoryItem {
+interface SavedInventoryItem {
   itemId: string;
   qty: number;
 }
@@ -44,7 +45,9 @@ export interface SavedCharacter {
   className: string;
   /** Optional for backward compatibility with saves created before character identity data. */
   alignment?: Alignment;
-  ancestry?: string;
+  ancestry?: Ancestry;
+  /** Permanent trained tasks used by the auto-success check rule. */
+  trainedSkills?: string[];
   /** Optional for backward compatibility with saves created before character voices. */
   voiceRegister?: VoiceRegister;
   stats: Stats;
@@ -150,6 +153,7 @@ export function serializeCharacter(c: Character): SavedCharacter {
     className: c.className,
     alignment: c.alignment,
     ancestry: c.ancestry,
+    trainedSkills: [...c.trainedSkills],
     voiceRegister: c.voiceRegister,
     stats: c.stats,
     level: c.level,
@@ -182,7 +186,7 @@ export function deserializeCharacter(state: SavedCharacter, _engine: Engine): Ch
     name: state.name,
     className: state.className as any,
     alignment: state.alignment ?? "neutral",
-    ancestry: state.ancestry ?? "human",
+    ancestry: parseAncestry(state.ancestry ?? "human"),
     voiceRegister: state.voiceRegister,
     stats: state.stats,
     maxHp: state.hp, // Set initial hp to prevent maxHp calculation issues during init
@@ -208,6 +212,12 @@ export function deserializeCharacter(state: SavedCharacter, _engine: Engine): Ch
   // Focus is an active scene relationship (targets, areas, light positions),
   // so it ends cleanly rather than reviving stale references after load/transition.
   c.effects = state.effects.filter((effect) => effect.duration?.unit !== "focus").map((e) => ({ ...e }));
+  for (const skill of state.trainedSkills ?? []) c.trainSkill(skill);
+  // Saves from the first instructor implementation encoded training only as
+  // an effect. Promote those markers into the explicit trained-skill set.
+  for (const effect of c.effects) {
+    if (effect.id.startsWith("training:")) c.trainSkill(effect.id.slice("training:".length));
+  }
   c.itemState.load((state.itemState ?? []).map(([id, s]) => [id, { ...s }]));
   c.shieldStowed = state.shieldStowed;
 

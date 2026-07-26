@@ -32,7 +32,7 @@ export interface SpellDef {
   choices?: readonly string[];
 }
 
-export type CastOutcome = "success" | "crit" | "fail" | "pendingMishap" | "mishap";
+type CastOutcome = "success" | "crit" | "fail" | "pendingMishap" | "mishap";
 export type CastSource = "known" | "item";
 export type MishapDecision = "spendLuck" | "accept";
 
@@ -137,6 +137,7 @@ export function castSpell(
     kind: "spellcast",
     advantage: [
       ...(opts.advantage ?? []),
+      ...(caster.ancestry === "elf" ? ["elven spellcraft"] : []),
       ...(caster.effects.some((effect) => effect.hooks.some((hook) => hook.kind === "advantageOnSpell" && hook.spellId === spell.id)) ? ["talent"] : []),
     ],
     disadvantage: opts.disadvantage,
@@ -182,7 +183,10 @@ export function castSpellFromItem(
     stat: casterStat(caster, spell),
     dc: 10 + spell.tier,
     kind: "spellcast",
-    advantage: opts.advantage,
+    advantage: [
+      ...(opts.advantage ?? []),
+      ...(caster.ancestry === "elf" ? ["elven spellcraft"] : []),
+    ],
     disadvantage: opts.disadvantage,
   });
   consumeOneShotCastEffects(caster);

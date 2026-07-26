@@ -36,6 +36,14 @@ export function getBaseRole(className: ClassName): BaseClassName {
 
 export type Alignment = "law" | "neutral" | "chaos";
 export type VoiceRegister = "low" | "medium" | "high";
+export type Ancestry = "human" | "dwarf" | "elf" | "half-orc";
+
+export const ANCESTRIES: readonly Ancestry[] = ["human", "dwarf", "elf", "half-orc"];
+
+export function parseAncestry(value: string): Ancestry {
+  if ((ANCESTRIES as readonly string[]).includes(value)) return value as Ancestry;
+  throw new Error(`Unknown ancestry "${value}"`);
+}
 
 const VOICE_REGISTERS: readonly VoiceRegister[] = ["low", "medium", "high"];
 
@@ -91,7 +99,7 @@ export function characterTitle(className: ClassName, alignment: Alignment, level
   return TITLES[base][alignment][band]!;
 }
 
-export type SpellStatus = "available" | "lost";
+type SpellStatus = "available" | "lost";
 
 export interface KnownSpell {
   spellId: string;
@@ -162,7 +170,7 @@ export interface CharacterInit {
   stats: Stats;
   maxHp: number;
   alignment?: Alignment;
-  ancestry?: string;
+  ancestry?: Ancestry;
   voiceRegister?: VoiceRegister;
 }
 
@@ -172,8 +180,9 @@ export class Character {
   readonly className: ClassName;
   readonly alignment: Alignment;
   readonly stats: Stats;
-  readonly ancestry: string;
+  readonly ancestry: Ancestry;
   readonly voiceRegister: VoiceRegister;
+  readonly trainedSkills = new Set<string>();
 
   level = 1;
   xp = 0;
@@ -210,7 +219,7 @@ export class Character {
     this.className = init.className;
     this.alignment = init.alignment ?? "neutral";
     this.stats = { ...init.stats };
-    this.ancestry = init.ancestry ?? "human";
+    this.ancestry = parseAncestry(init.ancestry ?? "human");
     this.voiceRegister = init.voiceRegister ?? voiceRegisterForIdentity(init.id, init.name);
     for (const s of STAT_NAMES) statModifier(this.stats[s]); // validate
     this.baseMaxHp = init.maxHp;
@@ -225,6 +234,16 @@ export class Character {
 
   mod(stat: StatName): number {
     return statModifier(effectiveStatScore(this.effects, stat, this.stats[stat]));
+  }
+
+  trainSkill(taskOrStat: string): void {
+    const normalized = taskOrStat.trim().toLowerCase();
+    if (!normalized) throw new Error("Training name cannot be empty");
+    this.trainedSkills.add(normalized);
+  }
+
+  isTrainedIn(taskOrStat: string): boolean {
+    return this.trainedSkills.has(taskOrStat.trim().toLowerCase());
   }
 
   get maxHp(): number {

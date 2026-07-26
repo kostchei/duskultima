@@ -33,6 +33,11 @@ export interface CheckInput {
   critThreshold?: number;
   /** Flat situational modifier supplied by the caller, such as a magic weapon bonus. */
   bonus?: number;
+  /** Named trained task, such as climbing, swimming, stealth, or lore. */
+  task?: string;
+  /** Trained tasks only require a roll when both pressure and dire stakes apply. */
+  hasTimePressure?: boolean;
+  hasDireConsequences?: boolean;
 }
 
 export interface CheckResult {
@@ -49,6 +54,8 @@ export interface CheckResult {
   rolls: number[];
   advantageReasons: string[];
   disadvantageReasons: string[];
+  /** True when training resolved the task without consuming a die roll. */
+  automatic: boolean;
 }
 
 export function resolveCheck(dice: Dice, input: CheckInput): CheckResult {
@@ -62,13 +69,36 @@ export function resolveCheck(dice: Dice, input: CheckInput): CheckResult {
     advReasons.push("grit");
   }
 
+  const modifier = actor.mod(stat) + sumCheckBonus(actor.effects, kind, actor.level) + (input.bonus ?? 0);
+  const trained =
+    (input.task !== undefined && actor.isTrainedIn(input.task))
+    || actor.isTrainedIn(stat);
+  if (
+    trained
+    && !(input.hasTimePressure === true && input.hasDireConsequences === true)
+  ) {
+    return {
+      success: true,
+      crit: false,
+      fumble: false,
+      natural: 10,
+      total: dc,
+      modifier,
+      dc,
+      mode: "normal",
+      rolls: [],
+      advantageReasons: [...advReasons, "trained"],
+      disadvantageReasons: disReasons,
+      automatic: true,
+    };
+  }
+
   // Any advantage + any disadvantage cancel to a normal roll.
   let mode: Advantage = "normal";
   if (advReasons.length > 0 && disReasons.length === 0) mode = "advantage";
   else if (disReasons.length > 0 && advReasons.length === 0) mode = "disadvantage";
 
   const roll = dice.d20(mode);
-  const modifier = actor.mod(stat) + sumCheckBonus(actor.effects, kind, actor.level) + (input.bonus ?? 0);
   const total = roll.natural + modifier;
 
   const critAt = kind === "attack" || kind === "meleeAttack" ? (input.critThreshold ?? actor.critThreshold) : 20;
@@ -90,5 +120,54 @@ export function resolveCheck(dice: Dice, input: CheckInput): CheckResult {
     rolls: roll.rolls,
     advantageReasons: advReasons,
     disadvantageReasons: disReasons,
+    automatic: false,
   };
+}
+
+export interface ContestedCheckSide {
+  actor: Character;
+  stat: StatName;
+  kind?: CheckKind;
+  advantage?: readonly string[];
+  disadvantage?: readonly string[];
+  bonus?: number;
+  task?: string;
+}
+
+export interface ContestedCheckResult {
+  winner: Character;
+  loser: Character;
+  winnerResult: CheckResult;
+  loserResult: CheckResult;
+  /** Number of opposed rolls made; ties reroll both sides. */
+  rounds: number;
+}
+
+/** Opposed d20 checks reroll ties until one total is strictly higher. */
+export function resolveContestedCheck(
+  dice: Dice,
+  a: ContestedCheckSide,
+  b: ContestedCheckSide,
+): ContestedCheckResult {
+  for (let rounds = 1; rounds <= 100; rounds++) {
+    const resultA = resolveCheck(dice, {
+      ...a,
+      dc: 0,
+      kind: a.kind ?? "stat",
+      hasTimePressure: true,
+      hasDireConsequences: true,
+    });
+    const resultB = resolveCheck(dice, {
+      ...b,
+      dc: 0,
+      kind: b.kind ?? "stat",
+      hasTimePressure: true,
+      hasDireConsequences: true,
+    });
+    if (resultA.total === resultB.total) continue;
+    return resultA.total > resultB.total
+      ? { winner: a.actor, loser: b.actor, winnerResult: resultA, loserResult: resultB, rounds }
+      : { winner: b.actor, loser: a.actor, winnerResult: resultB, loserResult: resultA, rounds };
+  }
+  throw new Error("Contested check remained tied for 100 rounds");
 }

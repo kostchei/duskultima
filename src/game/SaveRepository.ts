@@ -2,7 +2,7 @@ import type { SaveSlot } from "./state";
 
 export const SAVE_SCHEMA_VERSION = 1;
 
-export interface ExportedSaves {
+interface ExportedSaves {
   schemaVersion: number;
   timestamp: number;
   autosave: SaveSlot | null;
@@ -222,8 +222,9 @@ export class SaveRepository {
   /**
    * Validates structural integrity of a SaveSlot object
    */
-  public static validateSaveSlot(obj: any): obj is SaveSlot {
-    if (!obj || typeof obj !== "object") return false;
+  public static validateSaveSlot(value: unknown): value is SaveSlot {
+    if (!value || typeof value !== "object") return false;
+    const obj = value as Record<string, unknown>;
 
     // Check critical fields
     if (typeof obj.slotId !== "number") return false;
@@ -291,8 +292,23 @@ export class SaveRepository {
     }
     if (obj.discoveredRoomIds !== undefined && (!Array.isArray(obj.discoveredRoomIds) || !obj.discoveredRoomIds.every((id: unknown) => typeof id === "string"))) return false;
     if (obj.survivalRemainingMs !== undefined && (typeof obj.survivalRemainingMs !== "number" || obj.survivalRemainingMs < 0)) return false;
-    if (obj.dangerFlags !== undefined && (!Number.isInteger(obj.dangerFlags) || obj.dangerFlags < 0 || obj.dangerFlags > 4)) return false;
-    if (obj.dangerChecks !== undefined && (!Number.isInteger(obj.dangerChecks) || obj.dangerChecks < 0)) return false;
+    if (
+      obj.dangerFlags !== undefined
+      && (
+        typeof obj.dangerFlags !== "number"
+        || !Number.isInteger(obj.dangerFlags)
+        || obj.dangerFlags < 0
+        || obj.dangerFlags > 4
+      )
+    ) return false;
+    if (
+      obj.dangerChecks !== undefined
+      && (
+        typeof obj.dangerChecks !== "number"
+        || !Number.isInteger(obj.dangerChecks)
+        || obj.dangerChecks < 0
+      )
+    ) return false;
     if (obj.dangerFails !== undefined) {
       if (!obj.dangerFails || typeof obj.dangerFails !== "object" || Array.isArray(obj.dangerFails)) return false;
       if (!Object.values(obj.dangerFails).every((fails) =>
@@ -315,10 +331,11 @@ export class SaveRepository {
     if (obj.porterHireAttempted !== undefined && typeof obj.porterHireAttempted !== "boolean") return false;
     if (obj.porter !== undefined) {
       if (!obj.porter || typeof obj.porter !== "object" || Array.isArray(obj.porter)) return false;
-      if (typeof obj.porter.name !== "string" || typeof obj.porter.ownerId !== "string") return false;
-      if (typeof obj.porter.hp !== "number" || obj.porter.hp < 1) return false;
-      if (!Array.isArray(obj.porter.inventory)) return false;
-      if (!obj.porter.inventory.every((stack: unknown) => {
+      const porter = obj.porter as Record<string, unknown>;
+      if (typeof porter.name !== "string" || typeof porter.ownerId !== "string") return false;
+      if (typeof porter.hp !== "number" || porter.hp < 1) return false;
+      if (!Array.isArray(porter.inventory)) return false;
+      if (!porter.inventory.every((stack: unknown) => {
         if (!stack || typeof stack !== "object") return false;
         const candidate = stack as { itemId?: unknown; qty?: unknown };
         return typeof candidate.itemId === "string" && Number.isInteger(candidate.qty) && (candidate.qty as number) > 0;
@@ -327,8 +344,10 @@ export class SaveRepository {
     
     // Check party list
     if (!Array.isArray(obj.party)) return false;
-    for (const char of obj.party) {
-      if (!char || typeof char !== "object") return false;
+    const party: unknown[] = obj.party;
+    for (const candidate of party) {
+      if (!candidate || typeof candidate !== "object") return false;
+      const char = candidate as Record<string, unknown>;
       if (typeof char.id !== "string") return false;
       if (typeof char.name !== "string") return false;
       if (typeof char.className !== "string") return false;
@@ -338,7 +357,20 @@ export class SaveRepository {
         char.alignment !== "neutral" &&
         char.alignment !== "chaos"
       ) return false;
-      if (char.ancestry !== undefined && typeof char.ancestry !== "string") return false;
+      if (
+        char.ancestry !== undefined
+        && (
+          typeof char.ancestry !== "string"
+          || !["human", "dwarf", "elf", "half-orc"].includes(char.ancestry)
+        )
+      ) return false;
+      if (
+        char.trainedSkills !== undefined
+        && (
+          !Array.isArray(char.trainedSkills)
+          || char.trainedSkills.some((skill: unknown) => typeof skill !== "string")
+        )
+      ) return false;
       if (typeof char.level !== "number") return false;
       if (typeof char.hp !== "number") return false;
       if (typeof char.maxHp !== "number") return false;

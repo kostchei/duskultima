@@ -80,7 +80,7 @@ export type ClassResource =
   | "familiarTeleport"
   | "omen";
 
-export type DurationUnit = "rounds" | "crawlingRounds" | "realMs" | "untilRest" | "focus";
+type DurationUnit = "rounds" | "crawlingRounds" | "realMs" | "untilRest" | "focus";
 
 export interface Duration {
   unit: DurationUnit;

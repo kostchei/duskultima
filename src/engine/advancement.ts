@@ -56,7 +56,9 @@ export function levelUp(
   character.xp -= xpToNextLevel(character.level);
   character.level++;
 
-  const hpRolled = dice.roll(hitDie);
+  const hpRolled = character.ancestry === "dwarf"
+    ? Math.max(dice.roll(hitDie), dice.roll(hitDie))
+    : dice.roll(hitDie);
   const hpGained = Math.max(1, hpRolled + character.mod("CON"));
   character.increaseMaxHp(hpGained);
   // Leveling restores the character to full (and pulls a dying one back up).

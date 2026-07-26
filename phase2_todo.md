@@ -89,6 +89,22 @@ Phase 2 is complete when:
 - [x] Add deterministic tests for stacking, cancellation, expiry, save/load,
   and immunity. (`tests/conditions.test.ts`.)
 
+### Core character and movement rules
+
+- [x] Let the player choose Human, Dwarf, Elf, or Half-Orc ancestry at the
+  start of an expedition and persist that choice in saves.
+- [x] Apply Human extra starting talent, Dwarf level-up HP advantage, Elf
+  spell-check advantage, and Half-Orc melee damage.
+- [x] Auto-succeed trained tasks unless both time pressure and dire
+  consequences apply; instructor training and Thief skills feed this rule.
+- [x] Add opposed d20 checks with tie rerolls to the shared rules engine.
+- [x] Resolve climbing checks, slippery surfaces, failed grips, and checked
+  follower climbs through the ratified platformer falling-damage formula.
+- [x] Record the changed fall model as an approved deviation: four safe tiles,
+  then 1d6 plus 1d6 per additional three-tile band.
+- [x] Resolve swimming at reduced speed, chainmail disadvantage, plate
+  inability to swim, rough-water checks, and suffocation in flood volumes.
+
 ### Contextual choice UI
 
 - [x] Generalize the current contextual `E` interaction into a short action

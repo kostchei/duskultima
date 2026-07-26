@@ -3,7 +3,7 @@ import type { Dice } from "./dice";
 
 export type CarouseTier = "humble" | "bold" | "legendary";
 
-export interface CarouseEvent {
+interface CarouseEvent {
   roll: number;
   title: string;
   text: string;

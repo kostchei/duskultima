@@ -65,6 +65,7 @@ import {
   triggerFlourish,
   usePotion,
   type Alignment,
+  type Ancestry,
   type CastResult,
   type CastSource,
   type ClassName,
@@ -83,6 +84,7 @@ import {
   TRAINING_STAT,
   Inventory,
   type StatName,
+  parseAncestry,
 } from "../../engine";
 import { GameContext } from "../context";
 import { ActionInput } from "../input/ActionInput";
@@ -421,11 +423,13 @@ export class DungeonScene extends Phaser.Scene {
   private usedCharacterNames = new Set<string>();
   private startingCharacterName = "";
   private startingClass: ClassName = "fighter";
+  private startingAncestry: Ancestry = "human";
   /** A non-adventurer follower: carries loot, earns no XP, and is targeted only after adventurers. */
   private porter: CharacterSprite | null = null;
   private porterOwnerId: string | null = null;
   private porterHireAttempted = false;
   private readonly nextSimpleTrapDisarmAt = new Map<string, number>();
+  private readonly nextClimbAttemptAt = new Map<string, number>();
 
   constructor() {
     super("Dungeon");
@@ -473,6 +477,7 @@ export class DungeonScene extends Phaser.Scene {
     this.descending = false;
     this.gearSelectionIndex = 0;
     this.nextSimpleTrapDisarmAt.clear();
+    this.nextClimbAttemptAt.clear();
     this.shopMode = "buy";
     this.shopCursor = 0;
     this.shopMemberIndex = 0;
@@ -533,6 +538,10 @@ export class DungeonScene extends Phaser.Scene {
     const requestedStartingClass = this.registry.get("startingClass") as ClassName | undefined;
     if (!this.loadedState && requestedStartingClass && startingClassesForZone(this.activeZone).includes(requestedStartingClass)) {
       this.startingClass = requestedStartingClass;
+    }
+    const requestedStartingAncestry = this.registry.get("startingAncestry") as string | undefined;
+    if (!this.loadedState && requestedStartingAncestry) {
+      this.startingAncestry = parseAncestry(requestedStartingAncestry);
     }
     this.vaultsInScroll = this.loadedState?.vaultsInScroll ?? rollVaultCountForScroll(runSeed);
     this.vaultsCompletedInScroll = this.loadedState?.vaultsCompletedInScroll ?? 0;
@@ -1528,6 +1537,8 @@ export class DungeonScene extends Phaser.Scene {
                 this.startingClass,
                 px,
                 py,
+                undefined,
+                this.startingAncestry,
               );
               this.party.add(fighter);
             }
@@ -1826,11 +1837,12 @@ export class DungeonScene extends Phaser.Scene {
     x: number,
     y: number,
     alignment?: Alignment,
+    ancestry: Ancestry = "human",
   ): CharacterSprite {
     const zone = this.loadedState?.zone;
     const base = getBaseRole(cls);
     const resolvedClass = base === cls ? resolveClassForZone(base, zone) : cls;
-    const character = createCharacter(this.ctx.engine, id, name, resolvedClass, "human", alignment);
+    const character = createCharacter(this.ctx.engine, id, name, resolvedClass, ancestry, alignment);
     return new CharacterSprite(this, this.ctx, x, y, character, this.light);
   }
 
@@ -2107,7 +2119,7 @@ export class DungeonScene extends Phaser.Scene {
     this.updateCameraFraming(time, delta);
     this.party.updateFollowers(time, (m, dir, targetY) => this.followerCanStep(m, dir, targetY));
     this.updatePorterFollower(time);
-    this.updateFollowerClimbs();
+    this.updateFollowerClimbs(time);
     this.updateFollowerSupport(time);
     this.trapSystem.update(time);
     this.updatePlacedGear(time, delta);
@@ -2945,14 +2957,29 @@ export class DungeonScene extends Phaser.Scene {
           body.setAllowGravity(true);
           leader.setVelocityY(-160);
         } else {
-          leader.climbing = true;
-          body.setAllowGravity(false);
-          if (up) {
-            leader.setVelocityY(-120);
-          } else if (downInput) {
-            leader.setVelocityY(120);
+          const slippery = this.placedGear.some(
+            (entry) =>
+              entry.mode === "slick"
+              && Math.abs(entry.x - leader.x) <= TILE * 1.5
+              && Math.abs(entry.y - leader.y) <= TILE * 1.5,
+          );
+          const authorized =
+            leader.climbing
+            || wallWalking
+            || this.tryStartClimb(leader, slippery, time);
+          if (authorized) {
+            leader.climbing = true;
+            body.setAllowGravity(false);
+            if (up) {
+              leader.setVelocityY(-120);
+            } else if (downInput) {
+              leader.setVelocityY(120);
+            } else {
+              leader.setVelocityY(0);
+            }
           } else {
-            leader.setVelocityY(0);
+            leader.climbing = false;
+            body.setAllowGravity(true);
           }
         }
       }
@@ -4302,6 +4329,7 @@ export class DungeonScene extends Phaser.Scene {
     this.downtimeUsed = true;
     if (result.success) {
       this.trainingFailures.delete(key);
+      member.character.trainSkill(skill);
       member.character.removeEffect(`training:${skill}`);
       member.character.addEffect({
         id: `training:${skill}`,
@@ -4868,20 +4896,68 @@ export class DungeonScene extends Phaser.Scene {
     if ((wallAhead || leader.y < porter.y - 40) && body.blocked.down) porter.tryJump(time);
   }
 
-  /** Followers use the same universal ladders/ropes as the leader. */
-  private updateFollowerClimbs(): void {
+  private tryStartClimb(member: CharacterSprite, slippery: boolean, time: number): boolean {
+    const retryAt = this.nextClimbAttemptAt.get(member.character.id) ?? 0;
+    if (time < retryAt) return false;
+    const pressured = this.monsters.some(
+      (monster) => monster.aliveInFight && monster.aiState === "aggro",
+    );
+    const result = this.ctx.engine.climb(member.character, {
+      slippery,
+      hasTimePressure: pressured,
+      hasDireConsequences: true,
+    });
+    if (result.success) {
+      if (!result.check.automatic) {
+        this.ctx.say(
+          `${member.character.name} catches the climb (${result.check.total} vs ${result.check.dc}).`,
+          "#60e080",
+        );
+      }
+      return true;
+    }
+    this.nextClimbAttemptAt.set(member.character.id, time + 1000);
+    const body = member.body as Phaser.Physics.Arcade.Body;
+    body.setAllowGravity(true);
+    if (result.fell) body.setVelocityY(Math.max(120, body.velocity.y));
+    floatText(
+      this,
+      member.x,
+      member.y - 24,
+      result.fell ? "LOSES GRIP!" : "CLIMB FAILED",
+      "#d07070",
+      11,
+    );
+    this.ctx.say(
+      `${member.character.name} fails the climb (${result.check.total} vs ${result.check.dc})${result.fell ? " and falls!" : "."}`,
+      "#d07070",
+    );
+    return false;
+  }
+
+  /** Followers use the same checked ladders/ropes as the leader. */
+  private updateFollowerClimbs(time: number): void {
     const leader = this.party.leader;
     for (const member of this.party.members) {
       if (member === leader || !member.alive || member.mode === "hold") continue;
-      const touching = this.climbTiles.some(
+      const touchingAuthored = this.climbTiles.some(
         (zone) => Math.abs(zone.x - member.x) <= TILE * 1.5 && Math.abs(zone.y - member.y) <= TILE * 1.5,
       );
+      const touchingPlaced = this.placedGear.some(
+        (entry) =>
+          entry.mode === "climb"
+          && Math.abs(entry.x - member.x) <= TILE * 0.9
+          && Math.abs(entry.y - member.y) <= TILE * 4.5,
+      );
+      const touching = touchingAuthored || touchingPlaced;
       const verticalGap = leader.y - member.y;
       if (touching && Math.abs(verticalGap) > TILE) {
         const body = member.body as Phaser.Physics.Arcade.Body;
-        member.climbing = true;
-        body.setAllowGravity(false);
-        member.setVelocityY(Math.sign(verticalGap) * 100);
+        if (member.climbing || this.tryStartClimb(member, false, time)) {
+          member.climbing = true;
+          body.setAllowGravity(false);
+          member.setVelocityY(Math.sign(verticalGap) * 100);
+        }
       } else if (member.climbing) {
         member.climbing = false;
         (member.body as Phaser.Physics.Arcade.Body).setAllowGravity(true);

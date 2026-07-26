@@ -40,6 +40,8 @@ describe("SaveRepository", () => {
         id: "char1",
         name: "Valerie",
         className: "fighter",
+        ancestry: "dwarf",
+        trainedSkills: ["climbing"],
         stats: { STR: 12, DEX: 10, CON: 11, INT: 10, WIS: 9, CHA: 10 },
         level: 2,
         xp: 150,
@@ -74,6 +76,8 @@ describe("SaveRepository", () => {
     expect(loaded!.slotId).toBe(1);
     expect(loaded!.coinsBanked).toBe(500);
     expect(loaded!.runSeed).toBe(8128);
+    expect(loaded!.party[0]!.ancestry).toBe("dwarf");
+    expect(loaded!.party[0]!.trainedSkills).toEqual(["climbing"]);
     expect((loaded as any).schemaVersion).toBe(SAVE_SCHEMA_VERSION);
   });
 
@@ -140,6 +144,14 @@ describe("SaveRepository", () => {
     expect(SaveRepository.validateSaveSlot({ ...validSaveSlot, discoveredRoomIds: ["room-1", 2] })).toBe(false);
     expect(SaveRepository.validateSaveSlot({ ...validSaveSlot, claimedTreasureFindIds: ["find-1", 2] })).toBe(false);
     expect(SaveRepository.validateSaveSlot({ ...validSaveSlot, npcInteractionStates: { npc: "unknown" } })).toBe(false);
+    expect(SaveRepository.validateSaveSlot({
+      ...validSaveSlot,
+      party: [{ ...validSaveSlot.party[0], ancestry: "gnome" }],
+    })).toBe(false);
+    expect(SaveRepository.validateSaveSlot({
+      ...validSaveSlot,
+      party: [{ ...validSaveSlot.party[0], trainedSkills: ["climbing", 1] }],
+    })).toBe(false);
 
     const corruptParty = { ...validSaveSlot, party: [{ name: "missing-fields" }] };
     expect(SaveRepository.validateSaveSlot(corruptParty)).toBe(false);

@@ -659,6 +659,10 @@ class CrawlingSystem:
         return prompt_players_for_interactor()
 
 # Falling Damage Math (page 47)
+# Shadowdork-approved deviation: the platformer implementation does not use
+# literal feet. The first four tiles are safe; longer drops deal 1d6, plus
+# another 1d6 for each additional three-tile band. This change is intentional
+# and should not be "corrected" back to the reference formula in future audits.
 function resolve_falling(character: Character, height_feet: int) -> int:
     ten_foot_segments = math.floor(height_feet / 10)
     damage = roll_dice(ten_foot_segments, 6) # 1d6 damage for every 10 feet

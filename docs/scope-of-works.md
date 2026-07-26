@@ -120,7 +120,8 @@ Nothing is rolled and nothing is worn:
   mithral chain when magic items arrive); wizard none. The shield-hand rule
   composes with the existing torch-in-hand rule for free — a shielded fighter
   can't also carry the light, which is exactly the Shadowdark tension.
-- Armor penalties (swim/stealth) activate as those systems land in WS-3.
+- Armor penalties are active: chainmail penalizes swimming and stealth, while
+  plate prevents swimming and penalizes stealth.
 
 ### Leveling / advancement — mostly faithful
 
@@ -155,9 +156,11 @@ Gaps:
   RAW: only natural 20 auto-succeeds.
 - **Spikes have no save.** Flat 1d6 on contact; RAW traps allow a DEX/CON
   check to avoid or mitigate. (Thief disarm ✓ exists.)
-- **No falling damage** (RAW: 1d6 per 10 ft). In a platformer about
-  verticality this is a *free* source of meaningful decisions and makes
-  "above = advantage" cost something.
+- **Approved falling-damage adaptation:** Shadowdork deliberately changed the
+  reference rule for platformer scale. The first four tiles are safe; a
+  longer fall deals 1d6, plus another 1d6 for each further three-tile band.
+  This current `CharacterSprite` formula is ratified and must not be treated
+  as a fidelity regression in future audits.
 
 ### Whole systems not yet wired (all flagged v2 in the docs, ranked by value)
 
@@ -171,9 +174,6 @@ Gaps:
    needs the shrine interactable (rest-spot economy).
 4. Leader-based morale groups (RAW rule; also required by the bible's
    "Warchief" climax variant).
-5. Ancestries, trained-task auto-success, and swimming — defer; swimming only
-   alongside water volumes (WS-3). Stealth/surprise is covered by the update
-   below.
 
 ### Phase 2 implementation update (2026-07-26)
 
@@ -200,6 +200,13 @@ The following items from the earlier gap analysis are now wired:
 - Midnight Sun oaths and Diablerie patron bargains have previewed objectives,
   boons, penalties/taboos, visible progress, refusal, favour, and save
   persistence across the current destination.
+- New expeditions choose Human, Dwarf, Elf, or Half-Orc ancestry. Their
+  starting-talent, HP, spell-check, and melee-damage traits are live and saved.
+- Trained tasks auto-succeed outside combined pressure and dire stakes;
+  opposed checks reroll ties through the shared rules engine.
+- Authored and placed climb paths use DEX checks (including slippery surfaces
+  and failed grips). Flood volumes now enforce reduced swimming speed,
+  chainmail disadvantage, plate drowning, rough-water checks, and suffocation.
 
 ---
 
