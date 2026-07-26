@@ -83,17 +83,26 @@ export class NewGameScene extends Phaser.Scene {
 
     const chosenClass = classDef(this.className);
     const local = !["fighter", "thief", "priest", "wizard"].includes(this.className);
-    this.track(this.add.text(GAME_W / 2, 382,
-      `${chosenClass.displayName} • ${chosenClass.hitDie} hit die • ${local ? "Local class tradition" : "Core class"}\n${zonePackInfo(this.zone).flavor}`,
-      { fontFamily: "Consolas, monospace", fontSize: "11px", color: "#c8c8d0", align: "center", lineSpacing: 7, resolution: RENDER_SCALE },
+
+    // Detail info box
+    const box = this.add.graphics();
+    box.fillStyle(0x05070d, 0.9);
+    box.fillRoundedRect(52, 342, GAME_W - 104, 76, 6);
+    box.lineStyle(1, 0x303444, 0.9);
+    box.strokeRoundedRect(52, 342, GAME_W - 104, 76, 6);
+    this.track(box as any);
+
+    this.track(this.add.text(GAME_W / 2, 380,
+      `${chosenClass.displayName.toUpperCase()}  •  ${chosenClass.hitDie} hit die  •  ${local ? "Local class tradition" : "Core class"}\n${zonePackInfo(this.zone).flavor}`,
+      { fontFamily: "Consolas, monospace", fontSize: "11px", color: "#c8c8d0", align: "center", lineSpacing: 5, resolution: RENDER_SCALE, wordWrap: { width: GAME_W - 130 } },
     ).setOrigin(0.5));
 
-    this.track(textButton(this, 165, 480, "[ BACK ]", () => this.scene.start("Boot"), {
+    this.track(textButton(this, 120, 472, "[ BACK ]", () => this.scene.start("Boot"), {
       idleColor: "#a0a4b0", fontSize: "14px", resolution: RENDER_SCALE,
     }));
-    this.track(textButton(this, GAME_W / 2, 456, "[ BEGIN EXPEDITION ]", () => this.begin(), {
+    this.track(textButton(this, GAME_W / 2, 472, "[ BEGIN EXPEDITION ]", () => this.begin(), {
       idleColor: "#ffd45f", pressedColor: "#fff4cf", fontSize: "17px", resolution: RENDER_SCALE,
-      padding: { x: 12, y: 7 },
+      padding: { x: 14, y: 7 },
     }));
   }
 

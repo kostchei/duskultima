@@ -88,6 +88,7 @@ export class HudScene extends Phaser.Scene {
   private overlay: Phaser.GameObjects.Container | null = null;
   /** Scroll-choice card labels on the victory overlay, one per offered scroll. */
   private biomeCards: Phaser.GameObjects.Text[] = [];
+  private biomeCardBoxes: { bg: Phaser.GameObjects.Graphics; text: Phaser.GameObjects.Text; x: number; y: number; w: number; h: number }[] = [];
   private startOverlay: Phaser.GameObjects.Container | null = null;
   private pauseOverlay: Phaser.GameObjects.Container | null = null;
   private statsOverlay: Phaser.GameObjects.Container | null = null;
@@ -1196,6 +1197,7 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** Victory overlay: party summary, vault progress, or 1d6 cursed-scroll destination choice. */
+  /** Victory overlay: party summary, vault progress, or 1d6 cursed-scroll destination choice. */
   private showWinOverlay(): void {
     if (this.overlay) return;
     const w = GAME_W;
@@ -1212,98 +1214,152 @@ export class HudScene extends Phaser.Scene {
     const summary = `Reward ${this.dungeon.rewardLabel}  |  Coins ${this.ctx.totalCoins}  |  Kills ${this.ctx.kills}  |  Run seed ${runIndex}`;
 
     const mainTitle = offer ? "DESTINATION COMPLETED" : "VAULT CLEARED!";
-    const subPrompt = offer ? "CHOOSE YOUR NEXT DESTINATION" : `Vault ${this.dungeon.vaultsCompletedInScroll} of ${this.dungeon.vaultsInScroll} in ${this.dungeon.activeZoneName}`;
+    const subPrompt = offer ? "CHOOSE YOUR NEXT DESTINATION" : `Vault ${this.dungeon.vaultsCompletedInScroll + 1} of ${this.dungeon.vaultsInScroll} in ${this.dungeon.activeZoneName}`;
 
     const items: Phaser.GameObjects.GameObject[] = [
       this.add.rectangle(w / 2, h / 2, w, h, 0x020205, 0.92).setInteractive(),
-      this.add
-        .text(w / 2, h / 2 - 156, mainTitle, {
-          fontFamily: "Georgia, serif",
-          fontSize: "30px",
-          color: "#ffd45f",
-          stroke: "#000000",
-          strokeThickness: 5,
-          resolution: RENDER_SCALE,
-        })
-        .setOrigin(0.5),
-      this.add
-        .text(w / 2, h / 2 - 122, this.dungeon.dungeonDisplayName, {
-          ...UI_STYLE,
-          fontFamily: "Georgia, serif",
-          fontSize: "14px",
-          color: "#aaa6a0",
-        })
-        .setOrigin(0.5),
-      this.add
-        .text(w / 2, h / 2 - 86, parts.join("\n"), { ...DATA_STYLE, fontSize: "11px", align: "center", lineSpacing: 4 })
-        .setOrigin(0.5),
-      this.add
-        .text(w / 2, h / 2 - 40, summary, { ...DATA_STYLE, fontSize: "11px", color: "#9fa5b1" })
-        .setOrigin(0.5),
-      this.add
-        .text(w / 2, h / 2 - 12, subPrompt, {
-          ...UI_STYLE,
-          fontSize: "16px",
-          color: "#f0eee9",
-          fontStyle: "bold",
-        })
-        .setOrigin(0.5),
-      this.add
-        .text(w / 2, h / 2 + 10, "The whole party levels up on descent.", {
-          ...DATA_STYLE,
-          fontSize: "10px",
-          color: "#9fa5b1",
-        })
-        .setOrigin(0.5),
     ];
 
     if (offer) {
-      // Lay the offered scrolls out in a centered row; up to six fit the 960 view.
+      // Zone transition / Destination choice layout
+      items.push(
+        this.add
+          .text(w / 2, 38, mainTitle, {
+            fontFamily: "Georgia, serif",
+            fontSize: "26px",
+            color: "#ffd45f",
+            stroke: "#000000",
+            strokeThickness: 5,
+            resolution: RENDER_SCALE,
+          })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, 68, this.dungeon.dungeonDisplayName, {
+            ...UI_STYLE,
+            fontFamily: "Georgia, serif",
+            fontSize: "13px",
+            color: "#aaa6a0",
+          })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, 94, parts.join("\n"), { ...DATA_STYLE, fontSize: "10px", align: "center", lineSpacing: 2 })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, 144, summary, { ...DATA_STYLE, fontSize: "10px", color: "#9fa5b1" })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, 168, subPrompt, {
+            ...UI_STYLE,
+            fontSize: "15px",
+            color: "#f0eee9",
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, 188, "The whole party levels up on descent.", {
+            ...DATA_STYLE,
+            fontSize: "10px",
+            color: "#9fa5b1",
+          })
+          .setOrigin(0.5),
+      );
+
       const count = offer.zones.length;
-      const cardW = Math.min(150, Math.floor((w - 40) / count));
-      const rowW = cardW * count;
+      const cardW = Math.min(145, Math.floor((w - 30) / count) - 6);
+      const rowW = (cardW + 6) * count - 6;
       const startX = (w - rowW) / 2 + cardW / 2;
+      const cardY = 206;
+      const cardH = 210;
+
+      this.biomeCardBoxes = [];
       this.biomeCards = offer.zones.map((zone, index) => {
         const info = zonePackInfo(zone);
         const skins = skinsForZone(zone);
         const biomes = skins.map((s) => `• ${s.displayName}`).join("\n");
-        const card = this.add
+        const cardX = startX + index * (cardW + 6);
+
+        const bgGraphics = this.add.graphics();
+        items.push(bgGraphics);
+
+        const hitArea = this.add
+          .rectangle(cardX, cardY + cardH / 2, cardW, cardH, 0x000000, 0)
+          .setInteractive({ useHandCursor: true })
+          .on("pointerdown", () => this.dungeon.selectBiome(index));
+        items.push(hitArea);
+
+        const cardText = this.add
           .text(
-            startX + index * cardW,
-            h / 2 + 52,
-            `${index + 1}. ${info.scrollName}\n${info.flavor}\n\nBIOMES:\n${biomes}`,
+            cardX,
+            cardY + 12,
+            `${index + 1}. ${info.scrollName.toUpperCase()}\n\n${info.flavor}\n\nBIOMES:\n${biomes}`,
             {
               ...DATA_STYLE,
               fontSize: "9px",
               align: "center",
               lineSpacing: 3,
-              wordWrap: { width: cardW - 10 },
+              wordWrap: { width: cardW - 14 },
             },
           )
-          .setOrigin(0.5)
-          // Tapping a card is the touch equivalent of ◄ ► / 1-6: it moves the
-          // selection, and the separate DESCEND control commits it.
-          .setInteractive({ useHandCursor: true })
-          .on("pointerdown", () => this.dungeon.selectBiome(index));
-        items.push(card);
-        return card;
+          .setOrigin(0.5, 0);
+        items.push(cardText);
+
+        this.biomeCardBoxes.push({ bg: bgGraphics, text: cardText, x: cardX, y: cardY, w: cardW, h: cardH });
+        return cardText;
       });
       this.applyBiomeSelectionTint();
 
-      const hint = count > 1
-        ? "Tap a scroll, or ◄ ► / 1-6 to choose"
-        : "";
+      const hint = count > 1 ? "Tap a scroll, or ◄ ► / 1-6 to choose" : "";
       if (hint) {
         items.push(
           this.add
-            .text(w / 2, h / 2 + 120, hint, { ...DATA_STYLE, fontSize: "10px", color: "#9fa5b1" })
+            .text(w / 2, 432, hint, { ...DATA_STYLE, fontSize: "10px", color: "#9fa5b1" })
             .setOrigin(0.5),
         );
       }
-      items.push(this.actionButton(w / 2, h / 2 + 144, `[ DESCEND ]${this.keyHint("R")}`, "restart", "15px"));
+      items.push(this.actionButton(w / 2, 468, `[ DESCEND ]${this.keyHint("R")}`, "restart", "15px"));
     } else {
+      // Standard intermediate vault victory
       items.push(
-        this.actionButton(w / 2, h / 2 + 80, `[ DESCEND TO THE NEXT VAULT ]${this.keyHint("R")}`, "restart", "16px"),
+        this.add
+          .text(w / 2, h / 2 - 130, mainTitle, {
+            fontFamily: "Georgia, serif",
+            fontSize: "30px",
+            color: "#ffd45f",
+            stroke: "#000000",
+            strokeThickness: 5,
+            resolution: RENDER_SCALE,
+          })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, h / 2 - 90, this.dungeon.dungeonDisplayName, {
+            ...UI_STYLE,
+            fontFamily: "Georgia, serif",
+            fontSize: "14px",
+            color: "#aaa6a0",
+          })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, h / 2 - 50, parts.join("\n"), { ...DATA_STYLE, fontSize: "11px", align: "center", lineSpacing: 4 })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, h / 2 + 10, summary, { ...DATA_STYLE, fontSize: "11px", color: "#9fa5b1" })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, h / 2 + 40, subPrompt, {
+            ...UI_STYLE,
+            fontSize: "16px",
+            color: "#f0eee9",
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5),
+        this.add
+          .text(w / 2, h / 2 + 65, "The whole party levels up on descent.", {
+            ...DATA_STYLE,
+            fontSize: "10px",
+            color: "#9fa5b1",
+          })
+          .setOrigin(0.5),
+        this.actionButton(w / 2, h / 2 + 110, `[ DESCEND TO THE NEXT VAULT ]${this.keyHint("R")}`, "restart", "16px"),
       );
     }
 
@@ -1315,7 +1371,16 @@ export class HudScene extends Phaser.Scene {
   private applyBiomeSelectionTint(): void {
     const selected = this.dungeon.biomeSelectionIndex;
     this.biomeCards.forEach((card, index) => {
-      card.setColor(index === selected ? "#ffd45f" : "#8a8e98");
+      const isSelected = index === selected;
+      card.setColor(isSelected ? "#ffd45f" : "#9fa5b1");
+      const box = this.biomeCardBoxes[index];
+      if (box) {
+        box.bg.clear();
+        box.bg.fillStyle(isSelected ? 0x121726 : 0x060810, 0.95);
+        box.bg.fillRoundedRect(box.x - box.w / 2, box.y, box.w, box.h, 6);
+        box.bg.lineStyle(isSelected ? 2 : 1, isSelected ? 0xffd45f : 0x343846, 0.95);
+        box.bg.strokeRoundedRect(box.x - box.w / 2, box.y, box.w, box.h, 6);
+      }
     });
   }
 
