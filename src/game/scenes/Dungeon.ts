@@ -11,6 +11,7 @@ import { isMuted, setMuted, suspendAudio, resumeAudioContext } from "../audio/co
 import { saveMutedPref } from "../MobilePrefs";
 import * as sfx from "../audio/sfx";
 import { SpatialEmitter, spatialOpts, type Vec2 } from "../audio/spatial";
+import { DungeonPrimitivesManager } from "../systems/primitives";
 import {
   createCharacter,
   highestAvailableSpellIndex,
@@ -267,6 +268,7 @@ export class DungeonScene extends Phaser.Scene {
   private monsterGroup!: Phaser.GameObjects.Group;
   private partyGroup!: Phaser.GameObjects.Group;
   private trapSystem!: TrapSystem;
+  private primitivesManager!: DungeonPrimitivesManager;
   private fireEmitters: SpatialEmitter[] = [];
   private pickups: Pickup[] = [];
   private talkableNpcs: TalkableNpc[] = [];
@@ -541,6 +543,7 @@ export class DungeonScene extends Phaser.Scene {
     this.createConnectorTelegraphs();
     const torchbearer = this.party.aliveMembers().find((m) => getBaseRole(m.character.className) === "priest") || this.party.leader;
     this.lightTorch(torchbearer, `${torchbearer.character.name} lights a torch.`);
+    this.primitivesManager = new DungeonPrimitivesManager(this.activeDungeon);
     this.trapSystem = new TrapSystem(
       this,
       this.ctx,
@@ -1536,6 +1539,14 @@ export class DungeonScene extends Phaser.Scene {
             this.door = { x: px, y: py };
             break;
           }
+          case "W":
+            break;
+          case "S":
+            break;
+          case "C":
+            break;
+          case "z":
+            break;
           case ".":
             break;
           default:
@@ -1611,6 +1622,68 @@ export class DungeonScene extends Phaser.Scene {
           resolution: RENDER_SCALE,
         },
       ).setOrigin(0.5).setAlpha(0.78).setDepth(5);
+    }
+    for (const winch of this.activeDungeon.winches ?? []) {
+      this.add.text(
+        winch.tile.x * TILE + TILE / 2,
+        winch.tile.y * TILE - TILE,
+        "⚙ WINCH",
+        {
+          fontFamily: "Consolas, monospace",
+          fontSize: "10px",
+          color: "#f5c542",
+          stroke: "#050508",
+          strokeThickness: 3,
+          resolution: RENDER_SCALE,
+        },
+      ).setOrigin(0.5).setAlpha(0.85).setDepth(5);
+    }
+    for (const statue of this.activeDungeon.statues ?? []) {
+      this.add.text(
+        statue.tile.x * TILE + TILE / 2,
+        statue.tile.y * TILE - TILE,
+        "🗿 STATUE",
+        {
+          fontFamily: "Consolas, monospace",
+          fontSize: "10px",
+          color: "#a3b8cc",
+          stroke: "#050508",
+          strokeThickness: 3,
+          resolution: RENDER_SCALE,
+        },
+      ).setOrigin(0.5).setAlpha(0.85).setDepth(5);
+    }
+    for (const chest of this.activeDungeon.heavyChests ?? []) {
+      this.add.text(
+        chest.tile.x * TILE + TILE / 2,
+        chest.tile.y * TILE - TILE,
+        "📦 HEAVY CHEST (6 SLOTS)",
+        {
+          fontFamily: "Consolas, monospace",
+          fontSize: "10px",
+          color: "#e68a00",
+          stroke: "#050508",
+          strokeThickness: 3,
+          resolution: RENDER_SCALE,
+        },
+      ).setOrigin(0.5).setAlpha(0.85).setDepth(5);
+    }
+    for (const zone of this.activeDungeon.zones ?? []) {
+      if (zone.kind === "gas-vent" && zone.tile) {
+        this.add.text(
+          zone.tile.x * TILE + TILE / 2,
+          zone.tile.y * TILE - TILE,
+          "♨ GAS VENT",
+          {
+            fontFamily: "Consolas, monospace",
+            fontSize: "10px",
+            color: "#66cc66",
+            stroke: "#050508",
+            strokeThickness: 3,
+            resolution: RENDER_SCALE,
+          },
+        ).setOrigin(0.5).setAlpha(0.85).setDepth(5);
+      }
     }
   }
 

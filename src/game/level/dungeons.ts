@@ -232,9 +232,43 @@ export type FeaturedTrapSpec =
 
 export type FeaturedTrapKind = FeaturedTrapSpec["kind"];
 
+export interface WinchSpec {
+  id: string;
+  roomId: string;
+  tile: TilePoint;
+  targetGateId?: string;
+  state: "up" | "down";
+}
+
+export interface StatueSpec {
+  id: string;
+  roomId: string;
+  tile: TilePoint;
+  facing: 0 | 90 | 180 | 270;
+  targetFacing: 0 | 90 | 180 | 270;
+  pairStatueId?: string;
+}
+
+export interface HeavyChestSpec {
+  id: string;
+  roomId: string;
+  tile: TilePoint;
+  slots: 6;
+  value: number;
+}
+
+export interface ZoneEffectSpec {
+  id: string;
+  roomId: string;
+  kind: "no-light" | "gas-vent";
+  tile?: TilePoint;
+  bounds?: { x1: number; y1: number; x2: number; y2: number };
+  active: boolean;
+}
+
 const MONSTER_TILES = new Set(["g", "s", "r", "O"]);
 const RESCUE_TILES = new Set(["2", "3", "4"]);
-export const LEGAL_TILES = new Set([..."." , ..."#%=|+^P234NgsrOcGIKtnfFDb*qvh:"]);
+export const LEGAL_TILES = new Set([..."." , ..."#%=|+^P234NgsrOcGIKtnfFDb*qvh:WSCz"]);
 
 export interface DungeonTheme {
   background: number;
@@ -272,6 +306,10 @@ export interface DungeonDefinition {
   roomContents?: readonly ExpandedRoomContent[];
   talkableNpcs?: readonly TalkableNpcSpec[];
   junctions?: readonly ExpandedJunction[];
+  winches?: readonly WinchSpec[];
+  statues?: readonly StatueSpec[];
+  heavyChests?: readonly HeavyChestSpec[];
+  zones?: readonly ZoneEffectSpec[];
   theme: DungeonTheme;
   pools: VariantPools;
   traps: readonly FeaturedTrapSpec[];

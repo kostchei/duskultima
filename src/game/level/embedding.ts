@@ -136,6 +136,56 @@ const CANONICAL: Record<TopologyId, readonly Placement[]> = {
     { node: 2, column: 3, row: 1 }, { node: 3, column: 2, row: 2 },
     { node: 4, column: 2, row: 3 },
   ],
+  cricket: [
+    { node: 0, column: 1, row: 1 }, { node: 1, column: 2, row: 1 },
+    { node: 2, column: 1, row: 0 }, { node: 3, column: 0, row: 1 },
+    { node: 4, column: 1, row: 2 },
+  ],
+  "spinning-top": [
+    { node: 0, column: 1, row: 0 }, { node: 1, column: 0, row: 1 },
+    { node: 2, column: 2, row: 1 }, { node: 3, column: 1, row: 2 },
+    { node: 4, column: 1, row: 3 },
+  ],
+  ufo: [
+    { node: 0, column: 2, row: 0 }, { node: 1, column: 0, row: 1 },
+    { node: 2, column: 4, row: 1 }, { node: 3, column: 3, row: 2 },
+    { node: 4, column: 1, row: 2 },
+  ],
+  chevron: [
+    { node: 0, column: 0, row: 1 }, { node: 1, column: 1, row: 2 },
+    { node: 2, column: 2, row: 0 }, { node: 3, column: 3, row: 2 },
+    { node: 4, column: 4, row: 1 },
+  ],
+  crown: [
+    { node: 0, column: 0, row: 2 }, { node: 1, column: 1, row: 0 },
+    { node: 2, column: 2, row: 2 }, { node: 3, column: 3, row: 0 },
+    { node: 4, column: 4, row: 2 },
+  ],
+  envelope: [
+    { node: 0, column: 1, row: 0 }, { node: 1, column: 3, row: 0 },
+    { node: 2, column: 3, row: 2 }, { node: 3, column: 1, row: 2 },
+    { node: 4, column: 4, row: 2 },
+  ],
+  lamp: [
+    { node: 0, column: 1, row: 0 }, { node: 1, column: 3, row: 0 },
+    { node: 2, column: 3, row: 2 }, { node: 3, column: 1, row: 2 },
+    { node: 4, column: 0, row: 1 },
+  ],
+  arrowhead: [
+    { node: 0, column: 2, row: 0 }, { node: 1, column: 1, row: 1 },
+    { node: 2, column: 3, row: 1 }, { node: 3, column: 2, row: 2 },
+    { node: 4, column: 2, row: 3 },
+  ],
+  "cats-cradle": [
+    { node: 0, column: 2, row: 0 }, { node: 1, column: 0, row: 1 },
+    { node: 2, column: 4, row: 1 }, { node: 3, column: 3, row: 2 },
+    { node: 4, column: 1, row: 2 },
+  ],
+  "five-complete": [
+    { node: 0, column: 2, row: 0 }, { node: 1, column: 0, row: 1 },
+    { node: 2, column: 4, row: 1 }, { node: 3, column: 1, row: 2 },
+    { node: 4, column: 3, row: 2 },
+  ],
   "eight-room-expedition": [
     { node: 0, column: 0, row: 2 }, { node: 1, column: 1, row: 2 },
     { node: 2, column: 2, row: 2 }, { node: 3, column: 3, row: 2 },
@@ -154,6 +204,15 @@ const CANONICAL: Record<TopologyId, readonly Placement[]> = {
 
 const CANONICAL_JUNCTIONS: Partial<Record<TopologyId, Placement>> = {
   kite: { node: -1, column: 2, row: 1 },
+  "spinning-top": { node: -1, column: 1, row: 1 },
+  ufo: { node: -1, column: 2, row: 1 },
+  chevron: { node: -1, column: 2, row: 1 },
+  crown: { node: -1, column: 2, row: 1 },
+  envelope: { node: -1, column: 2, row: 1 },
+  lamp: { node: -1, column: 2, row: 1 },
+  arrowhead: { node: -1, column: 2, row: 1 },
+  "cats-cradle": { node: -1, column: 2, row: 1 },
+  "five-complete": { node: -1, column: 2, row: 1 },
 };
 
 export interface EmbeddedEdge {
@@ -287,18 +346,20 @@ export function embed(form: TopologyForm, orientation: Orientation): Embedding {
   for (const edge of ordered) {
     const from = cells.get(edge[0])!;
     const to = cells.get(edge[1])!;
-    const usesJunction = form.id === "kite" && edge[0] < 4 && edge[1] < 4;
+    const dist = manhattan(cells, edge);
+    const usesJunction = !!canonicalJunction && dist >= 2;
     const routed = usesJunction ? [...junctionCells] : routeEdge(from, to, rooms, claimed, columns, rows);
     if (!routed) {
       throw new Error(
         `Cannot route edge ${edge[0]}-${edge[1]} of ${form.id} (${orientation}) within ${MAX_ROUTE_FILLERS} filler cells`,
       );
     }
+    const viaJunction = usesJunction || routed.some((c) => junctionKeys.has(key(c.column, c.row)));
     for (const cell of routed) {
       const cellKey = key(cell.column, cell.row);
       if (!junctionKeys.has(cellKey)) claimed.add(cellKey);
     }
-    edges.push({ edge, routedCells: routed, direction: relativeDirection(from, to), viaJunction: usesJunction });
+    edges.push({ edge, routedCells: routed, direction: relativeDirection(from, to), viaJunction });
   }
   // Restore the form's declared edge order for stable downstream indexing.
   edges.sort((a, b) => form.edges.indexOf(a.edge) - form.edges.indexOf(b.edge));

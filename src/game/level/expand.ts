@@ -165,7 +165,15 @@ function carveConnection(grid: Grid, path: readonly MacroPoint[], phase: Phase):
         carveVerticalShaft(grid, cellCenterX(a.column), standingY(upper), standingY(lower));
       }
     } else {
-      throw new Error(`Non-orthogonal macro step ${a.column},${a.row} -> ${b.column},${b.row}`);
+      const cornerCol = b.column;
+      const cornerRow = a.row;
+      if (phase === "horizontal") {
+        carveHorizontalCorridor(grid, cellCenterX(a.column), cellCenterX(cornerCol), standingY(a.row));
+      } else if (phase === "vertical") {
+        const upper = Math.min(cornerRow, b.row);
+        const lower = Math.max(cornerRow, b.row);
+        carveVerticalShaft(grid, cellCenterX(cornerCol), standingY(upper), standingY(lower));
+      }
     }
   }
 }

@@ -24,6 +24,7 @@ export type GameAction =
   | "torch"
   | "luck"
   | "drop"
+  | "throw"
   // Party control
   | "followerMode"
   | "cycle"
@@ -70,6 +71,7 @@ export const KEY_BINDINGS: Readonly<Record<string, readonly GameAction[]>> = {
   Q: ["cycleSpell"],
   // Interaction / utility.
   E: ["interact"],
+  F: ["throw"],
   T: ["torch"],
   L: ["luck"],
   H: ["followerMode"],

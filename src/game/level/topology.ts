@@ -3,6 +3,9 @@
  *
  * A form describes potential room-to-room adjacency only. Whether a given edge
  * becomes an open passage, a gated door, a secret, or a one-way drop is decided
+ *
+ * A form describes potential room-to-room adjacency only. Whether a given edge
+ * becomes an open passage, a gated door, a secret, or a one-way drop is decided
  * later by connector assignment. Released Tier 1 and Tier 2 forms all have
  * explicit crossing-free embeddings; denser Tier 3 forms remain gated on portal
  * or overpass support.
@@ -25,6 +28,16 @@ export type TopologyId =
   | "house"
   | "hourglass"
   | "kite"
+  | "cricket"
+  | "spinning-top"
+  | "ufo"
+  | "chevron"
+  | "crown"
+  | "envelope"
+  | "lamp"
+  | "arrowhead"
+  | "cats-cradle"
+  | "five-complete"
   | "eight-room-expedition"
   | "twelve-room-expedition";
 
@@ -146,6 +159,76 @@ export const TOPOLOGIES: readonly TopologyForm[] = [
     // K4 around an explicit connector junction, plus a tail. The shared filler
     // is intentional and every physical transition it enables exists here.
     edges: [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3], [3, 4]],
+    weight: 1,
+  },
+  {
+    id: "cricket",
+    label: "Cricket",
+    tier: 3,
+    edges: [[0, 1], [1, 2], [2, 0], [0, 3], [0, 4]],
+    weight: 1,
+  },
+  {
+    id: "spinning-top",
+    label: "Spinning Top",
+    tier: 3,
+    edges: [[0, 1], [0, 2], [1, 3], [2, 3], [1, 2], [3, 4]],
+    weight: 1,
+  },
+  {
+    id: "ufo",
+    label: "UFO",
+    tier: 3,
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 0], [0, 2], [0, 3]],
+    weight: 1,
+  },
+  {
+    id: "chevron",
+    label: "Chevron",
+    tier: 3,
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [2, 4]],
+    weight: 1,
+  },
+  {
+    id: "crown",
+    label: "Crown",
+    tier: 3,
+    edges: [[0, 1], [1, 2], [2, 3], [3, 4], [0, 2], [1, 3], [2, 4]],
+    weight: 1,
+  },
+  {
+    id: "envelope",
+    label: "Envelope",
+    tier: 3,
+    edges: [[0, 1], [1, 2], [2, 3], [3, 0], [0, 2], [1, 3], [2, 4]],
+    weight: 1,
+  },
+  {
+    id: "lamp",
+    label: "Lamp",
+    tier: 3,
+    edges: [[0, 1], [1, 2], [2, 3], [3, 0], [0, 4], [1, 4], [2, 4]],
+    weight: 1,
+  },
+  {
+    id: "arrowhead",
+    label: "Arrowhead",
+    tier: 3,
+    edges: [[0, 1], [0, 2], [0, 3], [1, 2], [2, 3], [3, 1], [3, 4]],
+    weight: 1,
+  },
+  {
+    id: "cats-cradle",
+    label: "Cat's Cradle",
+    tier: 3,
+    edges: [[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [2, 3], [3, 4], [4, 1]],
+    weight: 1,
+  },
+  {
+    id: "five-complete",
+    label: "5-Complete",
+    tier: 3,
+    edges: [[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]],
     weight: 1,
   },
 ];
