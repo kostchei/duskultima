@@ -235,6 +235,53 @@ export class SaveRepository {
     if (typeof obj.roomId !== "string" && typeof obj.currentRoom !== "number") return false;
     if (obj.activatedRequirementIds !== undefined && (!Array.isArray(obj.activatedRequirementIds) || !obj.activatedRequirementIds.every((id: unknown) => typeof id === "string"))) return false;
     if (obj.openedConnectorIds !== undefined && (!Array.isArray(obj.openedConnectorIds) || !obj.openedConnectorIds.every((id: unknown) => typeof id === "string"))) return false;
+    if (obj.placedGear !== undefined) {
+      if (!Array.isArray(obj.placedGear)) return false;
+      if (!obj.placedGear.every((entry: unknown) => {
+        if (!entry || typeof entry !== "object") return false;
+        const gear = entry as { id?: unknown; itemId?: unknown; x?: unknown; y?: unknown; mode?: unknown; burnRemainingMs?: unknown };
+        const itemIds = ["rope", "grappling-hook", "oil-flask", "mirror", "torch"];
+        const modes = ["climb", "slick", "fire", "peek", "light"];
+        return typeof gear.id === "string" && itemIds.includes(gear.itemId as string) &&
+          typeof gear.x === "number" && typeof gear.y === "number" && modes.includes(gear.mode as string) &&
+          (gear.burnRemainingMs === undefined ||
+            (typeof gear.burnRemainingMs === "number" && gear.burnRemainingMs > 0));
+      })) return false;
+    }
+    if (obj.downtimeUsed !== undefined && typeof obj.downtimeUsed !== "boolean") return false;
+    if (obj.trainingFailures !== undefined) {
+      if (!obj.trainingFailures || typeof obj.trainingFailures !== "object" || Array.isArray(obj.trainingFailures)) return false;
+      if (!Object.values(obj.trainingFailures).every((count) => Number.isInteger(count) && (count as number) >= 0)) return false;
+    }
+    if (obj.oaths !== undefined) {
+      if (!Array.isArray(obj.oaths)) return false;
+      if (!obj.oaths.every((entry: unknown) => {
+        if (!entry || typeof entry !== "object") return false;
+        const oath = entry as Record<string, unknown>;
+        return typeof oath.id === "string" &&
+          typeof oath.characterId === "string" &&
+          (oath.rank === "worthy" || oath.rank === "mighty" || oath.rank === "legendary") &&
+          (oath.objective === "kills" || oath.objective === "mercy" || oath.objective === "claim-no-retreat") &&
+          typeof oath.description === "string" &&
+          Number.isInteger(oath.target) && (oath.target as number) > 0 &&
+          Number.isInteger(oath.progress) && (oath.progress as number) >= 0 &&
+          typeof oath.fulfilled === "boolean" && typeof oath.failed === "boolean";
+      })) return false;
+    }
+    if (obj.patrons !== undefined) {
+      if (!Array.isArray(obj.patrons)) return false;
+      const patronIds = new Set(["almazzat", "kytheros", "mugdulblub", "shune", "titania", "willowman"]);
+      if (!obj.patrons.every((entry: unknown) => {
+        if (!entry || typeof entry !== "object") return false;
+        const patron = entry as Record<string, unknown>;
+        return typeof patron.characterId === "string" &&
+          patronIds.has(patron.patronId as string) &&
+          Number.isInteger(patron.favor) &&
+          Number.isInteger(patron.progress) && (patron.progress as number) >= 0 &&
+          typeof patron.demandComplete === "boolean" &&
+          typeof patron.tabooBroken === "boolean";
+      })) return false;
+    }
     if (obj.npcInteractionStates !== undefined) {
       if (!obj.npcInteractionStates || typeof obj.npcInteractionStates !== "object" || Array.isArray(obj.npcInteractionStates)) return false;
       if (!Object.values(obj.npcInteractionStates).every((state) =>
@@ -257,6 +304,13 @@ export class SaveRepository {
     if (typeof obj.hasCrown !== "boolean") return false;
     if (typeof obj.kills !== "number") return false;
     if (typeof obj.coinsBanked !== "number") return false;
+    if (
+      obj.claimedTreasureFindIds !== undefined
+      && (
+        !Array.isArray(obj.claimedTreasureFindIds)
+        || obj.claimedTreasureFindIds.some((id: unknown) => typeof id !== "string")
+      )
+    ) return false;
     if (obj.spendableGold !== undefined && (typeof obj.spendableGold !== "number" || obj.spendableGold < 0)) return false;
     if (obj.porterHireAttempted !== undefined && typeof obj.porterHireAttempted !== "boolean") return false;
     if (obj.porter !== undefined) {

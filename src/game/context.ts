@@ -33,7 +33,7 @@ export class GameContext {
     this.events.emit("message");
   }
 
-  /** Running total of coins looted this run. Every full 100 banked = 1 XP. */
+  /** Running total of coins looted this campaign. XP is awarded per treasure find by quality. */
   private coinsBanked = 0;
 
   set totalCoins(value: number) {
@@ -44,17 +44,15 @@ export class GameContext {
     return this.coinsBanked;
   }
 
-  /** Bank looted coins; returns the XP earned by crossing 100-coin thresholds. */
-  bankCoins(qty: number): number {
-    if (qty < 1) throw new Error(`Coin quantity must be >= 1, got ${qty}`);
-    const before = Math.floor(this.coinsBanked / 100);
+  /** Bank newly looted coins. Treasure XP is resolved by the find that produced them. */
+  bankCoins(qty: number): void {
+    if (!Number.isInteger(qty) || qty < 1) throw new Error(`Coin quantity must be a positive integer, got ${qty}`);
     this.coinsBanked += qty;
-    return Math.floor(this.coinsBanked / 100) - before;
   }
 
   /**
-   * Spendable wallet, separate from the XP-driving {@link coinsBanked}.
-   * Collecting treasure feeds both; buying spends from here only (XP is kept);
+   * Spendable wallet, separate from the historical {@link coinsBanked}.
+   * Collecting treasure feeds both; buying and downtime spend from here;
    * selling adds here only (no XP). See docs/shops-plan.md.
    */
   private gold = 0;

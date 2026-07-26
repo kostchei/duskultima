@@ -27,7 +27,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: false,
     xpTier: "minor",
     biome: "diablerie",
-    specialAbility: "engulf",
+    specialAbility: "split",
   },
   {
     id: "bogthorn",
@@ -223,6 +223,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: false,
     xpTier: "minor",
     biome: "dwellers-in-the-deep",
+    specialAbility: "engulf",
   },
   {
     id: "cave-creeper",
@@ -249,6 +250,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: true,
     xpTier: "minor",
     biome: "dwellers-in-the-deep",
+    specialAbility: "shadow-extinct",
   },
 
   // --- CITY OF MASKS BIOME (Rooftops & Sunken Guilds) ---
@@ -290,6 +292,7 @@ const MONSTER_LIST: readonly MonsterDef[] = [
     undead: false,
     xpTier: "minor",
     biome: "city-of-masks",
+    specialAbility: "corrode",
   },
 ];
 

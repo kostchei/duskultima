@@ -7,6 +7,7 @@
 import Phaser from "phaser";
 import {
   POISONED_WEAPON_EFFECT_ID,
+  applyCondition,
   assassinExtraDamageDice,
   getBaseRole,
   monsterAttackRoll,
@@ -14,6 +15,8 @@ import {
   oldGodKillHealing,
   poisonedWeaponDamage,
   hasHook,
+  hasCondition,
+  isHidden,
   revealCharacter,
   type CheckResult,
   type ItemDef,
@@ -76,12 +79,14 @@ export function buildAttackContext(
   if (attacker.y + 20 < target.y) advantage.push("high ground");
 
   // Backstab: Thief getting behind a monster (unaware or engaged with another player)
+  const hiddenAttacker = isHidden(attacker.character);
+  if (hiddenAttacker) advantage.push("surprise");
   const isThief = getBaseRole(attacker.character.className) === "thief";
   const targetFacing = target.flipX ? -1 : 1;
   const attackerBehind = Math.sign(attacker.x - target.x) === -targetFacing;
 
   if (isThief && attackerBehind) {
-    const unawareOrFlanked = target.aiState === "patrol" || target.targetPlayer !== attacker;
+    const unawareOrFlanked = hiddenAttacker || target.aiState === "patrol" || target.targetPlayer !== attacker;
     if (unawareOrFlanked) {
       if (ctx) {
         // DEX check vs DC 15 with advantage for Thief
@@ -176,7 +181,8 @@ export interface MeleeDeps {
   ctx: GameContext;
   light: LightSystem;
   monsters: () => MonsterSprite[];
-  onMonsterKilled: (m: MonsterSprite) => void;
+  onMonsterKilled: (m: MonsterSprite, attacker?: CharacterSprite) => void;
+  onMonsterSplit?: (m: MonsterSprite) => void;
 }
 
 export interface SwingOutcome {
@@ -276,9 +282,17 @@ export function applyDamageToMonster(deps: MeleeDeps, target: MonsterSprite, dam
       const healed = oldGodKillHealing(attacker.character, deps.ctx.engine.dice);
       if (healed > 0) floatText(deps.scene, attacker.x, attacker.y - 44, `+${healed} ODIN`, "#72d887", 11);
     }
-    deps.onMonsterKilled(target);
-  } else if (target.aiState === "patrol") {
-    target.aiState = "aggro";
+    deps.onMonsterKilled(target, attacker);
+  } else {
+    if (target.def.specialAbility === "split" && !target.hasSplit && target.hp <= Math.ceil(target.maxHp / 2)) {
+      target.hasSplit = true;
+      deps.onMonsterSplit?.(target);
+    }
+    if (target.enterSecondPhase()) {
+      floatText(deps.scene, target.x, target.y - 34, "PHASE SHIFT!", "#ff795e", 15);
+      deps.ctx.say(`${target.def.name} changes stance as the chamber answers its fury!`, "#ff795e");
+    }
+    if (target.aiState === "patrol") target.aiState = "aggro";
   }
 }
 
@@ -366,7 +380,7 @@ export function monsterSwing(
     ctx.engine.dice,
     monster.def,
     target.character.ac,
-    forcedDisadvantage ? "disadvantage" : inDark ? "advantage" : "normal",
+    forcedDisadvantage ? "disadvantage" : inDark || monster.phase === 2 ? "advantage" : "normal",
   );
   monster.spellDisadvantageNextAction = false;
   if (result.hit) {
@@ -397,6 +411,21 @@ export function monsterSwing(
     thud();
     floatText(scene, target.x, target.y - 16, `-${result.damage}`, "#ff5050");
     const wentDown = ctx.engine.damageCharacter(target.character, result.damage, { attack: true });
+    if (result.appliedCondition && !wentDown) {
+      const duration = result.appliedCondition === "poisoned" ? 3 : 2;
+      const alreadyCorroded = result.appliedCondition === "corroded" && hasCondition(target.character, "corroded");
+      applyCondition(target.character, result.appliedCondition, { unit: "rounds", remaining: duration });
+      floatText(scene, target.x, target.y - 34, result.appliedCondition.toUpperCase(), "#d7a34a", 12);
+      ctx.say(`${monster.def.name}'s ${monster.def.specialAbility} leaves ${target.character.name} ${result.appliedCondition}.`, "#d7a34a");
+      if (alreadyCorroded) destroyCorrodedGear(target, ctx);
+    }
+    if (monster.def.specialAbility === "shadow-extinct" && target.torchTimerId) {
+      light.snuffTorch(target.torchTimerId);
+      target.torchTimerId = null;
+      target.character.shieldStowed = false;
+      floatText(scene, target.x, target.y - 46, "LIGHT EXTINGUISHED", "#8b82c9", 11);
+      ctx.say(`The living shadow drinks ${target.character.name}'s torchlight.`, "#8b82c9");
+    }
     scene.cameras.main.shake(80, 0.004);
     hitBurst(scene, target.x, target.y, false);
 
@@ -410,4 +439,20 @@ export function monsterSwing(
     whoosh({ gain: 0.5 });
     floatText(scene, target.x, target.y - 16, "miss", "#8888aa");
   }
+}
+
+function destroyCorrodedGear(target: CharacterSprite, ctx: GameContext): void {
+  const c = target.character;
+  const candidates = [
+    c.carriedShield,
+    c.wornArmor && ["chainmail", "plate-armor"].includes(c.wornArmor.id) ? c.wornArmor : null,
+    c.wieldedWeapon?.tags.includes("magic") ? null : c.wieldedWeapon,
+  ].filter((def): def is ItemDef => Boolean(def));
+  const victim = candidates[0];
+  if (!victim) return;
+  c.inventory.remove(victim.id, 1);
+  if (c.carriedShield?.id === victim.id) c.carriedShield = null;
+  if (c.wornArmor?.id === victim.id) c.wornArmor = null;
+  if (c.wieldedWeapon?.id === victim.id) c.wieldedWeapon = null;
+  ctx.say(`The warned-about rust blooms through ${c.name}'s ${victim.name}; it crumbles away!`, "#d9894a");
 }

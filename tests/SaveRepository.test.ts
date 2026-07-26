@@ -96,6 +96,7 @@ describe("SaveRepository", () => {
       openedConnectorIds: ["conn-1-2", "conn-2-4"],
       npcInteractionStates: { "npc-2": "heard", "npc-3": "hostile-npc", "npc-4": "departed" },
       discoveredRoomIds: ["room-1", "room-2"],
+      claimedTreasureFindIds: ["authored:100:200:coins", "encounter:room-2"],
     };
     delete (nonlinearSave as Partial<SaveSlot>).currentRoom;
 
@@ -105,6 +106,10 @@ describe("SaveRepository", () => {
     expect(resumed?.openedConnectorIds).toEqual(["conn-1-2", "conn-2-4"]);
     expect(resumed?.npcInteractionStates).toEqual({ "npc-2": "heard", "npc-3": "hostile-npc", "npc-4": "departed" });
     expect(resumed?.discoveredRoomIds).toEqual(["room-1", "room-2"]);
+    expect(resumed?.claimedTreasureFindIds).toEqual([
+      "authored:100:200:coins",
+      "encounter:room-2",
+    ]);
   });
 
   it("persists a hired porter, their load, and a failed hire attempt", () => {
@@ -133,10 +138,48 @@ describe("SaveRepository", () => {
     expect(SaveRepository.validateSaveSlot(invalidSlot)).toBe(false);
     expect(SaveRepository.validateSaveSlot({ ...validSaveSlot, runSeed: "not-a-number" })).toBe(false);
     expect(SaveRepository.validateSaveSlot({ ...validSaveSlot, discoveredRoomIds: ["room-1", 2] })).toBe(false);
+    expect(SaveRepository.validateSaveSlot({ ...validSaveSlot, claimedTreasureFindIds: ["find-1", 2] })).toBe(false);
     expect(SaveRepository.validateSaveSlot({ ...validSaveSlot, npcInteractionStates: { npc: "unknown" } })).toBe(false);
 
     const corruptParty = { ...validSaveSlot, party: [{ name: "missing-fields" }] };
     expect(SaveRepository.validateSaveSlot(corruptParty)).toBe(false);
+  });
+
+  it("validates placed gear, downtime, oaths, and patron bargain state", () => {
+    const extended = {
+      ...validSaveSlot,
+      placedGear: [{ id: "gear-1", itemId: "rope", x: 10, y: 20, mode: "climb" }],
+      downtimeUsed: true,
+      trainingFailures: { "char1:stealth": 2 },
+      oaths: [{
+        id: "oath:1:char1:worthy",
+        characterId: "char1",
+        rank: "worthy",
+        objective: "kills",
+        description: "Defeat two foes.",
+        target: 2,
+        progress: 1,
+        fulfilled: false,
+        failed: false,
+      }],
+      patrons: [{
+        characterId: "char1",
+        patronId: "kytheros",
+        favor: 0,
+        progress: 1,
+        demandComplete: false,
+        tabooBroken: false,
+      }],
+    };
+    expect(SaveRepository.validateSaveSlot(extended)).toBe(true);
+    expect(SaveRepository.validateSaveSlot({
+      ...extended,
+      patrons: [{ ...extended.patrons[0], patronId: "not-a-patron" }],
+    })).toBe(false);
+    expect(SaveRepository.validateSaveSlot({
+      ...extended,
+      oaths: [{ ...extended.oaths[0], progress: -1 }],
+    })).toBe(false);
   });
 
   it("deletes saves correctly", () => {

@@ -83,6 +83,22 @@ describe("core Shadowdark treasure tables", () => {
     expect(item(boots.itemId).valueGp).toBe(0.5);
   });
 
+  it("materializes whole-gp currency rows as spendable coin pickups", () => {
+    const silver = TREASURE_0_3.entries.find((entry) => entry.min === 16)!.data as {
+      itemId: string;
+      qty: number;
+      treasureQuality: string;
+    };
+    const copper = TREASURE_0_3.entries.find((entry) => entry.min === 6)!.data as {
+      itemId: string;
+      qty?: number;
+    };
+    expect(item(silver.itemId).rulesId).toBe("coins");
+    expect(silver).toMatchObject({ qty: 6, treasureQuality: "poor" });
+    expect(item(copper.itemId).rulesId).not.toBe("coins");
+    expect(copper.qty).toBeUndefined();
+  });
+
   it("stores treasure quality and generated magic qualities explicitly", () => {
     expect(rolledItem(TREASURE_0_3, 1).treasureQuality).toBe("poor");
     expect(rolledItem(TREASURE_0_3, 88).treasureQuality).toBe("normal");

@@ -328,6 +328,16 @@ function spellContainer(text: string): Pick<CoreTreasureItemSpec, "spellTier" | 
   };
 }
 
+/**
+ * The game wallet is denominated in whole gp. Currency rows worth an integral
+ * number of gp can therefore resolve as actual coins instead of a trinket that
+ * must be sold. Fractional cp/sp finds remain portable treasure objects.
+ */
+function spendableCoinQty(entry: CoreTreasureRow): number | undefined {
+  if (!/^(?:Scattering of )?\d+ (?:cp|sp|gp)\b/i.test(entry.text)) return undefined;
+  return Number.isInteger(entry.valueGp) && entry.valueGp > 0 ? entry.valueGp : undefined;
+}
+
 function table(band: keyof typeof CORE_ROWS, name: string): RollableTable {
   return {
     id: `treasure-${band}`,
@@ -340,7 +350,8 @@ function table(band: keyof typeof CORE_ROWS, name: string): RollableTable {
       data: {
         itemId: treasureId(band, entry.min),
         valueGp: entry.valueGp,
-        qty: entry.qty,
+        qty: entry.qty ?? spendableCoinQty(entry),
+        treasureQuality: treasureQuality(entry),
       },
     })),
   };
@@ -352,10 +363,10 @@ export const CORE_TREASURE_ITEM_SPECS: readonly CoreTreasureItemSpec[] = (
 ).flatMap(([band, rows]) => rows.map((entry) => ({
   id: treasureId(band, entry.min),
   name: itemName(entry.text),
-  valueGp: entry.valueGp / (entry.qty ?? 1),
+  valueGp: entry.valueGp / (entry.qty ?? spendableCoinQty(entry) ?? 1),
   description: entry.text,
-  baseItemId: entry.baseItemId,
-  qty: entry.qty,
+  baseItemId: entry.baseItemId ?? (spendableCoinQty(entry) ? "coins" : undefined),
+  qty: entry.qty ?? spendableCoinQty(entry),
   treasureQuality: treasureQuality(entry),
   magicBonus: tableMagicBonus(entry.text),
   benefitRolls: rollCount(entry.text, "benefit"),

@@ -155,17 +155,22 @@ must become usable gameplay.
 
 ### Treasure generation
 
-**Scoping note (2026-07-22):** shipped the *vault* reward slot only — the
-`magic-weapon`/`magic-armor` cycle positions in `chooseDungeonReward`
-(`src/game/progression.ts`) now roll the registered core (0-3/4-6/7-9/10+)
-and Cursed Scroll (Diablerie/Red Sands/Midnight Sun) treasure tables instead
-of always granting Starfall Blade/Aegis Mail. Room, boss, NPC, and secret
-rewards are still not table-driven — those don't currently roll from any
-treasure table at all, fixed or otherwise, so this is new coverage, not a
-narrowing of old coverage.
+**Implementation note (2026-07-26):** the `magic-weapon`/`magic-armor` vault
+positions in `chooseDungeonReward` (`src/game/progression.ts`) roll the
+registered core (0-3/4-6/7-9/10+) and Cursed Scroll
+(Diablerie/Red Sands/Midnight Sun) tables instead of always granting Starfall
+Blade/Aegis Mail. Defeated monster groups now make one Core-table roll for the
+whole encounter, using the strongest monster's HD as its level band. This
+replaces the old per-monster fixed coin/gem/idol drops. Authored room, NPC,
+and secret finds remain authored rather than table-driven.
 
 - [x] Route **vault** rewards through the registered core and Cursed Scroll
-  treasure tables. Room/boss/NPC/secret rewards remain open.
+  treasure tables.
+- [x] Roll once on the level-banded Core table after an entire monster
+  encounter is defeated, including boss encounters.
+- [x] Award treasure XP once per find by quality: Poor 0, Normal 1, Fabulous
+  3, Legendary 10. Quantity does not multiply XP; sold or reclaimed gear does
+  not award it again.
 - [x] Stop using a fixed single item for the weapon/armor cycle slots. (Gold
   and companion/spell slots were already dynamic before this; only
   weapon/armor were genuinely fixed.)
@@ -281,29 +286,29 @@ reaction popup unconditionally instead of arriving already hunting.
   drops out entirely if the leader has neither a ration nor 10+ gold; whichever
   is available is spent.) Languages, patron status, and monster type do not
   affect this yet.
-- [ ] Allow surrender and non-lethal resolution for intelligent opponents.
-- [ ] Let neutral or friendly encounters trade, warn about the current dungeon,
-  request aid, or become temporary allies.
+- [x] Allow surrender and non-lethal resolution for intelligent opponents.
+- [x] Let neutral or friendly encounters trade and warn about the current dungeon.
+- [ ] Let neutral or friendly encounters request aid or become temporary allies.
 - [ ] Make a failed social action reveal the party and worsen the reaction when
   appropriate. (A failed Parley/Threaten currently just engages combat, not a
   distinct "worse than before" state.)
 
 ### Stealth and surprise
 
-- [ ] Add hiding locations and an explicit hidden state.
+- [x] Add hiding locations and an explicit hidden state.
 - [ ] Searching the correct location automatically reveals a hidden creature.
-- [ ] Otherwise use Wisdom to detect a sneaking or hidden creature.
-- [ ] Give an undetected attacker one surprise action or a clearly bounded
+- [x] Otherwise use Wisdom to detect a sneaking or hidden creature.
+- [x] Give an undetected attacker one surprise action or a clearly bounded
   real-time equivalent before normal combat begins.
-- [ ] Attacking from hiding reveals the attacker unless a feature says
+- [x] Attacking from hiding reveals the attacker unless a feature says
   otherwise.
-- [ ] Apply armor penalties to stealth.
-- [ ] Make Ras-Godai and Thief unaware-target features depend on this shared
+- [x] Apply armor penalties to stealth.
+- [x] Make Ras-Godai and Thief unaware-target features depend on this shared
   system.
 
 ### Retreat
 
-- [ ] Provide a deliberate retreat interaction rather than relying only on
+- [x] Provide a deliberate retreat interaction rather than relying only on
   running offscreen.
 - [ ] Define pursuit using monster speed, activity, morale, light, closed doors,
   spiked doors, distractions, and party burden.
@@ -311,9 +316,9 @@ reaction popup unconditionally instead of arriving already hunting.
 
 ### Acceptance criteria
 
-- [x] A random encounter can end in combat (Ambush, or a failed Parley/
-  Threaten) or avoidance (Hide, Retreat, or a successful Parley/Threaten/
-  Offer) — not yet in information, trade, aid, or surrender specifically.
+- [x] A random encounter can end in combat (Ambush, Subdue, or a failed
+  Parley/Threaten) or avoidance (Hide, Retreat, Trade, Surrender, or a
+  successful Parley/Threaten/Offer).
 - [x] At least one full path (Hide, Retreat, or a successful Parley/Threaten/
   Offer) completes a wandering encounter without making an attack roll.
 - [x] Encounter choices reuse the same cursor+confirm overlay as every other
@@ -324,8 +329,8 @@ reaction popup unconditionally instead of arriving already hunting.
 
 ## P2-4 - Mundane gear as exploration verbs
 
-**Scoping note:** shipped one item end-to-end (Iron Spikes) as a vertical
-slice rather than all eight; the rest stay open for a later pass. Iron Spikes
+**Scoping note:** Iron Spikes, rope, grappling hook, oil, mirror, and torch now
+ship with end-to-end exploration handlers. Iron Spikes
 specifically forces open a locked/switched gate instead of literally
 "spiking a door shut" — the level model has no door-closing or
 monster-door-awareness system for a pursuer to be delayed by, so the
@@ -338,25 +343,24 @@ is carrying at least one.
   its key or switch, consuming one spike. ([Dungeon.ts](../src/game/scenes/Dungeon.ts)
   `findInteractions` gate block.)
 - [ ] Iron Spikes: jam supported machinery, or mark a route.
-- [ ] Rope: anchor a persistent climb path, lower a companion, or secure a
+- [x] Rope: anchor a persistent climb path, lower a companion, or secure a
   dangerous crossing.
-- [ ] Grappling Hook: create a validated traversal connection at authored hook
-  points.
-- [ ] Oil: create a slippery patch or temporary fire hazard.
-- [ ] Mirror: inspect around a corner or redirect a supported light puzzle.
+- [x] Grappling Hook: create a geometry-validated traversal connection beside
+  a wall or cover surface.
+- [x] Oil: create a slippery patch or temporary fire hazard.
+- [x] Mirror: inspect around a corner or redirect a supported light puzzle.
 - [ ] Food/Rations: distract or placate suitable beasts instead of only
   resting. (Ration-as-Offer inside the encounter popup is close but
   encounter-specific — a standalone "throw food at a wandering monster"
   verb outside that popup is still open.)
-- [ ] Torch: throw, drop, extinguish, relight, or place it in a supported holder.
-- [ ] Recover usable placed gear after the danger has passed.
-- [ ] Persist placed gear and resulting connector states in saves. (The
-  spiked-gate's `openedConnectors` entry does persist — that part of the
-  pattern is proven for whichever future gear placement needs it.)
+- [x] Torch: throw, drop, extinguish, relight, or place it in a supported holder.
+- [x] Recover usable placed gear after the danger has passed.
+- [x] Persist placed gear and resulting connector states in saves through
+  `placedGear` and `openedConnectors`.
 - [x] Restore formerly stripped rope, hook, and spike inventory safely through
-  save migration. (Iron spikes only — [state.ts](../src/game/state.ts) no
-  longer strips them. Rope and grappling hook are still stripped since they
-  still have no wired use.)
+  save migration. [state.ts](../src/game/state.ts) no
+  longer strips them. Rope and grappling hook now have persistent placement
+  handlers and remain in saved inventories.
 
 ### Acceptance criteria
 
@@ -514,28 +518,28 @@ without turning the spell list into a damage catalog.
 
 ### Midnight Sun Oaths
 
-- [ ] Allow each eligible character to swear at most one oath per destination
+- [x] Allow each eligible character to swear at most one oath per destination
   or other clearly displayed campaign interval.
-- [ ] Generate Worthy, Mighty, and Legendary oath options from facts that are
+- [x] Generate Worthy, Mighty, and Legendary oath options from facts that are
   achievable in the current destination.
 - [ ] Example objectives: surrender the greatest treasure, kill a named foe,
   rescue all prisoners, use no magical light, or never retreat from undead.
-- [ ] Track progress visibly in the HUD and save state.
-- [ ] Grant a bounded permanent or destination-length boon on fulfillment.
-- [ ] Apply a clearly previewed penalty on failure.
-- [ ] Never generate an oath made impossible by the dungeon seed.
+- [x] Track progress visibly in the HUD and save state.
+- [x] Grant a bounded permanent or destination-length boon on fulfillment.
+- [x] Apply a clearly previewed penalty on failure.
+- [x] Never generate an oath made impossible by the dungeon seed.
 
 ### Diablerie Patrons
 
-- [ ] Add Almazzat, Kytheros, Mugdulblub, Shune, Titania, and the Willowman as
+- [x] Add Almazzat, Kytheros, Mugdulblub, Shune, Titania, and the Willowman as
   patron data.
-- [ ] Pair each patron boon with requests, taboos, and possible displeasure.
-- [ ] Offer bargains during destination entry, shrines, dreams, NPC meetings,
+- [x] Pair each patron boon with requests, taboos, and possible displeasure.
+- [x] Offer bargains during destination entry, shrines, dreams, NPC meetings,
   or mishaps.
 - [ ] Example demands: extinguish a shrine, preserve forbidden lore, sacrifice
   a named treasure, spare an NPC, betray an NPC, or feed the patron a secret.
-- [ ] Let the player refuse a bargain.
-- [ ] Track favor and patron consequences without adding a grindable reputation
+- [x] Let the player refuse a bargain.
+- [x] Track favor and patron consequences without adding a grindable reputation
   meter.
 
 ### Acceptance criteria
@@ -563,19 +567,19 @@ without turning the spell list into a damage catalog.
 
 ### Carousing
 
-- [ ] Add Carouse as a safe-zone downtime action.
-- [ ] Offer escalating gold costs and outcome bonuses.
-- [ ] Convert gold into XP plus a seeded consequence.
-- [ ] Outcomes may grant luck, allies, favors, fines, lost wealth, debts,
+- [x] Add Carouse as a safe-zone downtime action.
+- [x] Offer escalating gold costs and outcome bonuses.
+- [x] Convert gold into XP plus a seeded consequence.
+- [x] Outcomes may grant luck, allies, favors, fines, lost wealth, debts,
   barred locations, temporary conditions, or a magic item.
 - [ ] Present the consequence as a short event card, not a long dialogue tree.
 
 ### Learning and services
 
-- [ ] Add one downtime activity per safe-zone visit.
-- [ ] Support training a relevant auxiliary skill through an instructor.
-- [ ] Lower the training DC after a failed attempt as in the core rule.
-- [ ] Give gold competing uses: supplies, atonement, training, carousing,
+- [x] Add one downtime activity per safe-zone visit.
+- [x] Support training a relevant auxiliary skill through an instructor.
+- [x] Lower the training DC after a failed attempt as in the core rule.
+- [x] Give gold competing uses: supplies, atonement, training, carousing,
   healing, and special services.
 
 ### Acceptance criteria
@@ -589,19 +593,19 @@ without turning the spell list into a damage catalog.
 ## P2-9 - Monster identity and special attacks
 
 - [ ] Give every monster family one defining behavior or condition.
-- [ ] Spiders: web, restrain, climb, or drag isolated targets.
+- [x] Spiders: web, restrain, climb, or drag isolated targets.
 - [ ] Scorpions and viperians: poison and antidote play.
-- [ ] Shadows: extinguish or avoid light and attack from darkness.
+- [x] Shadows: extinguish or avoid light and attack from darkness.
 - [ ] Undead: morale immunity where appropriate, Turn Undead interactions, and
   relentless pursuit.
-- [ ] Oozes: engulf, split, dissolve gear, or reshape traversal space.
-- [ ] Rusting creatures: threaten metal equipment without silently deleting a
+- [x] Oozes: engulf, split, dissolve gear, or reshape traversal space.
+- [x] Rusting creatures: threaten metal equipment without silently deleting a
   prized item.
 - [ ] Intelligent foes: retreat, surrender, call reinforcements, use doors,
   negotiate, and protect leaders.
-- [ ] Bosses: add one state change or environmental interaction instead of only
+- [x] Bosses: add one state change or environmental interaction instead of only
   more HP and damage.
-- [ ] Show a readable tell before severe control or equipment-damaging attacks.
+- [x] Show a readable tell before severe control or equipment-damaging attacks.
 
 ### Acceptance criteria
 
@@ -677,14 +681,14 @@ If Phase 2 must be divided into smaller releases, ship this package first:
 - [ ] Immovable Rod, Bag of Holding, Ring of Feather Falling, one cursed weapon,
   and one conscious item.
 - [ ] Random encounter distance, activity, and reaction.
-- [ ] Hide, Parley, Bribe, Ambush, and Retreat.
-- [ ] Iron Spikes, Rope, Grappling Hook, and placeable torches.
+- [x] Hide, Parley, Bribe, Ambush, and Retreat.
+- [x] Iron Spikes, Rope, Grappling Hook, and placeable torches.
 - [ ] Acid Arrow, Lightning Bolt, Cloudkill, and Prismatic Orb as the core
   Wizard tier 2-5 damage ladder.
 - [ ] Focus and at least six utility spells split between Witch and Seer.
 - [x] Expanded Wizard mishaps and a Diabolical Witch mishap table.
 - [ ] Functional Witch and Seer class identities.
-- [ ] One Oath system for Midnight Sun and one Patron Bargain system for
+- [x] One Oath system for Midnight Sun and one Patron Bargain system for
   Diablerie.
 
 This package should produce more replayability and player agency than adding a

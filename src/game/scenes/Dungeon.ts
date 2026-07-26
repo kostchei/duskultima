@@ -14,6 +14,7 @@ import { SpatialEmitter, spatialOpts, type Vec2 } from "../audio/spatial";
 import { DungeonPrimitivesManager } from "../systems/primitives";
 import {
   createCharacter,
+  generatedMagicItem,
   highestAvailableSpellIndex,
   highestAvailableDamagingSpellIndex,
   item,
@@ -36,7 +37,12 @@ import {
   cancelShieldWall,
   chooseOldGods,
   canUseItem,
+  carouseCost,
+  instructorTrainingDc,
   partyCoinSlots,
+  encounterTreasureTableId,
+  treasureItemXp,
+  treasureQualityXp,
   poisonApplicationAccident,
   xpToReachNextLevel,
   getBaseRole,
@@ -46,7 +52,14 @@ import {
   hasCapability,
   hideCharacter,
   isHidden,
+  revealCharacter,
   isShieldWallActive,
+  resolveCarouse,
+  advanceOath,
+  advancePatron,
+  midnightSunOathOptions,
+  patronDef,
+  patronOptions,
   destinedLuckBonus,
   restoreFamiliar,
   triggerFlourish,
@@ -59,6 +72,15 @@ import {
   type EncounterDistance,
   type MonsterActivity,
   type MonsterReaction,
+  type CarouseTier,
+  type DestinationRuleEvent,
+  type OathRank,
+  type OathState,
+  type PatronDef,
+  type PatronState,
+  type TrainingSkill,
+  type TreasureQuality,
+  TRAINING_STAT,
   Inventory,
   type StatName,
 } from "../../engine";
@@ -71,10 +93,11 @@ import { ModeController, isInterruptMode, type GameMode, type ModeHost } from ".
 import { isPortraitBlocked, onOrientationChange } from "../orientation";
 import { RENDER_SCALE } from "../display";
 import { CharacterSprite } from "../entities/CharacterSprite";
-import { MonsterSprite, MONSTER_ATTACK_COOLDOWN_MS } from "../entities/MonsterSprite";
+import { AGGRO_RANGE, MonsterSprite, MONSTER_ATTACK_COOLDOWN_MS } from "../entities/MonsterSprite";
 import { flameAt, sparkleBurst } from "../fx/vfx";
 import {
   carriedRangedWeapon,
+  applyDamageToMonster,
   floatText,
   meleeSwing,
   monsterSwing,
@@ -161,7 +184,13 @@ import {
   roomsAlertedByNoise,
 } from "../level/connectors";
 import { TILE } from "../textures";
-import { serializeCharacter, deserializeCharacter, type SaveSlot, type SavedPorter } from "../state";
+import {
+  serializeCharacter,
+  deserializeCharacter,
+  type PlacedGearState,
+  type SaveSlot,
+  type SavedPorter,
+} from "../state";
 import { SaveRepository } from "../SaveRepository";
 import {
   chooseDungeonReward,
@@ -189,7 +218,11 @@ const ENCOUNTER_CHOICE_LABEL: Record<EncounterChoice, string> = {
   ambush: "Ambush (strike first, advantage)",
   parley: "Parley (CHA check)",
   offer: "Offer food or treasure",
+  trade: "Trade (5 gold for supplies)",
   threaten: "Threaten (CHA check)",
+  "demand-surrender": "Demand surrender (CHA check)",
+  surrender: "Surrender (forfeit half your gold)",
+  subdue: "Subdue (next finishing blow is non-lethal)",
   hide: "Hide (party DEX stealth)",
   retreat: "Retreat (back off)",
 };
@@ -213,6 +246,10 @@ interface Pickup {
   qty: number;
   /** Player- or porter-dropped gear: no walk-over auto-loot, and no repeat XP on reclaim. */
   dropped: boolean;
+  /** XP is awarded once for this find at collection, never per item or quantity. */
+  treasureQuality?: TreasureQuality;
+  /** Stable source identity; absent for player- or porter-dropped gear. */
+  findId?: string;
 }
 
 /** A short window in which L spends a luck token to reroll the leader's last failure. */
@@ -263,6 +300,11 @@ export class DungeonScene extends Phaser.Scene {
     y: number;
   }>();
   private climbTiles: Phaser.GameObjects.Rectangle[] = [];
+  private placedGear: PlacedGearState[] = [];
+  private placedGearMarkers = new Map<string, Phaser.GameObjects.Text>();
+  private placedLightSources = new Map<string, string>();
+  private gearSequence = 0;
+  private hazardHitAt = new Map<string, number>();
   private spikes: Phaser.Physics.Arcade.Image[] = [];
   private monsters: MonsterSprite[] = [];
   private monsterGroup!: Phaser.GameObjects.Group;
@@ -271,6 +313,7 @@ export class DungeonScene extends Phaser.Scene {
   private primitivesManager!: DungeonPrimitivesManager;
   private fireEmitters: SpatialEmitter[] = [];
   private pickups: Pickup[] = [];
+  private claimedTreasureFindIds = new Set<string>();
   private talkableNpcs: TalkableNpc[] = [];
   private npcInteractionStates = new Map<string, NpcInteractionState>();
   private discoveredRoomIds = new Set<string>();
@@ -303,6 +346,27 @@ export class DungeonScene extends Phaser.Scene {
 
   get activeZoneName(): string {
     return zonePackInfo(this.activeZone).scrollName;
+  }
+
+  get destinationRuleSummary(): string | undefined {
+    const leader = this.party?.leader;
+    if (!leader) return undefined;
+    const oath = this.oaths.find((state) => state.characterId === leader.character.id);
+    if (oath) {
+      const status = oath.failed ? "BROKEN" : oath.fulfilled ? "FULFILLED" : `${oath.progress}/${oath.target}`;
+      return `OATH ${oath.rank.toUpperCase()} ${status}`;
+    }
+    const patron = this.patrons.find((state) => state.characterId === leader.character.id);
+    if (patron) {
+      const def = patronDef(patron.patronId);
+      const status = patron.tabooBroken
+        ? "TABOO BROKEN"
+        : patron.demandComplete
+          ? `FAVOUR ${patron.favor}`
+          : `${patron.progress}/${def.target}`;
+      return `${def.name.toUpperCase()} ${status}`;
+    }
+    return undefined;
   }
 
   /** The descent choice rolled on victory; the HUD renders it as scroll cards. */
@@ -349,6 +413,11 @@ export class DungeonScene extends Phaser.Scene {
   private shopCursor = 0;
   private shopMemberIndex = 0;
   private safeZoneName?: string;
+  private downtimeUsed = false;
+  private trainingFailures = new Map<string, number>();
+  private treasureRolledGroups = new Set<string>();
+  private oaths: OathState[] = [];
+  private patrons: PatronState[] = [];
   private usedCharacterNames = new Set<string>();
   private startingCharacterName = "";
   private startingClass: ClassName = "fighter";
@@ -407,8 +476,14 @@ export class DungeonScene extends Phaser.Scene {
     this.shopMode = "buy";
     this.shopCursor = 0;
     this.shopMemberIndex = 0;
+    this.downtimeUsed = this.loadedState?.downtimeUsed ?? false;
+    this.trainingFailures = new Map(Object.entries(this.loadedState?.trainingFailures ?? {}));
+    this.treasureRolledGroups = new Set();
+    this.oaths = (this.loadedState?.oaths ?? []).map((state) => ({ ...state }));
+    this.patrons = (this.loadedState?.patrons ?? []).map((state) => ({ ...state }));
     this.monsters = [];
     this.pickups = [];
+    this.claimedTreasureFindIds = new Set(this.loadedState?.claimedTreasureFindIds ?? []);
     this.talkableNpcs = [];
     this.npcInteractionStates = new Map(
       Object.entries(this.loadedState?.npcInteractionStates ?? {}) as [string, NpcInteractionState][],
@@ -433,6 +508,11 @@ export class DungeonScene extends Phaser.Scene {
     this.connectorWeakWalls = new Map();
     this.activatedRequirements = new Set(this.loadedState?.activatedRequirementIds ?? []);
     this.openedConnectors = new Set(this.loadedState?.openedConnectorIds ?? []);
+    this.placedGear = (this.loadedState?.placedGear ?? []).map((entry) => ({ ...entry }));
+    this.gearSequence = this.placedGear.length;
+    this.placedGearMarkers = new Map();
+    this.placedLightSources = new Map();
+    this.hazardHitAt = new Map();
     this.connectorActorState = new WeakMap();
     this.rewardClaimed = this.loadedState?.hasCrown ?? false;
     this.usedCharacterNames = new Set([
@@ -544,6 +624,7 @@ export class DungeonScene extends Phaser.Scene {
     const torchbearer = this.party.aliveMembers().find((m) => getBaseRole(m.character.className) === "priest") || this.party.leader;
     this.lightTorch(torchbearer, `${torchbearer.character.name} lights a torch.`);
     this.primitivesManager = new DungeonPrimitivesManager(this.activeDungeon);
+    this.restorePlacedGearVisuals();
     this.trapSystem = new TrapSystem(
       this,
       this.ctx,
@@ -862,7 +943,8 @@ export class DungeonScene extends Phaser.Scene {
   ): void {
     const leader = this.party.leader;
     const canOffer = leader.character.inventory.has("ration") || this.ctx.spendableGold >= 10;
-    const choices = availableEncounterChoices(activity, canOffer);
+    const intelligent = !wave.every((candidate) => candidate.def.undead);
+    const choices = availableEncounterChoices(activity, canOffer, reaction, intelligent);
     const monsterName = wave[0]!.def.name;
     const plural = wave.length > 1 ? `${wave.length} ${monsterName}s` : monsterName;
     const options: Interaction[] = choices.map((choice) => ({
@@ -906,6 +988,7 @@ export class DungeonScene extends Phaser.Scene {
             activity,
           );
           if (result.success) {
+            for (const member of this.party.aliveMembers()) hideCharacter(member.character);
             for (const m of live) m.flee();
             this.ctx.say(
               `The party slips past unnoticed (${result.successes}/${result.checks.length} pass DC ${result.dc}).`,
@@ -922,6 +1005,7 @@ export class DungeonScene extends Phaser.Scene {
         return;
       case "retreat":
         for (const m of live) m.flee();
+        this.advanceDestinationRules("retreat");
         this.ctx.say("The party backs away without engaging.", "#9da7ec");
         return;
       case "ambush": {
@@ -973,6 +1057,54 @@ export class DungeonScene extends Phaser.Scene {
         for (const m of live) m.flee();
         return;
       }
+      case "trade": {
+        if (this.ctx.spendableGold < 5 || !leader.character.inventory.canAdd(item("ration"))) {
+          this.ctx.say("They will trade, but the party needs 5 gold and room for one ration.", "#d07070");
+          return;
+        }
+        this.ctx.spendGold(5);
+        leader.character.inventory.add(item("ration"), 1);
+        for (const m of live) m.flee();
+        this.ctx.say(`${leader.character.name} trades 5 gold for a ration and a warning about the road ahead.`, "#60e080");
+        return;
+      }
+      case "demand-surrender": {
+        const dc = reaction === "hostile" ? DC.HARD : DC.NORMAL;
+        const check = this.ctx.engine.check({ actor: leader.character, stat: "CHA", dc, kind: "stat" });
+        if (check.success) {
+          for (const m of live) m.flee();
+          this.grantGoldReward(5);
+          this.ctx.say(`The foes surrender, leave 5 gold, and withdraw. (rolled ${check.total})`, "#60e080");
+        } else {
+          engage();
+          this.ctx.say(`They reject the demand and charge! (rolled ${check.total} vs DC ${check.dc})`, "#d07070");
+        }
+        return;
+      }
+      case "surrender": {
+        const tribute = Math.floor(this.ctx.spendableGold / 2);
+        if (tribute > 0) this.ctx.spendGold(tribute);
+        for (const m of live) m.flee();
+        this.advanceDestinationRules("surrender");
+        this.ctx.say(
+          tribute > 0
+            ? `The party yields ${tribute} gold and is allowed to withdraw.`
+            : "The party yields; finding no coin to take, the foes let them withdraw.",
+          "#e0c060",
+        );
+        return;
+      }
+      case "subdue":
+        leader.character.removeEffect("combat:nonlethal");
+        leader.character.addEffect({
+          id: "combat:nonlethal",
+          name: "Non-lethal finishing blow",
+          hooks: [],
+          duration: { unit: "rounds", remaining: 3 },
+        });
+        engage();
+        this.ctx.say(`${leader.character.name} turns the weapon aside; the next finishing blow will knock out, not kill.`, "#9da7ec");
+        return;
     }
   }
 
@@ -1779,7 +1911,18 @@ export class DungeonScene extends Phaser.Scene {
     });
   }
 
-  private addPickup(x: number, y: number, itemId: string, qty: number, opts: { dropped?: boolean } = {}): void {
+  private addPickup(
+    x: number,
+    y: number,
+    itemId: string,
+    qty: number,
+    opts: { dropped?: boolean; treasureQuality?: TreasureQuality; findId?: string } = {},
+  ): void {
+    const dropped = opts.dropped ?? false;
+    const findId = dropped
+      ? undefined
+      : opts.findId ?? `authored:${Math.round(x)}:${Math.round(y)}:${itemId}`;
+    if (findId && this.claimedTreasureFindIds.has(findId)) return;
     const textureKey = this.textures.exists(`pickup-${itemId}`) ? `pickup-${itemId}` : "pickup-ration";
     const sprite = this.physics.add.image(x, y, textureKey).setDepth(6);
     sprite.setBounce(0.2);
@@ -1793,7 +1936,14 @@ export class DungeonScene extends Phaser.Scene {
       ease: "Sine.inOut",
     });
     this.physics.add.collider(sprite, this.walls);
-    this.pickups.push({ sprite, itemId, qty, dropped: opts.dropped ?? false });
+    this.pickups.push({
+      sprite,
+      itemId,
+      qty,
+      dropped,
+      treasureQuality: dropped ? undefined : opts.treasureQuality ?? item(itemId).treasureQuality,
+      findId,
+    });
     if (this.trapSystem) this.trapSystem.registerActor(sprite);
     // Small, flat, movable: a torch-driven cast shadow, gone when collected.
     this.shadows.register({
@@ -1960,6 +2110,7 @@ export class DungeonScene extends Phaser.Scene {
     this.updateFollowerClimbs();
     this.updateFollowerSupport(time);
     this.trapSystem.update(time);
+    this.updatePlacedGear(time, delta);
     this.updateMonsters(time, delta);
     this.updatePickups();
     this.updateSpikes(time);
@@ -2103,9 +2254,19 @@ export class DungeonScene extends Phaser.Scene {
       options.push({ label: "Cast", run: () => this.castFromMagicItem(user, def) });
     }
     if (def.use?.actions.includes("activate")) {
+      if (def.id === "mirror") {
+        options.push({ label: "Peek / redirect light", run: () => this.useMirror(user) });
+      } else if (def.id === "serpent-venom" || def.namedEffect) {
+        options.push({
+          label: def.id === "serpent-venom" ? "Coat weapon" : "Activate",
+          run: () => def.id === "serpent-venom" ? this.applySerpentVenom(user, def) : this.activateInventoryItem(user, def),
+        });
+      }
+    }
+    if (def.use?.actions.includes("place")) {
       options.push({
-        label: def.id === "serpent-venom" ? "Coat weapon" : "Activate",
-        run: () => def.id === "serpent-venom" ? this.applySerpentVenom(user, def) : this.activateInventoryItem(user, def),
+        label: def.id === "torch" ? "Mount and light" : "Place",
+        run: () => this.placeInventoryGear(user, def),
       });
     }
     if (def.use?.actions.includes("inspect")) {
@@ -2751,7 +2912,12 @@ export class DungeonScene extends Phaser.Scene {
     const nearClimbTile = this.climbTiles.find(
       (z) => Math.abs(z.x - leader.x) <= TILE * 1.4 && Math.abs(z.y - leader.y) <= TILE * 1.4,
     );
-    leader.touchingClimbable = nearClimbTile !== undefined || (wallWalking && (body.blocked.left || body.blocked.right));
+    const nearPlacedClimb = this.placedGear.some((entry) =>
+      entry.mode === "climb" &&
+      Math.abs(entry.x - leader.x) <= TILE * 0.9 &&
+      Math.abs(entry.y - leader.y) <= TILE * 4.5,
+    );
+    leader.touchingClimbable = nearClimbTile !== undefined || nearPlacedClimb || (wallWalking && (body.blocked.left || body.blocked.right));
     const downInput = down;
 
     if (flying) {
@@ -2771,6 +2937,8 @@ export class DungeonScene extends Phaser.Scene {
       } else if (!isGrounded || up || downInput || leader.climbing) {
         const climbTilesAbove = this.climbTiles.some(
           (z) => Math.abs(z.x - leader.x) <= TILE * 1.4 && z.y < leader.y - 6,
+        ) || this.placedGear.some((entry) =>
+          entry.mode === "climb" && Math.abs(entry.x - leader.x) <= TILE * 0.9 && entry.y < leader.y - 6,
         );
         if (up && !climbTilesAbove && leader.climbing) {
           leader.climbing = false;
@@ -2847,6 +3015,7 @@ export class DungeonScene extends Phaser.Scene {
 
     // Torch
     if (this.actions.pressed("torch")) this.lightTorch(leader);
+    if (this.actions.pressed("throw")) this.throwLitTorch(leader);
 
     // Interact
     if (this.actions.pressed("interact")) this.interact(leader);
@@ -2970,7 +3139,8 @@ export class DungeonScene extends Phaser.Scene {
       ctx: this.ctx,
       light: this.light,
       monsters: () => this.monsters,
-      onMonsterKilled: (m) => this.killMonster(m),
+      onMonsterKilled: (m, attacker) => this.killMonster(m, attacker),
+      onMonsterSplit: (m) => this.splitMonster(m),
     };
   }
 
@@ -3086,6 +3256,199 @@ export class DungeonScene extends Phaser.Scene {
     this.ctx.say(`${member.character.name}'s torch hisses out in the water.`, "#70b8d0");
   }
 
+  private placeInventoryGear(user: CharacterSprite, def: ReturnType<typeof item>): void {
+    if (!def.use?.actions.includes("place")) return;
+    if ((def.id === "rope" || def.id === "grappling-hook") && !this.isNearHidingSpot(user)) {
+      this.ctx.say(`${def.name} needs a solid wall, ledge, or authored structure to anchor.`, "#d07070");
+      return;
+    }
+    const legal = canUseItem(user.character, user.character.itemState, def, "place", true);
+    if (!legal.ok) {
+      this.ctx.say(legal.message, "#d07070");
+      return;
+    }
+    const mode: PlacedGearState["mode"] = def.id === "rope" || def.id === "grappling-hook"
+      ? "climb"
+      : def.id === "oil-flask"
+        ? user.torchLit ? "fire" : "slick"
+        : def.id === "torch"
+          ? "light"
+          : "peek";
+    const entry: PlacedGearState = {
+      id: `gear-${this.registry.get("dungeonIndex") ?? 0}-${this.gearSequence++}`,
+      itemId: def.id as PlacedGearState["itemId"],
+      x: user.x + user.facing * TILE * 0.8,
+      y: user.y,
+      mode,
+      burnRemainingMs: mode === "light"
+        ? this.ctx.engine.config.torchMs
+        : mode === "fire"
+          ? 30_000
+          : undefined,
+    };
+    user.character.inventory.remove(def.id, 1);
+    this.placedGear.push(entry);
+    this.renderPlacedGear(entry);
+    this.ctx.say(`${user.character.name} places ${def.name}${mode === "fire" ? " and ignites a fire hazard" : ""}.`, "#e0c060");
+    this.saveToSlot(0);
+    if (this.modes.is("gear")) this.refreshGearOverlay();
+  }
+
+  private useMirror(user: CharacterSprite): void {
+    const unseen = this.activeDungeon.regions.find((region) =>
+      region.id !== this.currentRoomId && !this.discoveredRoomIds.has(region.id),
+    );
+    if (unseen) {
+      this.discoveredRoomIds.add(unseen.id);
+      this.ctx.say(`${user.character.name} angles the mirror around the corner and glimpses ${unseen.hud}.`, "#9dc8e8");
+    } else {
+      this.ctx.say(`${user.character.name} checks the corners; no unseen route answers the reflection.`, "#a0a4b0");
+    }
+    const nearest = this.primitivesManager.getStatues()
+      .map((state) => ({
+        state,
+        distance: Phaser.Math.Distance.Between(user.x, user.y, state.spec.tile.x * TILE, state.spec.tile.y * TILE),
+      }))
+      .filter((entry) => entry.distance <= NEAR_PX)
+      .sort((a, b) => a.distance - b.distance)[0];
+    if (nearest) {
+      const result = this.primitivesManager.rotateStatue(nearest.state.spec.id);
+      this.ctx.say(
+        result.allAligned
+          ? "The reflected beam aligns every statue; a distant mechanism answers."
+          : `The reflected beam turns the statue to ${result.newFacing}°.`,
+        "#9dc8e8",
+      );
+    }
+  }
+
+  private throwLitTorch(user: CharacterSprite): void {
+    if (!user.torchTimerId) {
+      this.ctx.say(`${user.character.name} has no lit torch to throw.`, "#a0a4b0");
+      return;
+    }
+    this.light.snuffTorch(user.torchTimerId);
+    user.torchTimerId = null;
+    user.character.shieldStowed = false;
+    const landingX = Phaser.Math.Clamp(user.x + user.facing * NEAR_PX, TILE, (this.activeDungeon.width - 1) * TILE);
+    const thrown = this.primitivesManager.throwItem(user.x, user.y, landingX, user.y, "lit-torch");
+    const entry: PlacedGearState = {
+      id: `gear-${this.registry.get("dungeonIndex") ?? 0}-${this.gearSequence++}`,
+      itemId: "torch",
+      x: thrown.landingX,
+      y: thrown.landingY,
+      mode: "light",
+      burnRemainingMs: this.ctx.engine.config.torchMs,
+    };
+    this.placedGear.push(entry);
+    this.renderPlacedGear(entry);
+    const noise = this.primitivesManager.getNoiseEventOnLanding(thrown);
+    this.emitNoiseAt(noise.x, noise.y);
+    this.ctx.say(`${user.character.name} throws the torch; it lights the far ground and draws nearby ears.`, "#f0c060");
+    this.saveToSlot(0);
+  }
+
+  private restorePlacedGearVisuals(): void {
+    for (const entry of this.placedGear) this.renderPlacedGear(entry);
+  }
+
+  private renderPlacedGear(entry: PlacedGearState): void {
+    this.placedGearMarkers.get(entry.id)?.destroy();
+    const glyph = entry.mode === "climb" ? "║" : entry.mode === "slick" ? "≈" : entry.mode === "fire" ? "♨" : entry.mode === "light" ? "†" : "◇";
+    const color = entry.mode === "fire" || entry.mode === "light" ? "#f0a840" : entry.mode === "slick" ? "#8aa0b0" : "#c9b48a";
+    const marker = this.add.text(entry.x, entry.y - 10, glyph, {
+      fontFamily: "Consolas, monospace",
+      fontSize: "22px",
+      color,
+      stroke: "#050508",
+      strokeThickness: 3,
+      resolution: RENDER_SCALE,
+    }).setOrigin(0.5).setDepth(12);
+    this.placedGearMarkers.set(entry.id, marker);
+    if (entry.mode === "light" || entry.mode === "fire") {
+      const sourceId = this.light.addSource(
+        entry.mode === "fire" ? CAMPFIRE_RADIUS : NEAR_PX,
+        () => this.placedGear.some((candidate) => candidate.id === entry.id)
+          ? { x: entry.x, y: entry.y }
+          : null,
+        {
+          tint: entry.mode === "fire" ? 0xe08a42 : 0xe0b060,
+          tintAlpha: entry.mode === "fire" ? 0.48 : 0.36,
+        },
+      );
+      this.placedLightSources.set(entry.id, sourceId);
+    }
+  }
+
+  private recoverPlacedGear(user: CharacterSprite, entry: PlacedGearState): void {
+    const def = item(entry.itemId);
+    if (!user.character.inventory.canAdd(def)) {
+      this.ctx.say(`${user.character.name} has no gear slot free for ${def.name}.`, "#d07070");
+      return;
+    }
+    user.character.inventory.add(def, 1);
+    this.placedGear = this.placedGear.filter((candidate) => candidate.id !== entry.id);
+    this.placedGearMarkers.get(entry.id)?.destroy();
+    this.placedGearMarkers.delete(entry.id);
+    const lightId = this.placedLightSources.get(entry.id);
+    if (lightId) this.light.removeSource(lightId);
+    this.placedLightSources.delete(entry.id);
+    this.ctx.say(`${user.character.name} recovers ${def.name}.`, "#60e080");
+    this.saveToSlot(0);
+  }
+
+  private updatePlacedGear(time: number, delta: number): void {
+    const expired = new Set<string>();
+    for (const hazard of this.placedGear) {
+      if (hazard.burnRemainingMs !== undefined) {
+        hazard.burnRemainingMs = Math.max(0, hazard.burnRemainingMs - delta);
+        if (hazard.burnRemainingMs === 0) {
+          expired.add(hazard.id);
+          continue;
+        }
+      }
+      if (hazard.mode === "slick") {
+        for (const monster of this.monsters.filter((candidate) =>
+          candidate.aliveInFight && Phaser.Math.Distance.Between(candidate.x, candidate.y, hazard.x, hazard.y) <= TILE,
+        )) {
+          const body = monster.body as Phaser.Physics.Arcade.Body;
+          monster.setVelocityX((body.velocity.x || (monster.flipX ? -80 : 80)) * 1.7);
+          if (body.blocked.down) monster.setVelocityY(-90);
+        }
+      }
+      if (hazard.mode !== "fire") continue;
+      for (const monster of this.monsters.filter((candidate) =>
+        candidate.aliveInFight && Phaser.Math.Distance.Between(candidate.x, candidate.y, hazard.x, hazard.y) <= TILE * 1.2,
+      )) {
+        const key = `${hazard.id}:${monster.groupId}:${this.monsters.indexOf(monster)}`;
+        if (time < (this.hazardHitAt.get(key) ?? 0)) continue;
+        this.hazardHitAt.set(key, time + this.ctx.engine.config.roundMs);
+        const damage = this.ctx.engine.dice.roll("1d4");
+        floatText(this, monster.x, monster.y - 16, `-${damage} fire`, "#ff8a38", 11);
+        applyDamageToMonster(this.meleeDeps(), monster, damage);
+      }
+      for (const member of this.party.aliveMembers().filter((candidate) =>
+        Phaser.Math.Distance.Between(candidate.x, candidate.y, hazard.x, hazard.y) <= TILE,
+      )) {
+        const key = `${hazard.id}:${member.character.id}`;
+        if (time < (this.hazardHitAt.get(key) ?? 0)) continue;
+        this.hazardHitAt.set(key, time + this.ctx.engine.config.roundMs);
+        this.ctx.engine.damageCharacter(member.character, 1);
+        floatText(this, member.x, member.y - 16, "-1 fire", "#ff8a38", 11);
+      }
+    }
+    for (const id of expired) this.removePlacedGear(id);
+  }
+
+  private removePlacedGear(id: string): void {
+    this.placedGear = this.placedGear.filter((entry) => entry.id !== id);
+    this.placedGearMarkers.get(id)?.destroy();
+    this.placedGearMarkers.delete(id);
+    const lightId = this.placedLightSources.get(id);
+    if (lightId) this.light.removeSource(lightId);
+    this.placedLightSources.delete(id);
+  }
+
   private interact(leader: CharacterSprite): void {
     const interactions = this.findInteractions(leader);
     if (interactions.length === 0) {
@@ -3121,6 +3484,47 @@ export class DungeonScene extends Phaser.Scene {
    */
   private findInteractions(leader: CharacterSprite): Interaction[] {
     const candidates: Interaction[] = [];
+    const recoverableGear = this.placedGear.find((entry) =>
+      entry.itemId !== "oil-flask" && entry.itemId !== "torch" &&
+      Phaser.Math.Distance.Between(leader.x, leader.y, entry.x, entry.y) <= TILE * 1.4,
+    );
+    if (recoverableGear) {
+      candidates.push({
+        label: `recover ${item(recoverableGear.itemId).name}`,
+        run: () => this.recoverPlacedGear(leader, recoverableGear),
+      });
+    }
+
+    if (isHidden(leader.character)) {
+      candidates.push({
+        label: "leave hiding",
+        run: () => {
+          revealCharacter(leader.character);
+          this.ctx.say(`${leader.character.name} steps out of concealment.`, "#a0a4b0");
+        },
+      });
+    } else if (this.isNearHidingSpot(leader)) {
+      candidates.push({
+        label: "hide in nearby cover",
+        run: () => {
+          const armor = leader.character.wornArmor;
+          const result = this.ctx.engine.check({
+            actor: leader.character,
+            stat: "DEX",
+            dc: DC.NORMAL,
+            kind: "stealth",
+            advantage: leader.character.className === "ras-godai" ? ["Ras-Godai"] : undefined,
+            disadvantage: armor?.armor?.stealthDisadvantage ? [armor.name] : undefined,
+          });
+          if (result.success) {
+            hideCharacter(leader.character);
+            this.ctx.say(`${leader.character.name} becomes hidden in the room's cover.`, "#9da7ec");
+          } else {
+            this.ctx.say(`${leader.character.name} fails to settle into cover (rolled ${result.total}).`, "#d07070");
+          }
+        },
+      });
+    }
 
     const focused = leader.character.effects.find((effect) => effect.duration?.unit === "focus");
     if (focused) {
@@ -3172,21 +3576,6 @@ export class DungeonScene extends Phaser.Scene {
         run: () => {
           goBerserk(leader.character);
           this.ctx.say(`${leader.character.name} goes berserk and cannot be damaged for 3 rounds!`, "#ff9050");
-        },
-      });
-    }
-
-    if (leader.character.className === "ras-godai" && !isHidden(leader.character)) {
-      candidates.push({
-        label: "hide in the shadows",
-        run: () => {
-          const result = this.ctx.engine.check({ actor: leader.character, stat: "DEX", dc: DC.NORMAL, kind: "stealth" });
-          if (result.success) {
-            hideCharacter(leader.character);
-            this.ctx.say(`${leader.character.name} disappears from unaware eyes.`, "#b99de8");
-          } else {
-            this.ctx.say(`${leader.character.name} fails to find concealment.`, "#d07070");
-          }
         },
       });
     }
@@ -3276,6 +3665,10 @@ export class DungeonScene extends Phaser.Scene {
         label: `claim ${this.currentReward.title}`,
         run: () => this.claimDungeonReward(),
       });
+      candidates.push({
+        label: `leave ${this.currentReward.title} untouched`,
+        run: () => this.refuseDungeonReward(),
+      });
     }
 
     // Safe-zone shop: available anywhere inside the shelter room.
@@ -3284,6 +3677,28 @@ export class DungeonScene extends Phaser.Scene {
         label: `shop${this.safeZoneName ? ` (${this.safeZoneName})` : ""}`,
         run: () => this.openShop(),
       });
+      if (!this.downtimeUsed) {
+        candidates.push({ label: "carouse (downtime)", run: () => this.openCarousing(leader) });
+        candidates.push({ label: "train with an instructor (25 gold)", run: () => this.openInstructorTraining(leader) });
+      }
+      if (
+        this.activeZone === "midnight-sun" &&
+        !this.oaths.some((oath) => oath.characterId === leader.character.id)
+      ) {
+        candidates.push({
+          label: "swear an oath of the Midnight Sun",
+          run: () => this.openMidnightSunOaths(leader),
+        });
+      }
+      if (
+        this.activeZone === "diablerie" &&
+        !this.patrons.some((patron) => patron.characterId === leader.character.id)
+      ) {
+        candidates.push({
+          label: "answer a patron's whisper",
+          run: () => this.openPatronBargains(leader),
+        });
+      }
     }
 
     const trapInteraction = this.trapSystem.findInteraction(leader);
@@ -3712,12 +4127,18 @@ export class DungeonScene extends Phaser.Scene {
       }
       recipient.character.inventory.add(def, reward.qty);
       const received = reward.qty > 1 ? `${reward.qty}x ${def.name}` : def.name;
+      const treasureXp = def.xpValue ?? treasureQualityXp(reward.quality);
+      if (treasureXp > 0) {
+        for (const member of this.party.members) {
+          if (!member.character.dead) this.ctx.engine.awardXp(member.character, treasureXp);
+        }
+      }
       const hint = def.tags.includes("weapon") || def.tags.includes("armor") || def.shield
         ? "Open Gear (I) to equip it."
         : def.use
           ? "Open Gear (I) to use or inspect it."
           : `It is worth ${reward.valueGp} gp.`;
-      message = `${recipient.character.name} receives ${received} (${reward.quality} treasure). ${hint}`;
+      message = `${recipient.character.name} receives ${received} (${reward.quality} treasure)${treasureXp > 0 ? `; party gains ${treasureXp} XP` : ""}. ${hint}`;
     } else if (reward.kind === "spells") {
       const caster = this.party.aliveMembers().find(
         (member) =>
@@ -3740,6 +4161,7 @@ export class DungeonScene extends Phaser.Scene {
     sprite.destroy();
     this.rewardMarker = null;
     this.rewardClaimed = true;
+    this.advanceDestinationRules("claim");
     sfx.pickupChime(true, this.spatial({ x, y }));
     sparkleBurst(this, x, y, true);
     this.ctx.say(message, "#e8c840");
@@ -3754,7 +4176,21 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private grantGoldReward(amount: number): number {
-    const xp = this.ctx.bankCoins(amount);
+    this.ctx.bankCoins(amount);
+    this.ctx.earnGold(amount);
+    const living = this.party.aliveMembers();
+    const averageLevel = living.length > 0
+      ? living.reduce((sum, member) => sum + member.character.level, 0) / living.length
+      : 1;
+    const normalBenchmark = Math.max(10, 10 * averageLevel);
+    const quality: TreasureQuality = amount < normalBenchmark
+      ? "poor"
+      : amount >= normalBenchmark * 100
+        ? "legendary"
+        : amount >= normalBenchmark * 10
+          ? "fabulous"
+          : "normal";
+    const xp = treasureQualityXp(quality);
     if (xp > 0) {
       for (const member of this.party.members) {
         if (!member.character.dead) this.ctx.engine.awardXp(member.character, xp);
@@ -3779,6 +4215,291 @@ export class DungeonScene extends Phaser.Scene {
         if (dying.character.dying) this.tryStabilize(leader, dying);
       });
     }
+  }
+
+  private openCarousing(member: CharacterSprite): void {
+    const tiers: CarouseTier[] = ["humble", "bold", "legendary"];
+    const options = tiers.map((tier) => ({
+      label: `${tier} revel (${carouseCost(tier)} gold)`,
+      run: () => this.completeCarousing(member, tier),
+    }));
+    this.openActionChoice(options, {
+      title: "CAROUSING",
+      subtitle: `Spend gold for XP and a seeded event. Wallet: ${this.ctx.spendableGold}g`,
+    });
+  }
+
+  private completeCarousing(member: CharacterSprite, tier: CarouseTier): void {
+    try {
+      const result = resolveCarouse(this.ctx.engine.dice, tier, this.ctx.spendableGold);
+      this.ctx.spendGold(result.cost);
+      const event = result.event;
+      if ((event.goldDelta ?? 0) > 0) this.ctx.earnGold(event.goldDelta!);
+      if ((event.goldDelta ?? 0) < 0) {
+        const fine = Math.min(this.ctx.spendableGold, Math.abs(event.goldDelta!));
+        if (fine > 0) this.ctx.spendGold(fine);
+      }
+      this.ctx.engine.awardXp(member.character, result.xp);
+      if (event.grantsLuck) member.character.luckToken = true;
+      if (event.effect === "contact") {
+        member.character.addEffect({
+          id: "downtime:contact",
+          name: "Town Contact",
+          hooks: [{ kind: "advantageOnStat", stat: "CHA" }],
+          duration: { unit: "crawlingRounds", remaining: 6 },
+        });
+      } else if (event.effect === "debt") {
+        member.character.addEffect({
+          id: "downtime:debt",
+          name: "Unpaid Tavern Debt",
+          hooks: [{ kind: "disadvantageOn", applies: "stat" }],
+          duration: { unit: "crawlingRounds", remaining: 3 },
+        });
+      } else if (event.effect === "bruised") {
+        member.character.addEffect({
+          id: "downtime:bruised",
+          name: "Carousing Bruises",
+          hooks: [{ kind: "statBonus", stat: "CON", bonus: -1 }],
+          duration: { unit: "untilRest", remaining: 0 },
+        });
+      }
+      if (event.itemId) {
+        const reward = item(event.itemId);
+        if (member.character.inventory.canAdd(reward)) member.character.inventory.add(reward, 1);
+      }
+      this.downtimeUsed = true;
+      this.advanceDestinationRules("carouse", member);
+      this.ctx.say(`${event.title}: ${event.text} ${member.character.name} gains ${result.xp} XP.`, "#e8c840");
+      this.saveToSlot(0);
+    } catch (error) {
+      this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
+    }
+  }
+
+  private openInstructorTraining(member: CharacterSprite): void {
+    if (this.ctx.spendableGold < 25) {
+      this.ctx.say("Instructor training costs 25 gold.", "#d07070");
+      return;
+    }
+    const skills: TrainingSkill[] = ["athletics", "stealth", "lore", "survival"];
+    this.openActionChoice(
+      skills.map((skill) => {
+        const key = `${member.character.id}:${skill}`;
+        const dc = instructorTrainingDc(this.trainingFailures.get(key) ?? 0);
+        return { label: `${skill} (${TRAINING_STAT[skill]} DC ${dc})`, run: () => this.completeTraining(member, skill) };
+      }),
+      { title: "INSTRUCTOR TRAINING", subtitle: "Failure lowers this skill's DC next visit" },
+    );
+  }
+
+  private completeTraining(member: CharacterSprite, skill: TrainingSkill): void {
+    const key = `${member.character.id}:${skill}`;
+    const failures = this.trainingFailures.get(key) ?? 0;
+    const dc = instructorTrainingDc(failures);
+    this.ctx.spendGold(25);
+    const stat = TRAINING_STAT[skill];
+    const result = this.ctx.engine.check({ actor: member.character, stat, dc, kind: skill === "stealth" ? "stealth" : "stat" });
+    this.downtimeUsed = true;
+    if (result.success) {
+      this.trainingFailures.delete(key);
+      member.character.removeEffect(`training:${skill}`);
+      member.character.addEffect({
+        id: `training:${skill}`,
+        name: `Trained: ${skill}`,
+        hooks: [{ kind: "advantageOnStat", stat }],
+      });
+      this.ctx.say(`${member.character.name} trains ${skill} successfully (${result.total} vs ${dc}).`, "#60e080");
+    } else {
+      this.trainingFailures.set(key, failures + 1);
+      this.ctx.say(`${member.character.name} fails ${skill} training; next DC falls to ${instructorTrainingDc(failures + 1)}.`, "#d07070");
+    }
+    this.saveToSlot(0);
+  }
+
+  private openMidnightSunOaths(member: CharacterSprite): void {
+    const dungeonIndex = this.registry.get("dungeonIndex");
+    const destinationIndex = typeof dungeonIndex === "number" ? dungeonIndex : 0;
+    const options = midnightSunOathOptions(member.character.id, destinationIndex);
+    const boon: Record<OathRank, string> = {
+      worthy: "gain a luck token",
+      mighty: "permanent +1 AC",
+      legendary: "permanent +2 max HP",
+    };
+    this.openActionChoice(
+      options.map((oath) => ({
+        label: `${oath.rank}: ${oath.description} Boon: ${boon[oath.rank]}.`,
+        run: () => this.acceptMidnightSunOath(member, oath),
+      })),
+      {
+        title: "OATH OF THE MIDNIGHT SUN",
+        subtitle: "Failure before destination exit imposes disadvantage until rest.",
+      },
+    );
+  }
+
+  private acceptMidnightSunOath(member: CharacterSprite, oath: OathState): void {
+    this.oaths = this.oaths.filter((candidate) => candidate.characterId !== member.character.id);
+    this.oaths.push({ ...oath });
+    this.ctx.say(`${member.character.name} swears a ${oath.rank} oath: ${oath.description}`, "#75c7e8");
+    this.saveToSlot(0);
+  }
+
+  private openPatronBargains(member: CharacterSprite): void {
+    const runSeed = this.registry.get("runSeed");
+    const dungeonIndex = this.registry.get("dungeonIndex");
+    const seed =
+      (typeof runSeed === "number" ? runSeed : 0) +
+      (typeof dungeonIndex === "number" ? dungeonIndex : 0) +
+      member.character.id.length;
+    const offers = patronOptions(seed);
+    this.openActionChoice(
+      [
+        ...offers.map((def) => ({
+          label: `${def.name}: ${def.boon} — ${def.request} Taboo: ${def.taboo}.`,
+          run: () => this.acceptPatronBargain(member, def),
+        })),
+        {
+          label: "refuse every whisper",
+          run: () => this.ctx.say(`${member.character.name} refuses the patrons — for now.`, "#9da7ec"),
+        },
+      ],
+      {
+        title: "PATRON BARGAINS",
+        subtitle: "A boon is immediate. Favour requires obedience; breaking the taboo revokes it.",
+      },
+    );
+  }
+
+  private acceptPatronBargain(member: CharacterSprite, def: PatronDef): void {
+    this.patrons = this.patrons.filter((candidate) => candidate.characterId !== member.character.id);
+    this.patrons.push({
+      characterId: member.character.id,
+      patronId: def.id,
+      favor: 0,
+      progress: 0,
+      demandComplete: false,
+      tabooBroken: false,
+    });
+    this.applyPatronBoon(member, def);
+    this.ctx.say(
+      `${member.character.name} bargains with ${def.name}, gaining ${def.boon}. Demand: ${def.request} Taboo: ${def.taboo}.`,
+      "#c8a5e8",
+    );
+    this.saveToSlot(0);
+  }
+
+  private applyPatronBoon(member: CharacterSprite, def: PatronDef): void {
+    member.character.removeEffect(`patron:${def.id}`);
+    const hooks = def.id === "almazzat"
+      ? [{ kind: "checkBonus" as const, applies: "stat" as const, bonus: 1 }]
+      : def.id === "kytheros"
+        ? [{ kind: "checkBonus" as const, applies: "attack" as const, bonus: 1 }]
+        : def.id === "mugdulblub"
+          ? [{ kind: "acBonus" as const, bonus: 1 }]
+          : def.id === "shune"
+            ? [{ kind: "checkBonus" as const, applies: "spellcast" as const, bonus: 1 }]
+            : def.id === "titania"
+              ? [{ kind: "advantageOnStat" as const, stat: "CHA" as const }]
+              : [{ kind: "speedBonus" as const, bonus: 15 }];
+    member.character.addEffect({ id: `patron:${def.id}`, name: `${def.name}: ${def.boon}`, hooks });
+  }
+
+  private advanceDestinationRules(event: DestinationRuleEvent, actor?: CharacterSprite): void {
+    const actorId = actor?.character.id;
+    this.oaths = this.oaths.map((oath) => {
+      if (actorId && oath.characterId !== actorId) return oath;
+      const advanced = advanceOath(oath, event);
+      if (!oath.fulfilled && advanced.fulfilled) this.grantOathBoon(advanced);
+      if (!oath.failed && advanced.failed) this.breakOath(advanced);
+      return advanced;
+    });
+    this.patrons = this.patrons.map((patron) => {
+      if (actorId && patron.characterId !== actorId) return patron;
+      const result = advancePatron(patron, event);
+      const member = this.party.members.find((candidate) => candidate.character.id === patron.characterId);
+      const def = patronDef(patron.patronId);
+      if (result.demandCompleted) {
+        this.ctx.say(`${def.name}'s demand is fulfilled. Favour rises to ${result.state.favor}.`, "#c8a5e8");
+      }
+      if (result.tabooBroken && member) {
+        member.character.removeEffect(`patron:${def.id}`);
+        member.character.removeEffect(`patron-penalty:${def.id}`);
+        member.character.addEffect({
+          id: `patron-penalty:${def.id}`,
+          name: `${def.name}'s Displeasure`,
+          hooks: [{ kind: "disadvantageOn", applies: "any" }],
+          duration: { unit: "crawlingRounds", remaining: 3 },
+        });
+        this.ctx.say(`${member.character.name} breaks ${def.name}'s taboo. The boon is revoked.`, "#d07070");
+      }
+      return result.state;
+    });
+  }
+
+  private grantOathBoon(oath: OathState): void {
+    const member = this.party.members.find((candidate) => candidate.character.id === oath.characterId);
+    if (!member) return;
+    if (oath.rank === "worthy") {
+      member.character.luckToken = true;
+    } else {
+      member.character.removeEffect(`oath:${oath.rank}`);
+      member.character.addEffect({
+        id: `oath:${oath.rank}`,
+        name: `${oath.rank} Oath Fulfilled`,
+        hooks: oath.rank === "mighty"
+          ? [{ kind: "acBonus", bonus: 1 }]
+          : [{ kind: "maxHpBonus", bonus: 2 }],
+      });
+    }
+    this.ctx.say(`${member.character.name}'s ${oath.rank} oath is fulfilled. Its boon awakens.`, "#75c7e8");
+  }
+
+  private breakOath(oath: OathState): void {
+    const member = this.party.members.find((candidate) => candidate.character.id === oath.characterId);
+    if (!member) return;
+    member.character.removeEffect(`oath-broken:${oath.rank}`);
+    member.character.addEffect({
+      id: `oath-broken:${oath.rank}`,
+      name: "Broken Oath",
+      hooks: [{ kind: "disadvantageOn", applies: "any" }],
+      duration: { unit: "untilRest", remaining: 0 },
+    });
+    this.ctx.say(`${member.character.name} breaks the ${oath.rank} oath.`, "#d07070");
+  }
+
+  private finalizeDestinationRules(): void {
+    this.oaths = this.oaths.map((oath) => {
+      if (oath.fulfilled || oath.failed) return oath;
+      const failed = { ...oath, failed: true };
+      this.breakOath(failed);
+      return failed;
+    });
+    for (const patron of this.patrons) {
+      if (patron.demandComplete) continue;
+      const member = this.party.members.find((candidate) => candidate.character.id === patron.characterId);
+      if (!member) continue;
+      const def = patronDef(patron.patronId);
+      member.character.removeEffect(`patron:${def.id}`);
+      member.character.addEffect({
+        id: `patron-demand-failed:${def.id}`,
+        name: `${def.name}'s Unmet Demand`,
+        hooks: [{ kind: "disadvantageOn", applies: "any" }],
+        duration: { unit: "untilRest", remaining: 0 },
+      });
+      this.ctx.say(`${member.character.name} leaves ${def.name}'s demand unmet. The patron collects a price.`, "#d07070");
+    }
+  }
+
+  private refuseDungeonReward(): void {
+    if (this.rewardClaimed || !this.rewardMarker) return;
+    const { sprite } = this.rewardMarker;
+    const title = this.currentReward.title;
+    sprite.destroy();
+    this.rewardMarker = null;
+    this.rewardClaimed = true;
+    this.advanceDestinationRules("refuse-treasure");
+    this.ctx.say(`The party leaves ${title} untouched and turns toward the exit.`, "#9da7ec");
+    this.saveToSlot(0);
   }
 
   private restParty(free: boolean): void {
@@ -3813,6 +4534,21 @@ export class DungeonScene extends Phaser.Scene {
     }
     if (free) this.clearDangerTrack();
     this.saveToSlot(0); // Checkpoint auto-saved!
+  }
+
+  /** Walls, columns, racks, foliage, and dungeon furniture are explicit cover. */
+  private isNearHidingSpot(member: CharacterSprite): boolean {
+    const tx = Math.floor(member.x / TILE);
+    const ty = Math.floor(member.y / TILE);
+    const coverTiles = new Set(["#", "%", "q", "v", "h", "D", "F", "b", "*", "S", "C"]);
+    for (let y = ty - 1; y <= ty + 1; y++) {
+      const row = this.activeDungeon.grid[y];
+      if (!row) continue;
+      for (let x = tx - 1; x <= tx + 1; x++) {
+        if (coverTiles.has(row[x] ?? "")) return true;
+      }
+    }
+    return false;
   }
 
   private updateMonsters(time: number, delta: number): void {
@@ -3858,6 +4594,22 @@ export class DungeonScene extends Phaser.Scene {
           continue;
         }
       }
+      const hiddenNearby = this.party.aliveMembers()
+        .filter((member) => isHidden(member.character))
+        .filter((member) => Phaser.Math.Distance.Between(m.x, m.y, member.x, member.y) <= AGGRO_RANGE)
+        .sort((a, b) => Phaser.Math.Distance.Between(m.x, m.y, a.x, a.y) - Phaser.Math.Distance.Between(m.x, m.y, b.x, b.y))[0];
+      if (hiddenNearby && time >= m.nextPerceptionCheckAt) {
+        m.nextPerceptionCheckAt = time + this.ctx.engine.config.roundMs;
+        const natural = this.ctx.engine.dice.d20().natural;
+        const total = natural + m.def.wisMod;
+        const dc = 10 + hiddenNearby.character.mod("DEX");
+        if (natural === 20 || (natural !== 1 && total >= dc)) {
+          revealCharacter(hiddenNearby.character);
+          m.alert();
+          floatText(this, hiddenNearby.x, hiddenNearby.y - 28, "SPOTTED!", "#d07070", 12);
+          this.ctx.say(`${m.def.name} spots ${hiddenNearby.character.name} with a Wisdom perception check (${total} vs ${dc}).`, "#d07070");
+        }
+      }
       // Monsters target adventurers first. A hired porter is considered only
       // when no visible adventurer remains, regardless of distance.
       const adventurerTargets = this.party
@@ -3879,6 +4631,18 @@ export class DungeonScene extends Phaser.Scene {
         m.attackCooldown === 0 &&
         Phaser.Math.Distance.Between(m.x, m.y, target.x, target.y) <= CLOSE_PX
       ) {
+        const tell = m.specialTell(this.time.now);
+        if (tell === "start") {
+          const label = m.def.specialAbility === "corrode"
+            ? "RUSTING TOUCH!"
+            : m.def.specialAbility === "shadow-extinct"
+              ? "DEVOUR LIGHT!"
+              : `${m.def.specialAbility!.toUpperCase()}!`;
+          floatText(this, m.x, m.y - 30, label, "#ffb347", 12);
+          this.ctx.say(`${m.def.name} telegraphs ${label.toLowerCase()} — move or interrupt it!`, "#ffb347");
+          continue;
+        }
+        if (tell === "wait") continue;
         m.attackCooldown = MONSTER_ATTACK_COOLDOWN_MS;
         monsterSwing(this, this.ctx, this.light, m, target);
         if (target === this.porter && target.character.dying) {
@@ -3971,10 +4735,21 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
-  private killMonster(m: MonsterSprite): void {
+  private killMonster(m: MonsterSprite, attacker?: CharacterSprite): void {
+    if (attacker?.character.effects.some((effect) => effect.id === "combat:nonlethal") && !m.def.undead) {
+      attacker.character.removeEffect("combat:nonlethal");
+      m.hp = 1;
+      m.flee();
+      floatText(this, m.x, m.y - 10, "KNOCKED OUT", "#9da7ec", 13);
+      this.ctx.say(`${attacker.character.name} knocks out ${m.def.name}; the defeated foe survives.`, "#9da7ec");
+      this.advanceDestinationRules("mercy", attacker);
+      this.morale.onDeath(this.ctx, this, m, this.monsters);
+      return;
+    }
     sfx.deathKnell(m.def.undead, this.spatial(m));
     floatText(this, m.x, m.y - 10, "slain", "#c0c0c0");
     this.ctx.kills++;
+    this.advanceDestinationRules("kill", attacker);
     if (dangerRuleForSkin(this.visualSkin?.id, this.openSkyDaytime) && this.currentRoomId !== this.safeZoneId) {
       this.dangerKillPending = true;
     }
@@ -3991,21 +4766,62 @@ export class DungeonScene extends Phaser.Scene {
     m.aiState = "fleeing"; // exclude from aliveInFight immediately
   }
 
+  private splitMonster(parent: MonsterSprite): void {
+    const child = new MonsterSprite(
+      this,
+      parent.x + (parent.flipX ? -1 : 1) * TILE * 0.6,
+      parent.y,
+      parent.def,
+      parent.groupId,
+      this.ctx.engine.dice,
+    );
+    const dividedHp = Math.max(1, Math.ceil(parent.hp / 2));
+    parent.hp = dividedHp;
+    child.hp = dividedHp;
+    child.hasSplit = true;
+    child.alert();
+    this.monsters.push(child);
+    this.monsterGroup.add(child);
+    this.morale.register(child);
+    this.trapSystem.registerActor(child);
+    floatText(this, parent.x, parent.y - 26, "SPLITS!", "#91c46c", 14);
+    this.ctx.say(`${parent.def.name} tears into two smaller, hunting masses.`, "#91c46c");
+  }
+
   /** Auto-loot: monsters spill treasure where they fall; walking over it collects. */
   private dropLoot(m: MonsterSprite): void {
-    const dice = this.ctx.engine.dice;
-    switch (m.def.xpTier) {
-      case "minor":
-        this.addPickup(m.x, m.y - 6, "coins", dice.roll("3d10"));
-        break;
-      case "major":
-        this.addPickup(m.x - 8, m.y - 6, "gem", 1);
-        this.addPickup(m.x + 8, m.y - 6, "coins", dice.roll("6d10"));
-        break;
-      case "legendary":
-        this.addPickup(m.x, m.y - 6, "jeweled-idol", 1);
-        break;
+    if (this.treasureRolledGroups.has(m.groupId)) return;
+    const groupStillFighting = this.monsters.some(
+      (candidate) => candidate !== m && candidate.groupId === m.groupId && candidate.aliveInFight,
+    );
+    if (groupStillFighting) return;
+    this.treasureRolledGroups.add(m.groupId);
+
+    const group = this.monsters.filter((candidate) => candidate.groupId === m.groupId);
+    const encounterLevel = Math.max(
+      1,
+      ...group.map((candidate) => Number(candidate.def.hitDice.match(/^(\d+)d/)?.[1] ?? 1)),
+    );
+    const tableId = encounterTreasureTableId(encounterLevel);
+    const rolled = this.ctx.engine.rollTable(tableId);
+    const data = rolled.entry.data as {
+      itemId?: string;
+      qty?: number;
+      treasureQuality?: TreasureQuality;
+    } | undefined;
+    if (!data?.itemId) {
+      this.ctx.say(`${m.def.name}'s encounter leaves no portable treasure.`, "#a0a4b0");
+      return;
     }
+    const def = generatedMagicItem(data.itemId, this.ctx.engine.dice.die(12));
+    this.addPickup(m.x, m.y - 6, def.id, data.qty ?? 1, {
+      treasureQuality: data.treasureQuality ?? def.treasureQuality ?? "poor",
+      findId: `encounter:${m.groupId}`,
+    });
+    this.ctx.say(
+      `Encounter treasure (${rolled.roll} on ${rolled.table.name}): ${rolled.entry.text}`,
+      "#e8c840",
+    );
   }
 
   /**
@@ -4161,7 +4977,12 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private dropTrapLoot(x: number, y: number): void {
-    this.addPickup(x, y, "coins", this.ctx.engine.dice.roll("1d6"));
+    // Salvaged pocket change is deliberately Poor treasure: the successful
+    // disarm is useful, but it is not a new Normal treasure find worth 1 XP.
+    this.addPickup(x, y, "coins", this.ctx.engine.dice.roll("1d6"), {
+      treasureQuality: "poor",
+      findId: `trap:${Math.round(x)}:${Math.round(y)}`,
+    });
   }
 
   /**
@@ -4371,7 +5192,7 @@ export class DungeonScene extends Phaser.Scene {
       if (!collector) continue;
       const def = item(p.itemId);
 
-      if (def.id === "coins") {
+      if (def.id === "coins" || def.rulesId === "coins") {
         const partySize = this.party.aliveMembers().length + (this.porter?.alive ? 1 : 0);
         const currentCoinSlots = partyCoinSlots(this.ctx.totalCoins, partySize);
         const newCoinSlots = partyCoinSlots(this.ctx.totalCoins + p.qty, partySize);
@@ -4386,17 +5207,20 @@ export class DungeonScene extends Phaser.Scene {
         const pxCoord = p.sprite.x;
         const pyCoord = p.sprite.y;
         p.sprite.destroy();
+        if (p.findId) this.claimedTreasureFindIds.add(p.findId);
         sfx.pickupChime(false, this.spatial({ x: pxCoord, y: pyCoord }));
         sparkleBurst(this, pxCoord, pyCoord, false);
 
-        const xp = this.ctx.bankCoins(p.qty);
-        // Collected coin is both XP (bankCoins, above) and spendable money.
+        this.ctx.bankCoins(p.qty);
+        const xp = p.treasureQuality ? treasureQualityXp(p.treasureQuality) : 0;
+        // Coin enters the wallet, while XP is awarded once for this treasure
+        // find's quality rather than per coin or across cumulative thresholds.
         this.ctx.earnGold(p.qty);
         const label = `${p.qty} coins`;
         if (xp > 0) {
           floatText(this, collector.x, collector.y - 24, `${label} +${xp} XP`, "#e8c840");
-          for (const m of this.party.members) {
-            if (!m.character.dead) this.ctx.engine.awardXp(m.character, xp);
+          for (const member of this.party.members) {
+            if (!member.character.dead) this.ctx.engine.awardXp(member.character, xp);
           }
           this.ctx.say(`Treasure! ${label} — party gains ${xp} XP.`, "#e8c840");
         } else {
@@ -4433,12 +5257,17 @@ export class DungeonScene extends Phaser.Scene {
     const pxCoord = p.sprite.x;
     const pyCoord = p.sprite.y;
     p.sprite.destroy();
+    if (p.findId) this.claimedTreasureFindIds.add(p.findId);
 
     const jewel =
       def.id === "gem" || def.id === "jeweled-idol" || def.id === "crown-of-the-deep";
     sfx.pickupChime(jewel, this.spatial({ x: pxCoord, y: pyCoord }));
     sparkleBurst(this, pxCoord, pyCoord, jewel);
-    const xp = grantXp ? def.xpValue ?? 0 : 0;
+    const xp = grantXp
+      ? p.treasureQuality
+        ? treasureQualityXp(p.treasureQuality)
+        : treasureItemXp(def)
+      : 0;
     const label = p.qty > 1 ? `${p.qty} ${def.name}` : def.name;
     if (xp > 0) {
       floatText(this, recipient.x, recipient.y - 24, `${label} +${xp} XP`, "#e8c840");
@@ -4738,6 +5567,11 @@ export class DungeonScene extends Phaser.Scene {
       roomId: this.currentRoomId,
       activatedRequirementIds: [...this.activatedRequirements],
       openedConnectorIds: [...this.openedConnectors],
+      placedGear: this.placedGear.map((entry) => ({ ...entry })),
+      downtimeUsed: this.downtimeUsed,
+      trainingFailures: Object.fromEntries(this.trainingFailures),
+      oaths: this.oaths.map((state) => ({ ...state })),
+      patrons: this.patrons.map((state) => ({ ...state })),
       npcInteractionStates: Object.fromEntries(this.npcInteractionStates),
       discoveredRoomIds: [...this.discoveredRoomIds],
       dangerFails: dangerRuleForSkin(this.visualSkin?.id, this.openSkyDaytime) ? Object.fromEntries(this.dangerFails) : undefined,
@@ -4745,6 +5579,7 @@ export class DungeonScene extends Phaser.Scene {
       dangerKillPending: dangerRuleForSkin(this.visualSkin?.id, this.openSkyDaytime) ? this.dangerKillPending : undefined,
       hasCrown: this.hasCrown,
       kills: this.ctx.kills,
+      claimedTreasureFindIds: [...this.claimedTreasureFindIds],
       coinsBanked: this.ctx.totalCoins,
       spendableGold: this.ctx.spendableGold,
       porter: this.serializePorter(),
@@ -4800,6 +5635,7 @@ export class DungeonScene extends Phaser.Scene {
         nextVaultsInScroll = rollVaultCountForScroll((runSeed + nextIndex) >>> 0);
         nextVaultsCompleted = 0;
         nextSkinHistory = [];
+        this.finalizeDestinationRules();
       }
 
       // Story XP is awarded once per completed scroll adventure, never per vault.
@@ -4825,6 +5661,9 @@ export class DungeonScene extends Phaser.Scene {
         nextVaultsCompleted,
         nextSkinHistory,
       );
+      nextState.trainingFailures = Object.fromEntries(this.trainingFailures);
+      nextState.oaths = this.biomeOffer ? [] : this.oaths.map((state) => ({ ...state }));
+      nextState.patrons = this.biomeOffer ? [] : this.patrons.map((state) => ({ ...state }));
       try {
         SaveRepository.save(0, nextState);
       } catch {

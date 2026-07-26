@@ -33,32 +33,32 @@ change correctly, close the shop, and have the result survive save/load.
 - Items are defined once in `src/data/items.ts` (`ItemDef`); treasure-table
   rows already carry a `valueGp`, but `ItemDef` itself has **no price**.
 
-## The central design decision: coins are XP (confirmed)
+## The central design decision: treasure finds grant XP
 
-The rule, in the owner's words: **collecting treasure earns XP; spending it
-does not take that XP back; selling items earns coin but never XP.** Pick up
-200 coins → +2 XP immediately; spend those 200 at a shop → you keep the 2 XP.
-Sell a sword for 6 coin → +6 to spend, +0 XP.
+Shadowdark awards XP once per treasure find according to the best treasure in
+that find: **Poor 0 XP, Normal 1 XP, Fabulous 3 XP, Legendary 10 XP.** The
+number of coins, gems, or stacked items does not multiply the award. Spending
+the treasure does not take XP back, and selling recovered gear earns coin but
+never creates a new treasure find.
 
-`GameContext.bankCoins` already awards **1 XP per 100-coin threshold crossed**
-from `coinsBanked` (exposed as `ctx.totalCoins`). "Banked" here just means
-"collected." So the two concerns must be tracked separately:
+`GameContext.bankCoins` records lifetime coin collected (exposed as
+`ctx.totalCoins`), while the pickup or reward that produced the coins awards
+the find's quality XP. The two concerns remain tracked separately:
 
 **Decision — a separate `spendableGold` wallet.**
 
-- `coinsBanked` stays exactly as it is: lifetime treasure collected, monotonic,
-  the sole driver of coin XP. **Never decremented by shopping.**
+- `coinsBanked` remains a monotonic record of collected coin. It is not an XP
+  formula and is **never decremented by shopping.**
 - Add `spendableGold`, the party wallet:
-  - Collecting treasure coin adds to **both** `coinsBanked` (XP) and
-    `spendableGold` (money).
+  - Collecting treasure coin adds to both `coinsBanked` and `spendableGold`,
+    then awards XP once from the find's quality.
   - **Buying** subtracts from `spendableGold` only — XP is untouched, so you
     spend without losing progress.
   - **Selling** items adds to `spendableGold` only — **no** call to
     `bankCoins`, so selling never grants XP.
 
-This matches the owner's rules exactly, keeps the "treasure is XP" identity,
-lets the hoard be spent, and makes the buy-cheap/sell-high XP exploit
-impossible (selling only moves the wallet, never `coinsBanked`).
+This keeps the "treasure is XP" identity, lets the hoard be spent, and makes
+the buy-cheap/sell-high XP exploit impossible.
 
 Rejected alternative: a `coinsSpent` ledger with `spendable = banked - spent`.
 Works for buying, but selling has no clean home and the derivation is harder to
@@ -125,8 +125,8 @@ reason about than one honest wallet.
 
 Unit (no Phaser):
 - `earnGold` / `spendGold` math, and `spendGold` throwing past the balance.
-- Coin pickup increments both `coinsBanked` (XP) and `spendableGold`;
-  spending never changes `coinsBanked` or awarded XP.
+- Coin pickup increments both `coinsBanked` and `spendableGold`, and awards
+  its treasure-find quality once; spending never changes either history or XP.
 - **Selling grants coin but no XP:** a sell raises `spendableGold` while
   `coinsBanked` and awarded XP stay put.
 - Buy price / sell price from `valueGp` and `SELL_RATE`; unpriced item throws.

@@ -13,7 +13,17 @@ import type { Dice } from "./dice";
 export type MonsterActivity = "eating" | "guarding" | "sleeping" | "building" | "hunting";
 export type MonsterReaction = "hostile" | "suspicious" | "neutral" | "curious" | "friendly";
 export type EncounterDistance = "close" | "near" | "far";
-export type EncounterChoice = "hide" | "ambush" | "parley" | "offer" | "threaten" | "retreat";
+export type EncounterChoice =
+  | "hide"
+  | "ambush"
+  | "parley"
+  | "offer"
+  | "trade"
+  | "threaten"
+  | "demand-surrender"
+  | "surrender"
+  | "subdue"
+  | "retreat";
 
 const ACTIVITIES: readonly MonsterActivity[] = ["eating", "guarding", "sleeping", "building", "hunting"];
 const DISTANCES: readonly EncounterDistance[] = ["close", "near", "far"];
@@ -47,12 +57,21 @@ export function rollReaction(dice: Dice): MonsterReaction {
 export function availableEncounterChoices(
   activity: MonsterActivity,
   canOffer: boolean,
+  reaction?: MonsterReaction,
+  intelligent = true,
 ): readonly EncounterChoice[] {
   const choices: EncounterChoice[] = ["ambush"];
   if (activity !== "sleeping") {
     choices.push("parley");
     if (canOffer) choices.push("offer");
+    if (intelligent && (reaction === "neutral" || reaction === "curious" || reaction === "friendly")) {
+      choices.push("trade");
+    }
     choices.push("threaten");
+    if (intelligent) {
+      choices.push("demand-surrender", "subdue");
+      if (reaction === "hostile") choices.push("surrender");
+    }
   }
   choices.push("hide", "retreat");
   return choices;

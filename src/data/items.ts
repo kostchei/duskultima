@@ -5,13 +5,15 @@ import { magicItemSpell } from "./spells";
 /** All item definitions, keyed by id. Unknown lookups throw via item(). */
 const BASE_ITEM_LIST: readonly ItemDef[] = [
   // Gear
-  { id: "torch", name: "Torch", slotCost: 1, bundleSize: 1, tags: ["light"], valueGp: 2 },
+  { id: "torch", name: "Torch", slotCost: 1, bundleSize: 1, tags: ["light"], valueGp: 2, use: { actions: ["place"], target: "point" } },
   { id: "ration", name: "Ration", slotCost: 1, bundleSize: 3, tags: ["food"], valueGp: 1 },
   { id: "backpack", name: "Backpack", slotCost: 0, bundleSize: 1, tags: ["gear"], valueGp: 2 },
   { id: "flint-and-steel", name: "Flint and Steel", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 5 },
   { id: "iron-spikes", name: "Iron Spikes", slotCost: 1, bundleSize: 10, tags: ["gear"], valueGp: 1, use: { actions: ["place"], target: "object" } },
   { id: "grappling-hook", name: "Grappling Hook", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 1, use: { actions: ["place", "activate"], target: "surface" } },
   { id: "rope", name: "Rope (60')", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 1, use: { actions: ["place", "activate"], target: "surface" } },
+  { id: "oil-flask", name: "Oil Flask", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 2, use: { actions: ["place"], target: "point" } },
+  { id: "mirror", name: "Steel Mirror", slotCost: 1, bundleSize: 1, tags: ["gear"], valueGp: 5, use: { actions: ["activate", "place"], target: "point" } },
 
   // Weapons — reachTiles: how far the swing lands; monsters strike at 1.6, so
   // the spear (and staff) can poke from beyond a monster's claws.
@@ -57,10 +59,11 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "shield", name: "Shield", slotCost: 1, bundleSize: 1, tags: ["armor"], shield: true, valueGp: 10 },
 
   // Treasure — treasure IS XP (minor 1, major 2-3, legendary 10)
-  // First 100 coins ride free; every 100 after costs a slot. XP: 1 per 100 banked (handled by the game).
+  // First 100 coins ride free; every 100 after costs a slot. XP is rated once
+  // for the treasure find that produced them, never per 100 coins.
   // valueGp lets loose treasure be sold at a shop; "coins" is money already, so it has none.
   { id: "coins", name: "Coins", slotCost: 0, bundleSize: 100, freeQty: 100, tags: ["treasure"], xpValue: 1, treasureQuality: "normal" },
-  { id: "gem", name: "Gem", slotCost: 0, bundleSize: 10, tags: ["treasure"], xpValue: 2, valueGp: 10, treasureQuality: "normal" },
+  { id: "gem", name: "Gem", slotCost: 0, bundleSize: 10, tags: ["treasure"], xpValue: 1, valueGp: 10, treasureQuality: "normal" },
   { id: "jeweled-idol", name: "Jeweled Idol", slotCost: 0, bundleSize: 1, tags: ["treasure"], xpValue: 3, valueGp: 50, treasureQuality: "fabulous" },
   { id: "crown-of-the-deep", name: "Crown of the Deep", slotCost: 0, bundleSize: 1, tags: ["treasure"], xpValue: 10, treasureQuality: "legendary" },
 

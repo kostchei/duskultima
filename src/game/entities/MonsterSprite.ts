@@ -52,6 +52,14 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
   /** Fate consumes this on the monster's next attack. */
   spellDisadvantageNextAction = false;
   spellObscured = false;
+  /** Family attacks telegraph before applying control or damaging equipment. */
+  private specialTellUntil = 0;
+  /** Oozes split only once; children inherit this flag. */
+  hasSplit = false;
+  /** Leaders change tactics at half HP. */
+  phase: 1 | 2 = 1;
+  readonly maxHp: number;
+  nextPerceptionCheckAt = 0;
   /** Seer id whose active Cast Out boundary repels this monster. */
   spellCastOutCasterId: string | null = null;
   private patrolOriginX: number;
@@ -71,6 +79,7 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
     this.def = def;
     this.groupId = groupId;
     this.hp = Math.max(1, dice.roll(def.hitDice));
+    this.maxHp = this.hp;
     this.customTexture = textureKey !== undefined;
     this.patrolOriginX = x;
     this.shadow = scene.add.image(x, y + 14, "entity-shadow").setDepth(7).setAlpha(0.62);
@@ -81,7 +90,7 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   get speed(): number {
-    return MONSTER_SPEED[this.def.id] ?? 80;
+    return (MONSTER_SPEED[this.def.id] ?? 80) * (this.phase === 2 ? 1.25 : 1);
   }
 
   get aliveInFight(): boolean {
@@ -187,6 +196,32 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
     if (this.aiState === "fleeing") return;
     this.alertedUntil = Math.max(this.alertedUntil, this.scene.time.now + durationMs);
     this.aiState = "aggro";
+  }
+
+  /**
+   * A severe family verb gets a readable wind-up. The caller prints the tell
+   * on "start", waits on "wait", and resolves the attack on "ready".
+   */
+  specialTell(now: number): "none" | "start" | "wait" | "ready" {
+    if (!this.def.specialAbility || this.def.specialAbility === "split") return "none";
+    if (this.specialTellUntil === 0) {
+      this.specialTellUntil = now + 550;
+      this.setTint(0xffb347);
+      this.setVelocityX(0);
+      return "start";
+    }
+    if (now < this.specialTellUntil) return "wait";
+    this.specialTellUntil = 0;
+    this.clearTint();
+    return "ready";
+  }
+
+  enterSecondPhase(): boolean {
+    if (!this.def.leader || this.phase === 2 || this.hp > Math.ceil(this.maxHp / 2)) return false;
+    this.phase = 2;
+    this.setScale(1.08);
+    this.setTint(0xff795e);
+    return true;
   }
 
   override destroy(fromScene?: boolean): void {

@@ -64,7 +64,7 @@ const CONDITION_SPECS: Record<ConditionKind, ConditionSpec> = {
   paralyzed: { label: "Paralyzed", abbr: "PAR", hooks: [] },
   charmed: { label: "Charmed", abbr: "CHM", hooks: [] },
   silenced: { label: "Silenced", abbr: "SIL", hooks: [] },
-  corroded: { label: "Corroded", abbr: "COR", hooks: [] },
+  corroded: { label: "Corroded", abbr: "COR", hooks: [{ kind: "acBonus", bonus: -1 }] },
   swallowed: { label: "Swallowed", abbr: "SWL", hooks: [] },
   magicSuppressed: { label: "Suppressed", abbr: "SUP", hooks: [] },
 };

@@ -54,6 +54,14 @@ const RING: ItemDef = {
 };
 
 describe("canUseItem", () => {
+  it("exposes placement handlers for rope, hook, oil, mirror, and torch", () => {
+    expect(item("rope").use).toMatchObject({ actions: expect.arrayContaining(["place"]), target: "surface" });
+    expect(item("grappling-hook").use).toMatchObject({ actions: expect.arrayContaining(["place"]), target: "surface" });
+    expect(item("oil-flask").use).toMatchObject({ actions: ["place"], target: "point" });
+    expect(item("mirror").use).toMatchObject({ actions: expect.arrayContaining(["activate", "place"]), target: "point" });
+    expect(item("torch").use).toMatchObject({ actions: ["place"], target: "point" });
+  });
+
   it("refuses an item the character isn't carrying", () => {
     const f = makeFighter();
     const check = canUseItem(f, f.itemState, POTION, "consume");

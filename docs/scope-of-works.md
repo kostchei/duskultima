@@ -171,8 +171,35 @@ Gaps:
    needs the shrine interactable (rest-spot economy).
 4. Leader-based morale groups (RAW rule; also required by the bible's
    "Warchief" climax variant).
-5. Stealth/surprise, ancestries, trained-task auto-success, swimming — defer;
-   swimming only alongside water volumes (WS-3).
+5. Ancestries, trained-task auto-success, and swimming — defer; swimming only
+   alongside water volumes (WS-3). Stealth/surprise is covered by the update
+   below.
+
+### Phase 2 implementation update (2026-07-26)
+
+The following items from the earlier gap analysis are now wired:
+
+- Vault rewards roll deterministic, level-banded Core tables with
+  destination-flavoured Cursed Scroll tables. Defeated monster groups roll
+  once on the appropriate level-banded Core table. Each newly acquired
+  treasure find awards its quality once (Poor 0, Normal 1, Fabulous 3,
+  Legendary 10), regardless of coin or item quantity; resale awards no XP.
+- Monster family verbs now resolve mechanically: webs and engulfing block
+  actions, poison deals round damage, oozes split, shadows extinguish carried
+  light, rusting attacks warn before destroying mundane gear, and leaders
+  shift phase at half HP. Severe verbs use a readable attack tell.
+- Cover-based persistent hiding, Wisdom detection, surprise attacks, armour
+  stealth penalties, non-lethal knockout, surrender, and neutral trading are
+  available through the shared encounter/combat rules.
+- Rope, grappling hook, oil, mirror, and placeable/throwable torches have
+  exploration handlers. Placed gear and its light/hazard state persist in
+  saves and recoverable gear can be reclaimed.
+- Safe zones offer one downtime action per visit: tiered carousing spends gold
+  for XP plus a seeded event, while instructor training has a failure-reduced
+  retry DC.
+- Midnight Sun oaths and Diablerie patron bargains have previewed objectives,
+  boons, penalties/taboos, visible progress, refusal, favour, and save
+  persistence across the current destination.
 
 ---
 
@@ -334,7 +361,7 @@ readable HUD.
 
 1. Party persistence between runs (survivors, gear, levels, injuries).
 2. Rest-spot economy: rations/torches for sale, sell loot, shrine atonement
-   cost — coins finally competing with XP banking (the Shadowdark tension).
+   cost — recovered treasure funds competing needs without revoking earned XP.
 3. Run seeds surfaced + difficulty tiers (danger level, monster budgets).
 4. Run history; ancestries + stealth/surprise as the roster deepens.
 

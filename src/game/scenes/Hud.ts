@@ -1467,6 +1467,7 @@ export class HudScene extends Phaser.Scene {
       leaderDetails.push(leader.character.classState.familiarAlive ? "FAMILIAR READY" : "FAMILIAR LOST");
     }
     if (leader.mode === "hold") leaderDetails.push("HOLDING");
+    if (this.dungeon.destinationRuleSummary) leaderDetails.push(this.dungeon.destinationRuleSummary);
     this.leaderDetail.setText(leaderDetails.length > 0 ? leaderDetails.join("   |   ") : "Leader ready");
 
     const objective = this.dungeon.hasCrown

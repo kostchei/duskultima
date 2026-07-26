@@ -31,6 +31,8 @@ export * from "./check";
 export * from "./classAbilities";
 export * from "./conditions";
 export * from "./dice";
+export * from "./downtime";
+export * from "./destinationRules";
 export * from "./effects";
 export * from "./encounterReaction";
 export * from "./encounterStealth";
@@ -43,6 +45,7 @@ export * from "./potions";
 export * from "./spells";
 export * from "./tables";
 export * from "./talents";
+export * from "./treasureXp";
 export * from "./time";
 
 export interface AttackInput {
@@ -113,6 +116,13 @@ export class Engine {
   private tickRound(): void {
     for (const c of this.characters.values()) {
       this.checkFocus(c, "round");
+      // Poison is a real damage-over-time pressure, not merely a HUD label.
+      // Damage lands before the duration decrements so a 3-round poison ticks
+      // exactly three times. Immunity is handled when the condition is applied.
+      if (!c.dead && c.effects.some((effect) => effect.id === "condition:poisoned")) {
+        this.damageCharacter(c, 1);
+        this.log.append(this.clock.elapsedMs, "condition.poison", { who: c.id, damage: 1 });
+      }
       // Round-based conditions tick down.
       c.effects = c.effects.filter((e) => {
         if (e.duration?.unit !== "rounds") return true;

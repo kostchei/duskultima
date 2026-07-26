@@ -5,7 +5,7 @@
  */
 
 import Phaser from "phaser";
-import { applyUseOutcome, canUseItem, hasCapability, type Character } from "../../engine";
+import { applyUseOutcome, canUseItem, hasCapability, hasCondition, type Character } from "../../engine";
 import { classDef, item, type ClassDef } from "../../data";
 import type { GameContext } from "../context";
 import type { MonsterSprite } from "./MonsterSprite";
@@ -165,7 +165,7 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
 
   moveHorizontal(dir: -1 | 0 | 1, delta: number): void {
     void delta;
-    if (!this.alive) {
+    if (!this.alive || hasCondition(this.character, "webbed") || hasCondition(this.character, "paralyzed") || hasCondition(this.character, "swallowed")) {
       this.setVelocityX(0);
       return;
     }
@@ -214,7 +214,13 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   tryJump(now: number): boolean {
-    if (!this.alive || this.climbing) return false;
+    if (
+      !this.alive ||
+      this.climbing ||
+      hasCondition(this.character, "webbed") ||
+      hasCondition(this.character, "paralyzed") ||
+      hasCondition(this.character, "swallowed")
+    ) return false;
     if (this.grounded) this.lastGroundedAt = now;
     if (now - this.lastGroundedAt <= COYOTE_MS) {
       this.setVelocityY(JUMP_VELOCITY);
@@ -411,7 +417,12 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   canSwing(): boolean {
-    return this.alive && this.swingCooldown === 0;
+    return (
+      this.alive &&
+      this.swingCooldown === 0 &&
+      !hasCondition(this.character, "paralyzed") &&
+      !hasCondition(this.character, "swallowed")
+    );
   }
 
   startSwingCooldown(): void {

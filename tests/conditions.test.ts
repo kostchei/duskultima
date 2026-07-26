@@ -81,6 +81,19 @@ describe("conditions", () => {
     expect(hasCondition(f, "grappled")).toBe(false);
   });
 
+  it("poison deals damage each round while corrosion lowers AC", () => {
+    const engine = new Engine();
+    const f = makeFighter();
+    engine.registerCharacter(f);
+    const startingHp = f.hp;
+    const startingAc = f.ac;
+    applyCondition(f, "poisoned", { unit: "rounds", remaining: 2 });
+    applyCondition(f, "corroded", { unit: "rounds", remaining: 2 });
+    expect(f.ac).toBe(startingAc - 1);
+    engine.advance(engine.config.roundMs);
+    expect(f.hp).toBe(startingHp - 1);
+  });
+
   it("untilRest conditions survive combat but clear on rest, same as any until-rest effect", () => {
     const engine = new Engine();
     const f = makeFighter();

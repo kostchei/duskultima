@@ -20,6 +20,7 @@ import {
   createCharacter,
   highestAvailableSpellIndex,
   item,
+  monster,
   registerTables,
   spell,
 } from "../src/data";
@@ -751,5 +752,37 @@ describe("monster attack special abilities", () => {
     const res = monsterAttackRoll(dice, spider, 10);
     expect(res.hit).toBe(true);
     expect(res.appliedCondition).toBe("webbed");
+  });
+
+  it("maps poison, engulf, and corrosion families to live conditions", () => {
+    const dice = {
+      d20: () => ({ natural: 10, rolls: [10] }),
+      roll: () => 1,
+    } as unknown as Dice;
+    const attack = (specialAbility: "poison" | "engulf" | "corrode") =>
+      monsterAttackRoll(dice, {
+        id: specialAbility,
+        name: specialAbility,
+        ac: 10,
+        hitDice: "1d4",
+        attackBonus: 100,
+        damage: "1d1",
+        wisMod: 0,
+        darkvision: true,
+        undead: false,
+        xpTier: "minor",
+        specialAbility,
+      }, 10).appliedCondition;
+    expect(attack("poison")).toBe("poisoned");
+    expect(attack("engulf")).toBe("swallowed");
+    expect(attack("corrode")).toBe("corroded");
+  });
+
+  it("assigns family verbs to the intended monster identities", () => {
+    expect(monster("bittermold").specialAbility).toBe("split");
+    expect(monster("giant-spider").specialAbility).toBe("web");
+    expect(monster("deep-one").specialAbility).toBe("engulf");
+    expect(monster("shadow").specialAbility).toBe("shadow-extinct");
+    expect(monster("animated-armor").specialAbility).toBe("corrode");
   });
 });

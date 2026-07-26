@@ -51,9 +51,24 @@ describe("availableEncounterChoices", () => {
     expect(choices).toEqual(["ambush", "hide", "retreat"]);
   });
 
-  it("an awake wave offers all six when the party can offer food/treasure", () => {
+  it("an awake intelligent wave offers social, stealth, surrender-demand, and non-lethal verbs", () => {
     const choices = availableEncounterChoices("hunting", true);
-    expect(choices).toEqual(["ambush", "parley", "offer", "threaten", "hide", "retreat"]);
+    expect(choices).toEqual([
+      "ambush",
+      "parley",
+      "offer",
+      "threaten",
+      "demand-surrender",
+      "subdue",
+      "hide",
+      "retreat",
+    ]);
+  });
+
+  it("hostile intelligent encounters let the party surrender, while neutral ones can trade", () => {
+    expect(availableEncounterChoices("guarding", true, "hostile")).toContain("surrender");
+    expect(availableEncounterChoices("guarding", true, "neutral")).toContain("trade");
+    expect(availableEncounterChoices("guarding", true, "neutral")).not.toContain("surrender");
   });
 
   it("offer drops out when the party has nothing to give", () => {

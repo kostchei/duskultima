@@ -7,6 +7,8 @@ import type {
   Engine,
   ItemInstanceState,
   KnownSpell,
+  OathState,
+  PatronState,
   Stats,
   VoiceRegister,
 } from "../engine";
@@ -24,6 +26,16 @@ export interface SavedPorter {
   ownerId: string;
   hp: number;
   inventory: SavedInventoryItem[];
+}
+
+export interface PlacedGearState {
+  id: string;
+  itemId: "rope" | "grappling-hook" | "oil-flask" | "mirror" | "torch";
+  x: number;
+  y: number;
+  mode: "climb" | "slick" | "fire" | "peek" | "light";
+  /** Lit oil and torches expire in gameplay time instead of creating permanent free light. */
+  burnRemainingMs?: number;
 }
 
 export interface SavedCharacter {
@@ -80,6 +92,16 @@ export interface SaveSlot {
   activatedRequirementIds?: string[];
   /** Non-linear connector ids opened, revealed, or broken during this run. */
   openedConnectorIds?: string[];
+  /** Recoverable exploration gear placed into the current dungeon. */
+  placedGear?: PlacedGearState[];
+  /** At most one town downtime activity may be completed in a vault visit. */
+  downtimeUsed?: boolean;
+  /** Failed instructor attempts lower the next DC, keyed by character and skill. */
+  trainingFailures?: Record<string, number>;
+  /** Destination-length Midnight Sun vows, one per participating character. */
+  oaths?: OathState[];
+  /** Diablerie patron bargains and their bounded favor/demand state. */
+  patrons?: PatronState[];
   /** Deterministic talkable-NPC conversation progress keyed by NPC id. */
   npcInteractionStates?: Record<string, "unmet" | "heard" | "resolved" | "hostile-npc" | "hostile-allies" | "departed">;
   /** Stable ids of rooms revealed on the compact expedition map. */
@@ -97,9 +119,15 @@ export interface SaveSlot {
   dangerKillPending?: boolean;
   hasCrown: boolean;
   kills: number;
+  /**
+   * Stable source ids for treasure already collected in this dungeon. This
+   * prevents a reloaded pile or defeated encounter from awarding coin, items,
+   * or XP twice.
+   */
+  claimedTreasureFindIds?: string[];
   coinsBanked: number;
-  /** Spendable shop wallet, separate from the XP-driving coinsBanked. Absent on
-   * legacy saves, which seed it from coinsBanked on load. */
+  /** Spendable shop wallet, separate from the cumulative coin ledger. Absent
+   * on legacy saves, which seed it from coinsBanked on load. */
   spendableGold?: number;
   /** Optional hired porter and the loot entrusted to them. */
   porter?: SavedPorter;
