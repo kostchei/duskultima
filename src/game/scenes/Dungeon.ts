@@ -208,6 +208,10 @@ import {
   type BiomeOffer,
 } from "../biomeChoice";
 import { startingClassesForZone } from "../startingChoices";
+import {
+  selectOverheadInteractions,
+  type PromptableInteraction,
+} from "../interactionPrompt";
 
 /**
  * How long after being hit a character keeps swinging back. Monsters attack
@@ -263,7 +267,7 @@ export interface LuckWindow {
 }
 
 /** What pressing E would do right now — also drives the on-screen prompt. */
-interface Interaction {
+interface Interaction extends PromptableInteraction {
   label: string;
   run: () => void;
 }
@@ -380,6 +384,8 @@ export class DungeonScene extends Phaser.Scene {
   private lastHurtAt = new Map<string, number>();
   private encounterWaves = 0;
   private interactPrompt!: Phaser.GameObjects.Text;
+  /** When the one-time non-thief hide hint first appeared; intentionally survives scene restarts. */
+  private hideHintOfferedAt: number | undefined;
   /** The candidates offered while `actionChoice` mode is open; empty otherwise. */
   private actionChoiceOptions: Interaction[] = [];
   private actionChoiceCursor = 0;
@@ -2732,8 +2738,20 @@ export class DungeonScene extends Phaser.Scene {
   private updateInteractPrompt(): void {
     const leader = this.party.leader;
     const interactions = leader.alive ? this.findInteractions(leader) : [];
-    if (interactions.length > 0) {
-      const label = interactions.length === 1 ? interactions[0]!.label : `choose (${interactions.length} actions)`;
+    const promptSelection = selectOverheadInteractions(
+      interactions,
+      getBaseRole(leader.character.className) === "thief",
+      // Page time stays monotonic across vault/rewind scene restarts, so the
+      // one-time hint cannot accidentally become visible again for a full scene clock.
+      performance.now(),
+      this.hideHintOfferedAt,
+    );
+    this.hideHintOfferedAt = promptSelection.hideHintOfferedAt;
+    const promptInteractions = promptSelection.interactions;
+    if (promptInteractions.length > 0) {
+      const label = promptInteractions.length === 1
+        ? promptInteractions[0]!.label
+        : `choose (${promptInteractions.length} actions)`;
       this.interactPrompt
         .setText(`E — ${label}`)
         .setPosition(leader.x, leader.y - 42)
@@ -3533,6 +3551,7 @@ export class DungeonScene extends Phaser.Scene {
     } else if (this.isNearHidingSpot(leader)) {
       candidates.push({
         label: "hide in nearby cover",
+        overheadHint: "hide",
         run: () => {
           const armor = leader.character.wornArmor;
           const result = this.ctx.engine.check({
