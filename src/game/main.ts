@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { installUnlock } from "./audio/context";
-import { RENDER_SCALE, GAME_H, GAME_W } from "./display";
+import { IS_MOBILE_DISPLAY, RENDER_SCALE, GAME_H, GAME_W } from "./display";
 import { loadMobilePrefs } from "./MobilePrefs";
 import { BootScene } from "./scenes/Boot";
 import { DungeonScene } from "./scenes/Dungeon";
@@ -63,6 +63,35 @@ if (fullscreenBtn && document.documentElement.requestFullscreen) {
         // Fullscreen can be denied (no user gesture in some browsers' eyes,
         // or the platform simply refuses it) — the button just stays usable.
       });
+    }
+  });
+}
+
+// Desktop-only app-like launcher for reviewing the exact mobile presentation
+// without browser device emulation. A named window keeps repeated clicks from
+// creating a trail of duplicate previews.
+const mobilePreviewBtn = document.getElementById("mobile-preview-btn");
+let mobilePreviewWindow: Window | null = null;
+if (mobilePreviewBtn && !IS_MOBILE_DISPLAY) {
+  mobilePreviewBtn.hidden = false;
+  mobilePreviewBtn.addEventListener("click", () => {
+    if (mobilePreviewWindow && !mobilePreviewWindow.closed) {
+      mobilePreviewWindow.focus();
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("mobile", "on");
+    url.searchParams.delete("dpr");
+    mobilePreviewWindow = window.open(
+      url,
+      "shadowdork-mobile-preview",
+      "popup=yes,width=844,height=430,resizable=yes,scrollbars=no",
+    );
+    if (!mobilePreviewWindow) {
+      mobilePreviewBtn.textContent = "ALLOW MOBILE POP-UP";
+      window.setTimeout(() => {
+        mobilePreviewBtn.textContent = "▯ MOBILE PREVIEW";
+      }, 2200);
     }
   });
 }

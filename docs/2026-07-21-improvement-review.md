@@ -1,5 +1,15 @@
 # Shadowdork — Cross-Cutting Improvement Review (2026-07-21)
 
+> **Status update (2026-07-26):** Several findings below describe the repository
+> as it existed on 2026-07-21. The merged `.claude/worktrees/modest-goldstine-22da26`
+> worktree is no longer present; Vitest now discovers one copy of 47 test files.
+> `subterranean-sea-fort` and `hidden-face-temple` both have dedicated material
+> generators. Mobile safe-area/orientation handling and Fighter Brace are live.
+> The short state rewind, touch Jump control, pause settings, and a throwing NPC
+> connector-target guard were added on 2026-07-26. Touch/settings presentation
+> and connector/rewind policies now live in focused modules, although the
+> remaining `Dungeon.ts` decomposition is deliberately a longer refactor.
+
 ## How this doc fits with everything else
 
 This project already has an unusually complete paper trail: `phase2_todo.md`,

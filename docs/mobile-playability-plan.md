@@ -31,19 +31,26 @@ The project already has a useful mobile foundation:
   receive touch input.
 - Audio already attempts to unlock from the first pointer or keyboard gesture.
 
-The main gaps are:
+The implementation status as of 2026-07-26 is:
 
-- `DungeonScene` reads Phaser keyboard keys directly and assumes keyboard input
-  is available.
-- Gameplay instructions and contextual prompts name keyboard keys.
-- There is no on-screen gameplay controller or touch-control preference.
+- `DungeonScene` consumes semantic actions through keyboard and touch sources.
+- A touch-control Auto / On / Off preference and `?touch=on|off` override exist.
+- The landscape controller provides a four-way D-pad plus dedicated Attack,
+  Jump, Interact, and Cast controls, with Torch and five-second Rewind utilities.
+- Portrait play is gated, gameplay pauses across orientation/lifecycle changes,
+  and the shell applies dynamic viewport and safe-area CSS.
+- Pause settings persist master volume, torch-duration presets, and semantic
+  key overrides separately from run saves.
+
+The remaining mobile QA gaps are:
+
+- Some gameplay instructions and contextual prompts still name keyboard keys.
 - Several text-only menu targets are smaller than a comfortable touch target.
 - The 960 x 540 HUD leaves little room for controls without a deliberate
   mobile layout.
 - High-DPI phones can request an expensive framebuffer while the lighting
   system maintains two full-screen render textures.
-- Browser interruption, orientation, safe-area, and gesture behavior are not
-  defined.
+- The real-device/browser matrix and long-session thermal test remain pending.
 
 ## Product decisions
 

@@ -3,6 +3,7 @@
 import Phaser from "phaser";
 import { Engine } from "../engine";
 import { registerTables } from "../data";
+import { torchDurationMs } from "./MobilePrefs";
 
 export interface GameMessage {
   text: string;
@@ -22,7 +23,7 @@ export class GameContext {
       // Playtest house rules: torches burn 3 real minutes instead of 1 hour,
       // and a crawling round is 45 s so random-encounter checks matter in a
       // 10-minute run. RAW values are one config change away.
-      config: { torchMs: 3 * 60 * 1000, roundMs: 3000, crawlingRoundMs: 45 * 1000 },
+      config: { torchMs: torchDurationMs(), roundMs: 3000, crawlingRoundMs: 45 * 1000 },
     });
     registerTables(this.engine);
   }

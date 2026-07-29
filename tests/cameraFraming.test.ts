@@ -79,6 +79,15 @@ describe("isElevatedSupport", () => {
 });
 
 describe("CameraFramingController", () => {
+  it("preserves the intended composition for a zoomed-in viewport", () => {
+    const viewW = GAME_W / 1.25;
+    const viewH = GAME_H / 1.25;
+    const controller = new CameraFramingController(viewW, viewH);
+    const target = controller.reset(1, "floor");
+    expect(target.offsetX + viewW / 2).toBeCloseTo(viewW * 0.2, 5);
+    expect(target.offsetY + viewH / 2 + 15).toBeCloseTo(viewH - 16, 5);
+  });
+
   it("does not snap when facing changes — the smoothed value eases toward the new target", () => {
     const controller = new CameraFramingController();
     controller.reset(1, "floor");

@@ -8,7 +8,7 @@
  * `?quality=low|high` overrides for testing, mirroring display.ts's `?dpr=`.
  */
 
-import { RENDER_SCALE } from "../display";
+import { IS_MOBILE_DISPLAY, RENDER_SCALE } from "../display";
 
 export type QualityLevel = "high" | "low";
 
@@ -19,11 +19,8 @@ if (override !== null && override !== "high" && override !== "low") {
   throw new Error(`Invalid quality override "${override}"`);
 }
 
-const coarsePointer =
-  hasWindow && typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
-
 function deriveDefault(): QualityLevel {
-  return coarsePointer || RENDER_SCALE <= 1.5 ? "low" : "high";
+  return IS_MOBILE_DISPLAY || RENDER_SCALE <= 1.5 ? "low" : "high";
 }
 
 let current: QualityLevel = (override as QualityLevel | null) ?? deriveDefault();

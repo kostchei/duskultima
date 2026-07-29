@@ -127,6 +127,7 @@ export class LightSystem {
     carrierId: string,
     position: LightSource["position"],
     onExpire: () => void,
+    durationMs = this.ctx.engine.config.torchMs,
   ): string {
     const sourceId = this.addSource(TORCH_RADIUS, position, {
       tint: TORCH_TINT,
@@ -135,7 +136,7 @@ export class LightSystem {
     });
     const timerId = `torch-${sourceId}-${carrierId}`;
     this.torchSources.set(timerId, sourceId);
-    this.ctx.engine.clock.addTimer(timerId, this.ctx.engine.config.torchMs, () => {
+    this.ctx.engine.clock.addTimer(timerId, durationMs, () => {
       // A mishap may have snuffed this source before the timer ran out.
       if (this.sources.has(sourceId)) this.removeSource(sourceId);
       this.torchSources.delete(timerId);

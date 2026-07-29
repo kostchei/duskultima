@@ -28,6 +28,11 @@ let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 let reverbIn: GainNode | null = null;
 let muted = false;
+let volume = 1;
+
+function targetMasterLevel(): number {
+  return muted ? 0 : MASTER_LEVEL * volume;
+}
 
 export function audioCtx(): AudioContext {
   if (!ctx) {
@@ -101,7 +106,7 @@ export function masterGain(): GainNode {
     const c = audioCtx();
     const busInput = buildBusInput(c);
     master = c.createGain();
-    master.gain.value = MASTER_LEVEL;
+    master.gain.value = targetMasterLevel();
     master.connect(busInput);
 
     // Shared reverb: send bus → convolver → return gain → back into the dry sum
@@ -134,11 +139,22 @@ export function setMuted(m: boolean): void {
   const t = audioCtx().currentTime;
   // Short ramp instead of a hard cut — avoids the click of a step discontinuity.
   g.gain.cancelScheduledValues(t);
-  g.gain.setTargetAtTime(m ? 0 : MASTER_LEVEL, t, 0.01);
+  g.gain.setTargetAtTime(targetMasterLevel(), t, 0.01);
 }
 
 export function isMuted(): boolean {
   return muted;
+}
+
+export function setMasterVolume(value: number): void {
+  volume = Math.max(0, Math.min(1, value));
+  if (!master || !ctx) return;
+  master.gain.cancelScheduledValues(ctx.currentTime);
+  master.gain.setTargetAtTime(targetMasterLevel(), ctx.currentTime, 0.01);
+}
+
+export function masterVolume(): number {
+  return volume;
 }
 
 /**

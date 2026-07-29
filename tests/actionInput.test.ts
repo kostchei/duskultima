@@ -187,12 +187,12 @@ describe("KeyboardSource poll → action parity", () => {
     }
   });
 
-  it("SPACE drives both moveUp and jumpOff", () => {
+  it("SPACE drives the dedicated jump action", () => {
     keys.SPACE.down = true;
     frame();
-    expect(input.held("moveUp")).toBe(true);
-    expect(input.held("jumpOff")).toBe(true);
-    expect(input.pressed("jumpOff")).toBe(true);
+    expect(input.held("jump")).toBe(true);
+    expect(input.pressed("jump")).toBe(true);
+    expect(input.held("moveUp")).toBe(false);
   });
 
   it("arrow keys double as menu navigation without W triggering menuUp", () => {

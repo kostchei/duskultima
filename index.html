@@ -112,6 +112,28 @@
       #fullscreen-btn[hidden] {
         display: none;
       }
+
+      #mobile-preview-btn {
+        position: fixed;
+        left: max(8px, env(safe-area-inset-left));
+        bottom: max(8px, env(safe-area-inset-bottom));
+        z-index: 5;
+        border: 1px solid #3a3d48;
+        border-radius: 6px;
+        padding: 8px 10px;
+        background: rgba(10, 10, 15, 0.76);
+        color: #a0a4b0;
+        font: 700 11px/1 "Trebuchet MS", Arial, sans-serif;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+      }
+      #mobile-preview-btn:hover {
+        color: #ffd45f;
+        border-color: #ffd45f;
+      }
+      #mobile-preview-btn[hidden] {
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -121,6 +143,7 @@
       <div>Rotate your device to landscape to play.</div>
     </div>
     <button id="fullscreen-btn" type="button" hidden aria-label="Toggle fullscreen">&#x26F6;</button>
+    <button id="mobile-preview-btn" type="button" hidden aria-label="Open mobile preview">&#x25AF; MOBILE PREVIEW</button>
     <script type="module" src="/src/game/main.ts"></script>
   </body>
 </html>

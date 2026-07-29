@@ -30,6 +30,8 @@ import { skinsForZone, zonePackInfo } from "../visual/skins";
 import type { ShopRow, ShopView } from "../systems/shop";
 import { showAlert, showConfirm } from "../ui/modal";
 import { shouldShowTouchControls } from "../MobilePrefs";
+import { createTouchOverlay as buildTouchOverlay } from "../ui/TouchOverlay";
+import { createPauseSettings } from "../ui/PauseSettings";
 
 const UI_STYLE = {
   fontFamily: '"Trebuchet MS", Arial, sans-serif',
@@ -65,6 +67,8 @@ const MAX_PARTY = 4;
 const LOG_LINES = 2;
 const PARTY_BOX = { x: 8, y: 8, w: 520, headerH: 28, rowH: 22, detailH: 20 };
 const MISSION_BOX = { x: 600, y: 8, w: 352, h: 70 };
+const MOBILE_HEADER_H = 30;
+const MOBILE_EQUIPMENT_W = 156;
 
 function partyBoxHeight(memberCount: number): number {
   return PARTY_BOX.headerH + memberCount * PARTY_BOX.rowH + PARTY_BOX.detailH;
@@ -76,6 +80,7 @@ export class HudScene extends Phaser.Scene {
   private chrome!: Phaser.GameObjects.Graphics;
   private hpBars!: Phaser.GameObjects.Graphics;
   private partyHeader!: Phaser.GameObjects.Text;
+  private dungeonTitle!: Phaser.GameObjects.Text;
   private partyNames: Phaser.GameObjects.Text[] = [];
   private partyStats: Phaser.GameObjects.Text[] = [];
   private hpLabels: Phaser.GameObjects.Text[] = [];
@@ -92,10 +97,16 @@ export class HudScene extends Phaser.Scene {
   private biomeCardBoxes: { bg: Phaser.GameObjects.Graphics; text: Phaser.GameObjects.Text; x: number; y: number; w: number; h: number }[] = [];
   private startOverlay: Phaser.GameObjects.Container | null = null;
   private pauseOverlay: Phaser.GameObjects.Container | null = null;
+  private settingsOverlay: Phaser.GameObjects.Container | null = null;
   private statsOverlay: Phaser.GameObjects.Container | null = null;
   private gearOverlay: Phaser.GameObjects.Container | null = null;
   private shopOverlay: Phaser.GameObjects.Container | null = null;
   private actionChoiceOverlay: Phaser.GameObjects.Container | null = null;
+  private compactMobileHud = false;
+  private mobileHpLabel: Phaser.GameObjects.Text | null = null;
+  private mobileEquipmentToggle: Phaser.GameObjects.Text | null = null;
+  private mobileEquipmentDropdown: Phaser.GameObjects.Container | null = null;
+  private mobileEquipmentText: Phaser.GameObjects.Text | null = null;
   private lastPartySize = -1;
 
   constructor() {
@@ -110,10 +121,16 @@ export class HudScene extends Phaser.Scene {
     this.biomeCards = [];
     this.startOverlay = null;
     this.pauseOverlay = null;
+    this.settingsOverlay = null;
     this.statsOverlay = null;
     this.gearOverlay = null;
     this.shopOverlay = null;
     this.actionChoiceOverlay = null;
+    this.mobileHpLabel = null;
+    this.mobileEquipmentToggle = null;
+    this.mobileEquipmentDropdown = null;
+    this.mobileEquipmentText = null;
+    this.compactMobileHud = shouldShowTouchControls();
     this.lastPartySize = -1;
     this.partyNames = [];
     this.partyStats = [];
@@ -164,7 +181,7 @@ export class HudScene extends Phaser.Scene {
       .text(18, 0, "", { ...DATA_STYLE, fontSize: "9px", color: "#d6bb72" })
       .setDepth(1000);
 
-    this.add
+    this.dungeonTitle = this.add
       .text(w - 18, 13, this.dungeon.dungeonDisplayName.toUpperCase(), {
         fontFamily: "Georgia, serif",
         fontSize: "19px",
@@ -228,6 +245,7 @@ export class HudScene extends Phaser.Scene {
       .setVisible(false);
 
     this.drawChrome(this.dungeon.party.members.length);
+    if (this.compactMobileHud) this.createCompactMobileHeader(accent);
 
     // Persistent touch access to the overlays that were ESC/C/I-only. Bottom
     // right, out of the party panel and the log, and above the world.
@@ -240,7 +258,7 @@ export class HudScene extends Phaser.Scene {
     }
 
     if (shouldShowTouchControls()) {
-      this.createTouchOverlay();
+      buildTouchOverlay(this, this.dungeon);
     }
 
     this.ctx.events.on("gameover", () => this.showOverlay(this.dungeon.gameOverTitle, "#ff6159"));
@@ -442,13 +460,97 @@ export class HudScene extends Phaser.Scene {
     this.startOverlay = null;
   }
 
+  private createCompactMobileHeader(accent: number): void {
+    const healthW = GAME_W - MOBILE_EQUIPMENT_W;
+    this.partyHeader.setVisible(false);
+    this.dungeonTitle.setVisible(false);
+    this.objectiveText.setVisible(false);
+    this.roomText.setVisible(false);
+    this.mapText.setVisible(false);
+    this.leaderDetail.setVisible(false);
+    this.logTexts.forEach((text) => text.setVisible(false));
+    this.partyNames.forEach((text) => text.setVisible(false));
+    this.partyStats.forEach((text) => text.setVisible(false));
+    this.hpLabels.forEach((text) => text.setVisible(false));
+
+    this.mobileHpLabel = this.add
+      .text(healthW / 2, MOBILE_HEADER_H / 2, "", {
+        ...DATA_STYLE,
+        fontSize: "11px",
+        color: "#ffffff",
+        stroke: "#050508",
+        strokeThickness: 2,
+      })
+      .setOrigin(0.5)
+      .setDepth(1001);
+
+    this.mobileEquipmentToggle = this.add
+      .text(GAME_W - 8, MOBILE_HEADER_H / 2, "EQUIPMENT ▼", {
+        ...UI_STYLE,
+        fontSize: "11px",
+        color: "#e3c56d",
+        fontStyle: "bold",
+        padding: { x: 8, y: 5 },
+      })
+      .setOrigin(1, 0.5)
+      .setDepth(1001)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => this.setMobileEquipmentDropdownVisible(!this.mobileEquipmentDropdown?.visible));
+
+    const panelW = 280;
+    const panelH = 112;
+    const panelX = GAME_W - panelW;
+    const panelY = MOBILE_HEADER_H;
+    const panel = this.add.graphics();
+    panel.fillStyle(0x05060a, 0.94).fillRect(panelX, panelY, panelW, panelH);
+    panel.lineStyle(1, accent, 0.85).strokeRect(panelX, panelY, panelW, panelH);
+    this.mobileEquipmentText = this.add.text(panelX + 12, panelY + 10, "", {
+      ...DATA_STYLE,
+      fontSize: "11px",
+      color: "#e2e3e7",
+      lineSpacing: 5,
+    });
+    const manage = this.add
+      .text(GAME_W - 12, panelY + panelH - 10, "[ MANAGE EQUIPMENT ]", {
+        ...UI_STYLE,
+        fontSize: "11px",
+        color: "#e3c56d",
+        padding: { x: 6, y: 4 },
+      })
+      .setOrigin(1, 1)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => {
+        this.setMobileEquipmentDropdownVisible(false);
+        this.dungeon.tapAction("gear");
+      });
+    this.mobileEquipmentDropdown = this.add
+      .container(0, 0, [panel as any, this.mobileEquipmentText, manage])
+      .setDepth(1100)
+      .setVisible(false);
+  }
+
+  private setMobileEquipmentDropdownVisible(visible: boolean): void {
+    this.mobileEquipmentDropdown?.setVisible(visible);
+    this.mobileEquipmentToggle?.setText(visible ? "EQUIPMENT ▲" : "EQUIPMENT ▼");
+  }
+
   private drawChrome(memberCount: number): void {
     const accent = this.dungeon.presentationPalette.accent;
-    const partyH = partyBoxHeight(memberCount);
-    const logY = PARTY_BOX.y + partyH + 6;
     this.lastPartySize = memberCount;
     this.chrome.clear();
 
+    if (this.compactMobileHud) {
+      this.chrome.fillStyle(0x05060a, 0.78);
+      this.chrome.fillRect(0, 0, GAME_W, MOBILE_HEADER_H);
+      this.chrome.fillStyle(accent, 0.88);
+      this.chrome.fillRect(0, MOBILE_HEADER_H - 2, GAME_W, 2);
+      this.torchWarning.setY(MOBILE_HEADER_H + 14);
+      this.luckHint.setY(MOBILE_HEADER_H + 38);
+      return;
+    }
+
+    const partyH = partyBoxHeight(memberCount);
+    const logY = PARTY_BOX.y + partyH + 6;
     this.chrome.fillStyle(0x05060a, 0.76);
     this.chrome.fillRoundedRect(PARTY_BOX.x, PARTY_BOX.y, PARTY_BOX.w, partyH, 5);
     this.chrome.fillRoundedRect(MISSION_BOX.x, MISSION_BOX.y, MISSION_BOX.w, MISSION_BOX.h, 5);
@@ -533,6 +635,17 @@ export class HudScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const resume = this.actionButton(w / 2, h / 2 - 118, `[ RESUME ]${this.keyHint("ESC")}`, "pause");
+    const settings = this.add.text(w / 2 + 155, h / 2 - 118, "[ SETTINGS ]", {
+      ...UI_STYLE, fontSize: "12px", color: "#a0a4b0", padding: { x: 5, y: 3 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    settings.on("pointerdown", () => {
+      this.hidePauseOverlay();
+      this.settingsOverlay = createPauseSettings(this, this.dungeon, accent, () => {
+        this.settingsOverlay?.destroy();
+        this.settingsOverlay = null;
+        this.showPauseOverlay();
+      });
+    });
 
     // Save/Load Columns
     const saveHeader = this.add.text(w / 2 - 110, h / 2 - 86, "SAVE GAME", {
@@ -713,7 +826,7 @@ export class HudScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     const containerChildren: any[] = [
-      bg, box as any, title, resume,
+      bg, box as any, title, resume, settings,
       saveHeader, loadHeader,
       save1, save2, save3,
       load1, load2, load3, loadAuto,
@@ -833,6 +946,7 @@ export class HudScene extends Phaser.Scene {
 
   showGearOverlay(c: any, selectedItemId?: string): void {
     if (this.gearOverlay) return;
+    this.setMobileEquipmentDropdownVisible(false);
     const w = GAME_W;
     const h = GAME_H;
     const accent = this.dungeon.presentationPalette.accent;
@@ -1196,7 +1310,8 @@ export class HudScene extends Phaser.Scene {
       this.add
         .text(w / 2, h / 2 + 78, summary, { ...DATA_STYLE, fontSize: "11px", color: "#9fa5b1" })
         .setOrigin(0.5),
-      this.actionButton(w / 2, h / 2 + 112, `[ ENTER THE NEXT DUNGEON ]${this.keyHint("R")}`, "restart", "16px"),
+      this.actionButton(w / 2 - 120, h / 2 + 112, `[ REWIND 5s ]${this.keyHint("Z")}`, "rewind", "14px"),
+      this.actionButton(w / 2 + 100, h / 2 + 112, `[ RESTART ]${this.keyHint("R")}`, "restart", "16px"),
     ]);
     this.overlay.setDepth(2000);
   }
@@ -1395,6 +1510,10 @@ export class HudScene extends Phaser.Scene {
     const members = this.dungeon.party.members;
     if (members.length !== this.lastPartySize) this.drawChrome(members.length);
     this.hpBars.clear();
+    if (this.compactMobileHud) {
+      this.updateCompactMobileHud(time);
+      return;
+    }
     let minTorchMs = Infinity;
 
     this.partyHeader.setText(`PARTY   COINS ${this.ctx.totalCoins}   KILLS ${this.ctx.kills}`);
@@ -1520,57 +1639,55 @@ export class HudScene extends Phaser.Scene {
     });
   }
 
-  private createTouchOverlay(): void {
-    const container = this.add.container(0, 0).setDepth(2000);
+  private updateCompactMobileHud(time: number): void {
+    const leader = this.dungeon.party.leader;
+    const c = leader.character;
+    const healthW = GAME_W - MOBILE_EQUIPMENT_W;
+    const ratio = c.dead ? 0 : Phaser.Math.Clamp(c.hp / c.maxHp, 0, 1);
+    const hpColor = ratio > 0.5 ? 0x4fb878 : ratio > 0.25 ? 0xe0a34b : 0xda5555;
 
-    const padX = 70;
-    const padY = 460;
-    const dpadButtons: { name: string; x: number; y: number; action: GameAction }[] = [
-      { name: "▲", x: padX, y: padY - 35, action: "moveUp" },
-      { name: "▼", x: padX, y: padY + 35, action: "moveDown" },
-      { name: "◄", x: padX - 35, y: padY, action: "moveLeft" },
-      { name: "►", x: padX + 35, y: padY, action: "moveRight" },
-    ];
+    this.hpBars.fillStyle(0x1f2128, 1).fillRect(4, 4, healthW - 8, MOBILE_HEADER_H - 8);
+    this.hpBars.fillStyle(hpColor, 0.92).fillRect(6, 6, (healthW - 12) * ratio, MOBILE_HEADER_H - 12);
+    this.mobileHpLabel?.setText(
+      c.dead
+        ? `${c.name.toUpperCase()} — DEAD`
+        : c.dying
+          ? `${c.name.toUpperCase()} — DOWN ${c.dying.roundsRemaining}`
+          : `${c.name.toUpperCase()}   ${c.hp}/${c.maxHp} HP`,
+    );
 
-    for (const btn of dpadButtons) {
-      const circle = this.add.circle(btn.x, btn.y, 16, 0x1f2430, 0.75).setInteractive();
-      const text = this.add.text(btn.x, btn.y, btn.name, { ...UI_STYLE, fontSize: "14px", fontStyle: "bold" }).setOrigin(0.5);
-      circle.on("pointerdown", () => {
-        circle.setFillStyle(0x3e485e, 0.9);
-        this.dungeon.pressAction(btn.action);
-      });
-      const release = () => {
-        circle.setFillStyle(0x1f2430, 0.75);
-        this.dungeon.releaseAction(btn.action);
-      };
-      circle.on("pointerup", release);
-      circle.on("pointerout", release);
-      container.add([circle, text]);
+    const weapon = c.wieldedWeapon?.name ?? "Unarmed";
+    const armor = c.wornArmor?.name ?? "None";
+    const shield = c.carriedShield
+      ? `${c.carriedShield.name}${c.shieldStowed ? " (Stowed)" : ""}`
+      : "None";
+    this.mobileEquipmentText?.setText(
+      `WEAPON  ${weapon}\nARMOR   ${armor}\nSHIELD  ${shield}`,
+    );
+
+    let minTorchMs = Infinity;
+    for (const member of this.dungeon.party.members) {
+      if (member.torchLit && member.torchTimerId) {
+        minTorchMs = Math.min(minTorchMs, this.ctx.engine.clock.timerRemaining(member.torchTimerId));
+      }
+    }
+    if (minTorchMs < 30_000) {
+      this.torchWarning.setVisible(true).setAlpha(0.6 + 0.4 * Math.sin(time / 120));
+      this.torchWarning.setColor(minTorchMs < 12_000 ? "#ff5a45" : "#ff9c4a");
+    } else {
+      this.torchWarning.setVisible(false);
     }
 
-    const actX = 890;
-    const actY = 460;
-    const actionButtons: { label: string; x: number; y: number; action: GameAction; color: number }[] = [
-      { label: "ATK", x: actX, y: actY - 35, action: "attack", color: 0x9e2a2b },
-      { label: "LGT", x: actX + 35, y: actY, action: "torch", color: 0x2a9d8f },
-      { label: "USE", x: actX - 35, y: actY, action: "interact", color: 0xe76f51 },
-      { label: "CAST", x: actX, y: actY + 35, action: "cast", color: 0x4a4e69 },
-    ];
-
-    for (const btn of actionButtons) {
-      const circle = this.add.circle(btn.x, btn.y, 18, btn.color, 0.8).setInteractive();
-      const text = this.add.text(btn.x, btn.y, btn.label, { ...UI_STYLE, fontSize: "10px", fontStyle: "bold" }).setOrigin(0.5);
-      circle.on("pointerdown", () => {
-        circle.setAlpha(1.0);
-        this.dungeon.pressAction(btn.action);
-      });
-      const release = () => {
-        circle.setAlpha(0.8);
-        this.dungeon.releaseAction(btn.action);
-      };
-      circle.on("pointerup", release);
-      circle.on("pointerout", release);
-      container.add([circle, text]);
+    const luckWindow = this.dungeon.luckWindow;
+    if (luckWindow) {
+      const secondsLeft = Math.max(0, (luckWindow.expiresAt - time) / 1000);
+      this.luckHint
+        .setVisible(true)
+        .setText(`L - SPEND LUCK: ${luckWindow.label.toUpperCase()}  ${secondsLeft.toFixed(1)}s`)
+        .setAlpha(0.65 + 0.35 * Math.sin(time / 90));
+    } else {
+      this.luckHint.setVisible(false);
     }
   }
+
 }

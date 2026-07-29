@@ -7,7 +7,9 @@
  */
 
 import { qualityLevel, setQualityLevel, type QualityLevel } from "./systems/quality";
-import { setMuted } from "./audio/context";
+import { setMasterVolume, setMuted } from "./audio/context";
+import type { GameAction } from "./input/actions";
+import type { KeyBindingOverrides } from "./input/bindings";
 
 const KEY = "shadowdork_prefs";
 
@@ -15,6 +17,9 @@ interface StoredPrefs {
   quality?: QualityLevel;
   muted?: boolean;
   touchControls?: TouchControlSetting;
+  volume?: number;
+  torchDuration?: TorchDurationSetting;
+  keyBindings?: KeyBindingOverrides;
 }
 
 function readRaw(): StoredPrefs {
@@ -47,6 +52,7 @@ export function loadMobilePrefs(): void {
   const prefs = readRaw();
   if (prefs.quality === "high" || prefs.quality === "low") setQualityLevel(prefs.quality);
   if (prefs.muted === true) setMuted(true);
+  if (typeof prefs.volume === "number") setMasterVolume(prefs.volume);
 }
 
 export function saveQualityPref(level: QualityLevel): void {
@@ -58,6 +64,7 @@ export type TouchControlSetting = "auto" | "on" | "off";
 export function shouldShowTouchControls(): boolean {
   try {
     const params = new URLSearchParams(window.location.search);
+    if (params.get("mobile") === "on") return true;
     const override = params.get("touch");
     if (override === "on") return true;
     if (override === "off") return false;
@@ -77,6 +84,52 @@ export function saveTouchControlsPref(setting: TouchControlSetting): void {
 
 export function saveMutedPref(muted: boolean): void {
   writeRaw({ ...readRaw(), muted });
+}
+
+export function volumePref(): number {
+  const value = readRaw().volume;
+  return typeof value === "number" ? Math.max(0, Math.min(1, value)) : 1;
+}
+
+export function saveVolumePref(volume: number): void {
+  const value = Math.max(0, Math.min(1, volume));
+  writeRaw({ ...readRaw(), volume: value });
+  setMasterVolume(value);
+}
+
+export type TorchDurationSetting = "3m" | "10m" | "60m";
+const TORCH_MS: Record<TorchDurationSetting, number> = {
+  "3m": 3 * 60_000,
+  "10m": 10 * 60_000,
+  "60m": 60 * 60_000,
+};
+
+export function torchDurationPref(): TorchDurationSetting {
+  const value = readRaw().torchDuration;
+  return value === "10m" || value === "60m" ? value : "3m";
+}
+
+export function torchDurationMs(): number {
+  return TORCH_MS[torchDurationPref()];
+}
+
+export function saveTorchDurationPref(setting: TorchDurationSetting): void {
+  writeRaw({ ...readRaw(), torchDuration: setting });
+}
+
+export function keyBindingPrefs(): KeyBindingOverrides {
+  const value = readRaw().keyBindings;
+  return value && typeof value === "object" ? { ...value } : {};
+}
+
+export function saveKeyBindingPref(action: GameAction, key: string): void {
+  writeRaw({ ...readRaw(), keyBindings: { ...keyBindingPrefs(), [action]: key } });
+}
+
+export function resetKeyBindingPrefs(): void {
+  const prefs = readRaw();
+  delete prefs.keyBindings;
+  writeRaw(prefs);
 }
 
 /** For a future settings screen: the currently active quality level. */

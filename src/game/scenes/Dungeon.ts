@@ -8,7 +8,15 @@ import Phaser from "phaser";
 import { HudScene } from "./Hud";
 import { crackleBed, themeAmbience } from "../audio/ambience";
 import { isMuted, setMuted, suspendAudio, resumeAudioContext } from "../audio/context";
-import { saveMutedPref } from "../MobilePrefs";
+import {
+  keyBindingPrefs,
+  resetKeyBindingPrefs,
+  saveKeyBindingPref,
+  saveMutedPref,
+  saveTorchDurationPref,
+  torchDurationMs,
+  type TorchDurationSetting,
+} from "../MobilePrefs";
 import * as sfx from "../audio/sfx";
 import { SpatialEmitter, spatialOpts, type Vec2 } from "../audio/spatial";
 import { DungeonPrimitivesManager } from "../systems/primitives";
@@ -90,10 +98,21 @@ import { GameContext } from "../context";
 import { ActionInput } from "../input/ActionInput";
 import { KeyboardSource, polledKeysFrom } from "../input/KeyboardSource";
 import { KEY_BINDINGS, KEYBOARD_ADD_KEYS, START_DISMISS_ACTIONS, type GameAction } from "../input/actions";
+import {
+  effectiveKeyBindings,
+  isRebindableKey,
+  primaryKeyFor,
+  REBINDABLE_ACTIONS,
+} from "../input/bindings";
 import { noteTouchActivity } from "../input/inputFamily";
 import { ModeController, isInterruptMode, type GameMode, type ModeHost } from "../modes/GameModeController";
 import { isPortraitBlocked, onOrientationChange } from "../orientation";
-import { RENDER_SCALE } from "../display";
+import {
+  GAMEPLAY_CAMERA_ZOOM,
+  GAMEPLAY_VIEW_H,
+  GAMEPLAY_VIEW_W,
+  RENDER_SCALE,
+} from "../display";
 import { CharacterSprite } from "../entities/CharacterSprite";
 import { AGGRO_RANGE, MonsterSprite, MONSTER_ATTACK_COOLDOWN_MS } from "../entities/MonsterSprite";
 import { flameAt, sparkleBurst } from "../fx/vfx";
@@ -130,6 +149,7 @@ import {
   type SpellSelection,
 } from "../systems/spells";
 import { TrapSystem } from "../systems/traps";
+import { RewindBuffer } from "../systems/rewind";
 import {
   buy as shopBuy,
   sell as shopSell,
@@ -178,6 +198,7 @@ import {
   selectOpenTerrainRoomRoles,
 } from "../visual/openTerrain";
 import { roomAt, roomAtTolerant } from "../level/geometry";
+import { resolveTargetConnector } from "../level/connectorTargets";
 import { CameraFramingController, FEET_OFFSET_PX, isElevatedSupport } from "../systems/cameraFraming";
 import { exposedTerrainFaces } from "../visual/terrainVisibility";
 import {
@@ -258,6 +279,27 @@ interface Pickup {
   findId?: string;
 }
 
+interface RewindWorldState {
+  leaderIndex: number;
+  party: {
+    character: ReturnType<typeof serializeCharacter>;
+    x: number; y: number; vx: number; vy: number;
+    facing: 1 | -1; climbing: boolean; bracing: boolean; spellIndex: number;
+    torchRemainingMs: number | null;
+  }[];
+  monsters: {
+    defId: string; groupId: string; x: number; y: number; vx: number; vy: number;
+    hp: number; aiState: MonsterSprite["aiState"]; attackCooldown: number;
+    patrolDir: 1 | -1; hasSplit: boolean; phase: 1 | 2; active: boolean;
+  }[];
+  pickups: {
+    x: number; y: number; itemId: string; qty: number; dropped: boolean;
+    treasureQuality?: TreasureQuality; findId?: string;
+  }[];
+}
+
+type RewindLoadState = SaveSlot & { rewindWorld?: RewindWorldState };
+
 /** A short window in which L spends a luck token to reroll the leader's last failure. */
 export interface LuckWindow {
   member: CharacterSprite;
@@ -292,7 +334,7 @@ export class DungeonScene extends Phaser.Scene {
   /** Floating per-character danger markers, keyed by character.id. */
   private dangerMarkers = new Map<string, Phaser.GameObjects.Text>();
 
-  private cameraFraming = new CameraFramingController();
+  private cameraFraming = new CameraFramingController(GAMEPLAY_VIEW_W, GAMEPLAY_VIEW_H);
   private walls!: Phaser.Physics.Arcade.StaticGroup;
   private weakWalls!: Phaser.Physics.Arcade.StaticGroup;
   private portcullises!: Phaser.Physics.Arcade.StaticGroup;
@@ -393,7 +435,7 @@ export class DungeonScene extends Phaser.Scene {
   private actionChoiceSubtitle: string | undefined;
   /** False for an encounter reaction roll — the player must pick one, no free dismiss. */
   private actionChoiceCancelable = true;
-  loadedState: SaveSlot | null = null;
+  loadedState: RewindLoadState | null = null;
   private lastRoomId = "room-1";
   private leaderMarker!: Phaser.GameObjects.Image;
   /** Read by the HUD to show the reroll hint. */
@@ -404,6 +446,7 @@ export class DungeonScene extends Phaser.Scene {
   /** Semantic input: named actions with multi-source ownership (keyboard, touch). */
   private readonly actions = new ActionInput<GameAction>();
   private keyboard!: KeyboardSource<GameAction>;
+  private readonly rewindHistory = new RewindBuffer<RewindLoadState>(10_000, 500);
   /**
    * Actions the HUD's on-screen controls asked for since the last tick. Pointer
    * events fire outside the update loop, so a tap is queued here and replayed as
@@ -469,7 +512,8 @@ export class DungeonScene extends Phaser.Scene {
     const autostart = new URLSearchParams(window.location.search).get("autostart") === "1";
     // A fresh controller per `create` — the scene restart *is* the reset, so the
     // controller never has to unwind a terminal mode.
-    this.modes = new ModeController(this.modeHost(), autostart ? "playing" : "briefing");
+    this.modes = new ModeController(this.modeHost(), autostart || this.loadedState?.rewindWorld ? "playing" : "briefing");
+    this.rewindHistory.clear();
     this.pendingTaps = [];
     this.terminalGameOverTitle = "THE DARK CLAIMS YOU";
     this.dangerFails = new Map(Object.entries(this.loadedState?.dangerFails ?? {}));
@@ -608,8 +652,8 @@ export class DungeonScene extends Phaser.Scene {
     const worldW = this.activeDungeon.width * TILE;
     const worldH = this.activeDungeon.height * TILE;
     this.physics.world.setBounds(0, 0, worldW, worldH);
-    // The framebuffer is render-scaled; zooming keeps the same 960x540 world view.
-    this.cameras.main.setZoom(RENDER_SCALE);
+    // Mobile gets an additional 25% world zoom; desktop retains the 960x540 view.
+    this.cameras.main.setZoom(GAMEPLAY_CAMERA_ZOOM);
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.cameras.main.setBackgroundColor(this.presentationPalette.background);
     this.createAtmosphere(layoutSeed);
@@ -633,11 +677,14 @@ export class DungeonScene extends Phaser.Scene {
     );
     this.shadows = new ShadowSystem(this, this.light);
     this.buildLevel();
+    if (this.loadedState?.rewindWorld) this.restoreRewindWorld(this.loadedState.rewindWorld);
     if (this.loadedState?.porter) this.restorePorter(this.loadedState.porter);
     this.createSafeZoneVignette(layoutSeed);
     this.createConnectorTelegraphs();
-    const torchbearer = this.party.aliveMembers().find((m) => getBaseRole(m.character.className) === "priest") || this.party.leader;
-    this.lightTorch(torchbearer, `${torchbearer.character.name} lights a torch.`);
+    if (!this.loadedState?.rewindWorld) {
+      const torchbearer = this.party.aliveMembers().find((m) => getBaseRole(m.character.className) === "priest") || this.party.leader;
+      this.lightTorch(torchbearer, `${torchbearer.character.name} lights a torch.`);
+    }
     this.primitivesManager = new DungeonPrimitivesManager(this.activeDungeon);
     this.restorePlacedGearVisuals();
     this.trapSystem = new TrapSystem(
@@ -2021,8 +2068,43 @@ export class DungeonScene extends Phaser.Scene {
     this.keyboard = new KeyboardSource(
       this.actions,
       polledKeysFrom(this.keys, [ctrl]),
+      effectiveKeyBindings(keyBindingPrefs()),
+    );
+  }
+
+  /** Update a semantic binding immediately and persist it outside run saves. */
+  setKeyBinding(action: GameAction, key: string): void {
+    if (!isRebindableKey(key)) throw new Error(`Unsupported key binding "${key}"`);
+    const prefs = keyBindingPrefs();
+    const oldKey = primaryKeyFor(action, prefs);
+    const conflict = REBINDABLE_ACTIONS.find(
+      (candidate) => candidate !== action && primaryKeyFor(candidate, prefs) === key,
+    );
+    if (conflict) saveKeyBindingPref(conflict, oldKey);
+    saveKeyBindingPref(action, key);
+    this.keyboard = new KeyboardSource(
+      this.actions,
+      polledKeysFrom(this.keys, [{ name: "CTRL", isDown: () => this.leftControlDown }]),
+      effectiveKeyBindings(keyBindingPrefs()),
+    );
+  }
+
+  resetKeyBindings(): void {
+    resetKeyBindingPrefs();
+    this.keyboard = new KeyboardSource(
+      this.actions,
+      polledKeysFrom(this.keys, [{ name: "CTRL", isDown: () => this.leftControlDown }]),
       KEY_BINDINGS,
     );
+  }
+
+  keyForAction(action: GameAction): string {
+    return primaryKeyFor(action, keyBindingPrefs());
+  }
+
+  setTorchDuration(setting: TorchDurationSetting): void {
+    saveTorchDurationPref(setting);
+    this.ctx.engine.config.torchMs = torchDurationMs();
   }
 
   override update(time: number, delta: number): void {
@@ -2097,6 +2179,11 @@ export class DungeonScene extends Phaser.Scene {
       return;
     }
 
+    if (this.actions.pressed("rewind") && !this.won) {
+      this.rewindFiveSeconds();
+      return;
+    }
+
     if (this.gameOver || this.won) {
       if (this.won && this.biomeOffer) this.updateBiomeChoiceInput();
       if (this.actions.held("restart")) this.restartRun();
@@ -2156,6 +2243,7 @@ export class DungeonScene extends Phaser.Scene {
     this.updateInteractPrompt();
     this.updateLuckWindow(time);
     this.checkLevelUps();
+    this.captureRewindState();
     this.checkEndConditions();
   }
 
@@ -2959,7 +3047,7 @@ export class DungeonScene extends Phaser.Scene {
       leader.setVelocityY(up ? -leader.speed : down ? leader.speed : 0);
     } else if (leader.touchingClimbable) {
       const isGrounded = body.blocked.down;
-      const wantsJumpOff = leader.climbing && (this.actions.pressed("jumpOff") || (up && (left || right)));
+      const wantsJumpOff = leader.climbing && (this.actions.pressed("jump") || (up && (left || right)));
       if (wantsJumpOff) {
         leader.climbing = false;
         body.setAllowGravity(true);
@@ -3012,7 +3100,7 @@ export class DungeonScene extends Phaser.Scene {
     leader.moveHorizontal(left ? -1 : right ? 1 : 0, delta);
     if (!flying) {
       leader.noteGrounded(time);
-      if (up && !leader.climbing) leader.tryJump(time);
+      if ((up || this.actions.pressed("jump")) && !leader.climbing) leader.tryJump(time);
     }
 
     // Follower mode toggle
@@ -4033,8 +4121,7 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private openNpcTargetConnector(connectorId: string | undefined, operateRequirement: boolean): boolean {
-    const connector = (this.activeDungeon.connectors ?? []).find((candidate) => candidate.id === connectorId);
-    if (!connector) return false;
+    const connector = resolveTargetConnector(this.activeDungeon.connectors ?? [], connectorId);
     if (operateRequirement && connector.requirement) {
       this.activatedRequirements.add(connector.requirement.id);
     }
@@ -5648,8 +5735,141 @@ export class DungeonScene extends Phaser.Scene {
     return { x: startX * TILE + TILE / 2, y: TILE * 12.5 };
   }
 
-  saveToSlot(slotId: number): void {
-    const state: SaveSlot = {
+  private captureRewindState(): void {
+    const at = this.ctx.engine.clock.elapsedMs;
+    const world: RewindWorldState = {
+      leaderIndex: this.party.leaderIndex,
+      party: this.party.members.map((member) => {
+        const body = member.body as Phaser.Physics.Arcade.Body;
+        return {
+          character: serializeCharacter(member.character),
+          x: member.x,
+          y: member.y,
+          vx: body.velocity.x,
+          vy: body.velocity.y,
+          facing: member.facing,
+          climbing: member.climbing,
+          bracing: member.bracing,
+          spellIndex: member.spellIndex,
+          torchRemainingMs: member.torchTimerId && this.light.hasTimer(member.torchTimerId)
+            ? this.light.torchRemainingMs(member.torchTimerId)
+            : null,
+        };
+      }),
+      monsters: this.monsters.map((monsterSprite) => {
+        const body = monsterSprite.body as Phaser.Physics.Arcade.Body;
+        return {
+          defId: monsterSprite.def.id,
+          groupId: monsterSprite.groupId,
+          x: monsterSprite.x,
+          y: monsterSprite.y,
+          vx: body?.velocity.x ?? 0,
+          vy: body?.velocity.y ?? 0,
+          hp: monsterSprite.hp,
+          aiState: monsterSprite.aiState,
+          attackCooldown: monsterSprite.attackCooldown,
+          patrolDir: monsterSprite.patrolDir,
+          hasSplit: monsterSprite.hasSplit,
+          phase: monsterSprite.phase,
+          active: monsterSprite.active,
+        };
+      }),
+      pickups: this.pickups.filter((pickup) => pickup.sprite.active).map((pickup) => ({
+        x: pickup.sprite.x,
+        y: pickup.sprite.y,
+        itemId: pickup.itemId,
+        qty: pickup.qty,
+        dropped: pickup.dropped,
+        treasureQuality: pickup.treasureQuality,
+        findId: pickup.findId,
+      })),
+    };
+    this.rewindHistory.capture(at, { ...this.buildSaveState(-1), rewindWorld: world });
+  }
+
+  private rewindFiveSeconds(): void {
+    const state = this.rewindHistory.atOrBefore(this.ctx.engine.clock.elapsedMs - 5_000);
+    if (!state) {
+      this.ctx.say("The past is still forming — rewind becomes ready after five seconds.", "#70a8d0");
+      return;
+    }
+    state.messages = [...state.messages, { text: "Time folds back five seconds.", color: "#70c8ff" }];
+    this.registry.set("loadState", state);
+    this.scene.stop("Hud");
+    this.scene.restart();
+  }
+
+  private restoreRewindWorld(world: RewindWorldState): void {
+    for (let i = 0; i < this.party.members.length; i++) {
+      const member = this.party.members[i]!;
+      const saved = world.party[i];
+      if (!saved) continue;
+      Object.assign(member.character, deserializeCharacter(saved.character, this.ctx.engine));
+      member.setPosition(saved.x, saved.y).setVelocity(saved.vx, saved.vy);
+      member.facing = saved.facing;
+      member.climbing = saved.climbing;
+      member.bracing = saved.bracing;
+      member.spellIndex = saved.spellIndex;
+      if (saved.torchRemainingMs && saved.torchRemainingMs > 0) {
+        this.restoreRewindTorch(member, saved.torchRemainingMs);
+      }
+    }
+    if (world.leaderIndex < this.party.members.length && this.party.members[world.leaderIndex]?.alive) {
+      this.party.restoreLeader(world.leaderIndex);
+    }
+
+    while (this.monsters.length < world.monsters.length) {
+      const saved = world.monsters[this.monsters.length]!;
+      this.monsters.push(new MonsterSprite(
+        this, saved.x, saved.y, monster(saved.defId), saved.groupId, this.ctx.engine.dice,
+      ));
+    }
+    for (let i = 0; i < this.monsters.length; i++) {
+      const sprite = this.monsters[i]!;
+      const saved = world.monsters[i];
+      if (!saved) {
+        sprite.setActive(false).setVisible(false);
+        (sprite.body as Phaser.Physics.Arcade.Body).enable = false;
+        continue;
+      }
+      sprite.setPosition(saved.x, saved.y).setVelocity(saved.vx, saved.vy);
+      sprite.hp = saved.hp;
+      sprite.aiState = saved.aiState;
+      sprite.attackCooldown = saved.attackCooldown;
+      sprite.patrolDir = saved.patrolDir;
+      sprite.hasSplit = saved.hasSplit;
+      sprite.phase = saved.phase;
+      sprite.setActive(saved.active).setVisible(saved.active).setAlpha(1).setAngle(0);
+      (sprite.body as Phaser.Physics.Arcade.Body).enable = saved.active;
+    }
+
+    for (const pickup of this.pickups) pickup.sprite.destroy();
+    this.pickups = [];
+    for (const pickup of world.pickups) {
+      this.addPickup(pickup.x, pickup.y, pickup.itemId, pickup.qty, {
+        dropped: pickup.dropped,
+        treasureQuality: pickup.treasureQuality,
+        findId: pickup.findId,
+      });
+    }
+  }
+
+  private restoreRewindTorch(member: CharacterSprite, durationMs: number): void {
+    const character = member.character;
+    member.torchTimerId = this.light.lightTorch(
+      character.id,
+      () => (character.dead || !member.torchTimerId ? null : { x: member.x, y: member.y }),
+      () => {
+        member.torchTimerId = null;
+        if (character.carriedShield && character.shieldStowed) character.shieldStowed = false;
+        this.ctx.say(`${character.name}'s torch gutters out. The dark presses close.`, "#d07070");
+      },
+      durationMs,
+    );
+  }
+
+  private buildSaveState(slotId: number): SaveSlot {
+    return {
       slotId,
       timestamp: Date.now(),
       dungeonIndex: this.registry.get("dungeonIndex") ?? 0,
@@ -5683,6 +5903,10 @@ export class DungeonScene extends Phaser.Scene {
       rescuedIds: this.party.members.map((m) => m.character.className),
       messages: [...this.ctx.messages],
     };
+  }
+
+  saveToSlot(slotId: number): void {
+    const state = this.buildSaveState(slotId);
     try {
       SaveRepository.save(slotId, state);
       this.ctx.say(slotId === 0 ? "Checkpoint auto-saved." : `Game saved to Slot ${slotId}.`, "#60e080");

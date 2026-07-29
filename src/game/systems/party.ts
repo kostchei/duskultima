@@ -72,6 +72,12 @@ export class PartyManager {
     return true;
   }
 
+  /** Save/rewind restoration without emitting a player-choice message. */
+  restoreLeader(index: number): void {
+    if (!this.members[index]) throw new Error(`No party member at index ${index}`);
+    this.leaderIdx = index;
+  }
+
   cycleLeader(): boolean {
     for (let step = 1; step <= this.members.length; step++) {
       const idx = (this.leaderIdx + step) % this.members.length;

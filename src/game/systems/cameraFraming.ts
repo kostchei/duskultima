@@ -109,6 +109,11 @@ export class CameraFramingController {
   private mode: VerticalMode = "floor";
   private airborneSinceMs: number | null = null;
 
+  constructor(
+    private readonly viewW: number = GAME_W,
+    private readonly viewH: number = GAME_H,
+  ) {}
+
   get verticalMode(): VerticalMode {
     return this.mode;
   }
@@ -116,8 +121,8 @@ export class CameraFramingController {
   /** Snap immediately to the given facing/mode — used on leader swap, teleport, load, and restart. */
   reset(facing: 1 | -1, mode: VerticalMode): CameraFramingTarget {
     this.mode = mode;
-    this.offsetX = horizontalOffsetFor(facing);
-    this.offsetY = verticalOffsetForMode(mode);
+    this.offsetX = horizontalOffsetFor(facing, this.viewW);
+    this.offsetY = verticalOffsetForMode(mode, this.viewH);
     this.airborneSinceMs = null;
     return { offsetX: this.offsetX, offsetY: this.offsetY, verticalMode: this.mode };
   }
@@ -142,8 +147,8 @@ export class CameraFramingController {
       // else: preserve the last grounded mode through a brief hop.
     }
 
-    const targetOffsetX = horizontalOffsetFor(facing);
-    const targetOffsetY = verticalOffsetForMode(this.mode);
+    const targetOffsetX = horizontalOffsetFor(facing, this.viewW);
+    const targetOffsetY = verticalOffsetForMode(this.mode, this.viewH);
     this.offsetX = damp(this.offsetX, targetOffsetX, LOOK_EASE_MS, deltaMs);
     this.offsetY = damp(this.offsetY, targetOffsetY, VERTICAL_EASE_MS, deltaMs);
 

@@ -3,9 +3,9 @@
  *
  * Every gameplay input the dungeon reads is one of these named actions. The
  * binding table maps a physical key name (as registered with Phaser `addKeys`)
- * to the actions that key drives; a single key may drive several actions (SPACE
- * both moves up and jumps off a ladder), and a single action may be driven by
- * several keys (A and LEFT both move left). Touch presentation will bind the
+ * to the actions that key drives; a single key may drive several actions (R
+ * both rests and restarts), and a single action may be driven by
+ * several keys (A and LEFT both move left). Touch presentation binds the
  * same actions to on-screen controls without going through this table.
  */
 export type GameAction =
@@ -14,7 +14,7 @@ export type GameAction =
   | "moveRight"
   | "moveUp"
   | "moveDown"
-  | "jumpOff"
+  | "jump"
   // Combat
   | "attack"
   | "cast"
@@ -22,6 +22,7 @@ export type GameAction =
   // Interaction / utility (edge-triggered)
   | "interact"
   | "torch"
+  | "rewind"
   | "luck"
   | "drop"
   | "throw"
@@ -58,9 +59,8 @@ export const KEY_BINDINGS: Readonly<Record<string, readonly GameAction[]>> = {
   RIGHT: ["moveRight", "menuRight"],
   W: ["moveUp"],
   UP: ["moveUp", "menuUp"],
-  SPACE: ["moveUp", "jumpOff"],
-  // S is bound for touch/future use but deliberately not registered below, matching
-  // the original scene where only DOWN drove climb-down / brace.
+  SPACE: ["jump"],
+  // Both down inputs support climb-down and Fighter Brace.
   S: ["moveDown"],
   DOWN: ["moveDown", "menuDown"],
   // Combat. CTRL and J/X all melee; K casts; Q cycles the prepared spell.
@@ -73,6 +73,7 @@ export const KEY_BINDINGS: Readonly<Record<string, readonly GameAction[]>> = {
   E: ["interact"],
   F: ["throw"],
   T: ["torch"],
+  Z: ["rewind"],
   L: ["luck"],
   H: ["followerMode"],
   // Party + overlays.
@@ -100,15 +101,14 @@ export const START_DISMISS_ACTIONS: readonly GameAction[] = [
   "moveRight",
   "moveUp",
   "moveDown",
-  "jumpOff",
+  "jump",
   "attack",
   "cast",
 ];
 
 /**
  * The Phaser `addKeys` descriptor. Matches the scene's original registration
- * (notably excluding S and CTRL): CTRL is fed from a raw ControlLeft listener,
- * and S is intentionally left unregistered to preserve prior behavior.
+ * CTRL is fed from a raw ControlLeft listener rather than this descriptor.
  */
 export const KEYBOARD_ADD_KEYS =
-  "A,D,W,LEFT,RIGHT,UP,DOWN,SPACE,J,X,K,C,Q,E,T,H,L,M,R,TAB,ONE,TWO,THREE,FOUR,ESC,I";
+  "A,D,W,S,F,Z,LEFT,RIGHT,UP,DOWN,SPACE,J,X,K,C,Q,E,T,H,L,M,R,TAB,ONE,TWO,THREE,FOUR,ESC,I";

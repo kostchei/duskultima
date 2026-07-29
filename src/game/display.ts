@@ -10,8 +10,13 @@
 export const GAME_W = 960;
 export const GAME_H = 540;
 
+const hasWindow = typeof window !== "undefined";
+const query = new URLSearchParams(hasWindow ? window.location.search : "");
+/** Desktop QA mode: force every mobile-only presentation path without device emulation. */
+export const MOBILE_PREVIEW_MODE = query.get("mobile") === "on";
+
 /** `?dpr=N` forces the render scale, e.g. to test hi-DPI output on a 1x display. */
-const override = new URLSearchParams(window.location.search).get("dpr");
+const override = query.get("dpr");
 if (override !== null && !(Number(override) > 0)) {
   throw new Error(`Invalid dpr override "${override}"`);
 }
@@ -23,10 +28,10 @@ if (override !== null && !(Number(override) > 0)) {
  * sizing the framebuffer to the physical monitor over-allocates massively on
  * mobile — an 844x390 viewport was allocating a 3840x2160 (scale 4) framebuffer.
  */
-const dpr = window.devicePixelRatio || 1;
+const dpr = hasWindow ? window.devicePixelRatio || 1 : 1;
 const displayScale = Math.min(
-  (window.innerWidth * dpr) / GAME_W,
-  (window.innerHeight * dpr) / GAME_H,
+  ((hasWindow ? window.innerWidth : GAME_W) * dpr) / GAME_W,
+  ((hasWindow ? window.innerHeight : GAME_H) * dpr) / GAME_H,
 );
 
 /**
@@ -34,13 +39,21 @@ const displayScale = Math.min(
  * gain little from a 4x framebuffer, so cap their automatic scale at 2. Desktop
  * stays capped at 4 (a full 4K frame) to bound the fill cost.
  */
-const coarsePointer =
-  typeof window.matchMedia === "function" &&
-  window.matchMedia("(pointer: coarse)").matches;
-const scaleCap = coarsePointer ? 2 : 4;
+export const IS_MOBILE_DISPLAY =
+  MOBILE_PREVIEW_MODE ||
+  (hasWindow &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(pointer: coarse)").matches);
+const scaleCap = IS_MOBILE_DISPLAY ? 2 : 4;
 
 /** Framebuffer scale. `?dpr=N` overrides for testing hi-DPI on a 1x display. */
 export const RENDER_SCALE =
   override !== null
     ? Number(override)
     : Math.min(scaleCap, Math.max(1, displayScale));
+
+/** Mobile gameplay shows 25% less world in each dimension; screen-space HUD cameras stay unchanged. */
+export const GAMEPLAY_ZOOM_MULTIPLIER = IS_MOBILE_DISPLAY ? 1.25 : 1;
+export const GAMEPLAY_CAMERA_ZOOM = RENDER_SCALE * GAMEPLAY_ZOOM_MULTIPLIER;
+export const GAMEPLAY_VIEW_W = GAME_W / GAMEPLAY_ZOOM_MULTIPLIER;
+export const GAMEPLAY_VIEW_H = GAME_H / GAMEPLAY_ZOOM_MULTIPLIER;

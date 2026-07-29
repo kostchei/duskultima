@@ -7,14 +7,11 @@
  * the player is really doing right now.
  */
 
+import { IS_MOBILE_DISPLAY } from "../display";
+
 export type InputFamily = "keyboard" | "touch";
 
-const coarsePointer =
-  typeof window !== "undefined" &&
-  typeof window.matchMedia === "function" &&
-  window.matchMedia("(pointer: coarse)").matches;
-
-let family: InputFamily = coarsePointer ? "touch" : "keyboard";
+let family: InputFamily = IS_MOBILE_DISPLAY ? "touch" : "keyboard";
 
 export function currentInputFamily(): InputFamily {
   return family;
