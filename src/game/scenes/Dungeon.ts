@@ -2855,7 +2855,7 @@ export class DungeonScene extends Phaser.Scene {
     const immediate = selectImmediateInteraction(interactions);
     if (immediate) {
       this.interactPrompt
-        .setText(`E â€” ${immediate.label}`)
+        .setText(`E — ${immediate.label}`)
         .setPosition(leader.x, leader.y - 42)
         .setVisible(true);
       return;
