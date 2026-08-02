@@ -4733,7 +4733,7 @@ export class DungeonScene extends Phaser.Scene {
     for (const m of this.monsters) {
       if (!m.active) continue;
       if (m.aiState === "fleeing") {
-        m.updateAi(delta, this.party.leader);
+        this.stepMonsterAi(m, delta, this.party.leader);
         if (m.x < TILE || m.x > (this.activeDungeon.width - 2) * TILE) m.destroy();
         continue;
       }
@@ -4747,7 +4747,7 @@ export class DungeonScene extends Phaser.Scene {
         if (!seer || !active) {
           m.spellCastOutCasterId = null;
         } else if (Phaser.Math.Distance.Between(m.x, m.y, seer.x, seer.y) < NEAR_PX) {
-          m.updateAi(delta, null);
+          this.stepMonsterAi(m, delta, null);
           m.setVelocityX(m.x < seer.x ? -m.speed : m.speed);
           continue;
         }
@@ -4783,7 +4783,7 @@ export class DungeonScene extends Phaser.Scene {
         porterTarget,
         (candidate) => Phaser.Math.Distance.Between(m.x, m.y, candidate.x, candidate.y),
       );
-      m.updateAi(delta, target ?? null);
+      this.stepMonsterAi(m, delta, target ?? null);
       if (
         target &&
         m.attackCooldown === 0 &&
@@ -4998,6 +4998,37 @@ export class DungeonScene extends Phaser.Scene {
       if (row && solid(row[tx])) return true;
     }
     return targetY > m.y + TILE * 2;
+  }
+
+  /**
+   * Run a monster's AI, then hold it on the level it is standing on. Monsters
+   * never take a drop: without this they walk straight off a ledge chasing the
+   * party's x, land a band below, and loop — which also means climbing away is
+   * not an escape. An aggro monster stops at the brink; anything else turns.
+   */
+  private stepMonsterAi(m: MonsterSprite, delta: number, target: CharacterSprite | null): void {
+    m.updateAi(delta, target);
+    const body = m.body as Phaser.Physics.Arcade.Body;
+    const dir = Math.sign(body.velocity.x);
+    if (dir === 0 || !body.blocked.down) return;
+    if (this.groundContinues(m, dir as -1 | 1)) return;
+    if (m.aiState === "aggro") {
+      m.setVelocityX(0);
+    } else {
+      m.patrolDir = dir === 1 ? -1 : 1;
+      m.setVelocityX(-body.velocity.x);
+      m.setFlipX(m.patrolDir === -1);
+    }
+  }
+
+  /** Solid footing one step ahead of a monster, at or just under its feet. */
+  private groundContinues(m: MonsterSprite, dir: -1 | 1): boolean {
+    const grid = this.activeDungeon.grid;
+    const body = m.body as Phaser.Physics.Arcade.Body;
+    const tx = Math.floor((m.x + dir * TILE * 0.75) / TILE);
+    const footTy = Math.floor((body.bottom + 4) / TILE);
+    const solid = (ch: string | undefined) => ch === "#" || ch === "%" || ch === "=";
+    return solid(grid[footTy]?.[tx]) || solid(grid[footTy + 1]?.[tx]);
   }
 
   private updatePorterFollower(time: number): void {
