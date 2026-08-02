@@ -1281,7 +1281,7 @@ export class HudScene extends Phaser.Scene {
       w / 2,
       h / 2 + boxH / 2 - 6,
       currentInputFamily() === "keyboard"
-        ? `Up/Down select  |  E choose${cancelable ? "  |  I cancel" : ""}`
+        ? `Up/Down select  |  E/Enter choose${cancelable ? "  |  I cancel" : ""}`
         : "",
       { ...UI_STYLE, fontSize: "11px", color: "#808490" },
     ).setOrigin(0.5);

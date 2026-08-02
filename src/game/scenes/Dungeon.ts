@@ -231,6 +231,7 @@ import {
 } from "../biomeChoice";
 import { startingClassesForZone } from "../startingChoices";
 import {
+  selectImmediateInteraction,
   selectOverheadInteractions,
   type PromptableInteraction,
 } from "../interactionPrompt";
@@ -2851,6 +2852,14 @@ export class DungeonScene extends Phaser.Scene {
   private updateInteractPrompt(): void {
     const leader = this.party.leader;
     const interactions = leader.alive ? this.findInteractions(leader) : [];
+    const immediate = selectImmediateInteraction(interactions);
+    if (immediate) {
+      this.interactPrompt
+        .setText(`E â€” ${immediate.label}`)
+        .setPosition(leader.x, leader.y - 42)
+        .setVisible(true);
+      return;
+    }
     const promptSelection = selectOverheadInteractions(
       interactions,
       getBaseRole(leader.character.className) === "thief",
@@ -3622,6 +3631,11 @@ export class DungeonScene extends Phaser.Scene {
       this.ctx.say("Nothing to do here.");
       return;
     }
+    const immediate = selectImmediateInteraction(interactions);
+    if (immediate) {
+      immediate.run();
+      return;
+    }
     if (interactions.length === 1) {
       interactions[0]!.run();
       return;
@@ -3644,10 +3658,8 @@ export class DungeonScene extends Phaser.Scene {
 
   /**
    * Every contextual "E" action valid for the leader's position right now —
-   * in priority order, which `interact` and the prompt both lean on when
-   * there's exactly one. When there's more than one (e.g. a safe-zone room
-   * that holds a shop, a shrine, and a campfire all at once), the caller
-   * opens a chooser instead of the first candidate silently winning.
+   * in priority order. Immediate world actions take precedence over optional
+   * hiding; other ambiguous choices still open the chooser.
    */
   private findInteractions(leader: CharacterSprite): Interaction[] {
     const candidates: Interaction[] = [];
@@ -3832,6 +3844,7 @@ export class DungeonScene extends Phaser.Scene {
       const state = this.npcInteractionStates.get(talkable.spec.id) ?? "unmet";
       candidates.push({
         label: `${state === "unmet" ? "speak with" : state === "heard" ? "continue with" : "recall words from"} ${talkable.spec.name}`,
+        immediate: true,
         run: () => this.advanceNpcInteraction(talkable, leader),
       });
     }
@@ -3857,6 +3870,7 @@ export class DungeonScene extends Phaser.Scene {
     if (this.safeZoneId && this.currentRoomId === this.safeZoneId) {
       candidates.push({
         label: `shop${this.safeZoneName ? ` (${this.safeZoneName})` : ""}`,
+        immediate: true,
         run: () => this.openShop(),
       });
       if (!this.downtimeUsed) {
@@ -3884,7 +3898,7 @@ export class DungeonScene extends Phaser.Scene {
     }
 
     const trapInteraction = this.trapSystem.findInteraction(leader);
-    if (trapInteraction) candidates.push(trapInteraction);
+    if (trapInteraction) candidates.push({ ...trapInteraction, immediate: true });
 
     const gate = this.portcullises.getChildren().find((candidate) => {
       const image = candidate as Phaser.Physics.Arcade.Image;
@@ -3924,6 +3938,7 @@ export class DungeonScene extends Phaser.Scene {
       } else {
         candidates.push({
           label: connector?.state === "secret" ? "reveal the secret door" : "raise the portcullis",
+          immediate: true,
           run: () => {
             if (connector) {
               const result = openConnector(connector, this.activatedRequirements, this.openedConnectors);
@@ -3952,6 +3967,7 @@ export class DungeonScene extends Phaser.Scene {
       if (nearSpikes.length > 0) {
         candidates.push({
           label: "disarm the spikes",
+          immediate: true,
           run: () => {
             const result = this.ctx.engine.check({
               actor: leader.character,

@@ -123,7 +123,7 @@ class FakeKey implements PolledKey {
 
 const KEY_NAMES = [
   "A", "D", "W", "LEFT", "RIGHT", "UP", "DOWN", "SPACE",
-  "J", "X", "CTRL", "K", "Q", "E", "T", "H", "L",
+  "J", "X", "CTRL", "K", "Q", "E", "ENTER", "T", "H", "L",
   "TAB", "ONE", "TWO", "THREE", "FOUR", "ESC", "M", "C", "I", "R",
 ] as const;
 type KeyMap = { [K in (typeof KEY_NAMES)[number]]: FakeKey };
@@ -223,6 +223,12 @@ describe("KeyboardSource poll → action parity", () => {
     frame();
     expect(input.held("moveRight")).toBe(true);
     expect(input.pressed("drop")).toBe(true);
+  });
+
+  it("Enter confirms the same interaction action as E", () => {
+    keys.ENTER.down = true;
+    frame();
+    expect(input.pressed("interact")).toBe(true);
   });
 
   it("every key in the poll set has at least one binding", () => {

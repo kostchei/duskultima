@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   HIDE_HINT_DURATION_MS,
+  selectImmediateInteraction,
   selectOverheadInteractions,
   type PromptableInteraction,
 } from "../src/game/interactionPrompt";
@@ -11,6 +12,7 @@ interface TestInteraction extends PromptableInteraction {
 
 const hide: TestInteraction = { label: "hide in nearby cover", overheadHint: "hide" };
 const recover: TestInteraction = { label: "recover sword" };
+const disarm: TestInteraction = { label: "disarm trap", immediate: true };
 
 describe("overhead interaction prompt", () => {
   it("briefly teaches hide once to a non-thief without removing the interaction", () => {
@@ -55,5 +57,10 @@ describe("overhead interaction prompt", () => {
       0,
     );
     expect(selected.interactions).toEqual([hide]);
+  });
+
+  it("prefers an immediate world action over optional hiding", () => {
+    expect(selectImmediateInteraction([hide, disarm])).toBe(disarm);
+    expect(selectImmediateInteraction([hide, recover])).toBeUndefined();
   });
 });

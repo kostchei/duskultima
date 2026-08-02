@@ -3,11 +3,24 @@ export const HIDE_HINT_DURATION_MS = 2500;
 
 export interface PromptableInteraction {
   overheadHint?: "hide";
+  /**
+   * Run this action immediately when it shares the E prompt with optional
+   * hiding. Used for single-purpose world interactions such as traps and
+   * switches, which should not require navigating past Hide first.
+   */
+  immediate?: boolean;
 }
 
 export interface OverheadInteractionSelection<T> {
   interactions: T[];
   hideHintOfferedAt: number | undefined;
+}
+
+/** Return the contextual action that should take precedence over optional hide. */
+export function selectImmediateInteraction<T extends PromptableInteraction>(
+  interactions: readonly T[],
+): T | undefined {
+  return interactions.find((interaction) => interaction.immediate);
 }
 
 /**
