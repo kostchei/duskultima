@@ -8,6 +8,14 @@ import { characterAppearanceKey } from "./entities/appearance";
 
 export const TILE = 32;
 
+/**
+ * How much of an `-overhang` frame the skins actually paint, measured up from
+ * the tile's bottom edge. Every skin draws its underside lip within this band,
+ * and the collider for those tiles is shrunk to match so the transparent
+ * remainder of the frame stays walkable.
+ */
+export const OVERHANG_LIP_PX = 12;
+
 function texture(
   scene: Phaser.Scene,
   key: string,

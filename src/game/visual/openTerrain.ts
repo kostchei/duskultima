@@ -1,7 +1,7 @@
 import type { RoomRegion } from "../level/geometry";
 import type { VisualSkinId } from "./model";
 
-export type OpenSurfaceTileRole = "surface-edge" | "support" | "overhang" | "hidden-ceiling";
+export type OpenSurfaceTileRole = "surface-edge" | "support" | "overhang";
 
 export type DangerToken = "flag" | "sun" | "poison" | "snowflake";
 export type DangerSaveStat = "DEX" | "CHA" | "CON" | "WIS";
@@ -156,21 +156,22 @@ const isTerrainMass = (grid: readonly string[], x: number, y: number): boolean =
 };
 
 /**
- * Classifies solid terrain by continuous support to the bottom of the field.
- * This works for buildings, desert ground, and ice floes: supported columns
- * expose one surface cap, while ceiling masses collapse to a thin overhang.
+ * Classifies solid terrain by its immediate vertical neighbours. Every mass —
+ * ground, building, ice floe, or a ledge hanging in mid-air — gets one walkable
+ * cap on top, solid support through the middle, and a thin overhang lip on the
+ * underside. Classification is deliberately local: stacked levels put several
+ * bands of terrain in one grid, so "does this column reach the bottom of the
+ * field" says nothing about whether a tile is ground or ceiling.
  */
 export function openSurfaceTileRole(grid: readonly string[], x: number, y: number): OpenSurfaceTileRole {
-  let supported = true;
-  for (let scanY = y + 1; scanY < grid.length; scanY++) {
-    if (!isTerrainMass(grid, x, scanY)) {
-      supported = false;
-      break;
-    }
-  }
-
-  if (supported) return isTerrainMass(grid, x, y - 1) ? "support" : "surface-edge";
-  return isTerrainMass(grid, x, y + 1) ? "hidden-ceiling" : "overhang";
+  const massAbove = isTerrainMass(grid, x, y - 1);
+  const massBelow = isTerrainMass(grid, x, y + 1);
+  // The top of any mass is a surface you can stand on, so it draws as a full tile.
+  if (!massAbove) return "surface-edge";
+  // Buried in the mass: solid column art, no seams.
+  if (massBelow) return "support";
+  // Mass above, air below — the exposed underside collapses to a lip.
+  return "overhang";
 }
 
 /**

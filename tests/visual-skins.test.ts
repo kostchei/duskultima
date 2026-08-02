@@ -216,15 +216,24 @@ describe("open-surface terrain support", () => {
     "#####",
   ];
 
-  it("separates supported surfaces from façade mass", () => {
+  it("separates surface caps from buried mass", () => {
     expect(openSurfaceTileRole(grid, 0, 0)).toBe("surface-edge");
     expect(openSurfaceTileRole(grid, 0, 1)).toBe("support");
   });
 
-  it("collapses unsupported ceiling mass to one exposed overhang", () => {
-    expect(openSurfaceTileRole(grid, 1, 0)).toBe("hidden-ceiling");
+  it("collapses the exposed underside of a mass to one overhang", () => {
+    expect(openSurfaceTileRole(grid, 1, 0)).toBe("surface-edge");
     expect(openSurfaceTileRole(grid, 1, 1)).toBe("overhang");
-    expect(openSurfaceTileRole(grid, 2, 0)).toBe("overhang");
+    expect(openSurfaceTileRole(grid, 2, 0)).toBe("surface-edge");
+  });
+
+  it("keeps stacked bands solid instead of reading them as hanging ceilings", () => {
+    // A grid whose terrain never reaches the bottom row: the old
+    // scan-to-the-floor rule called all of this ceiling and drew it as lips.
+    const stacked = ["#####", "#####", "#####", ".....", "....."];
+    expect(openSurfaceTileRole(stacked, 2, 0)).toBe("surface-edge");
+    expect(openSurfaceTileRole(stacked, 2, 1)).toBe("support");
+    expect(openSurfaceTileRole(stacked, 2, 2)).toBe("overhang");
   });
 
   it("makes the setback the single underground room in a five-room dungeon", () => {

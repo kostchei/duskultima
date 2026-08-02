@@ -206,7 +206,7 @@ import {
   openConnector,
   roomsAlertedByNoise,
 } from "../level/connectors";
-import { TILE } from "../textures";
+import { OVERHANG_LIP_PX, TILE } from "../textures";
 import {
   serializeCharacter,
   deserializeCharacter,
@@ -312,6 +312,18 @@ export interface LuckWindow {
 interface Interaction extends PromptableInteraction {
   label: string;
   run: () => void;
+}
+
+/**
+ * Pin a static tile's body to the bottom `lipPx` of its frame. Overhang tiles
+ * paint only their underside, so a full-frame body would make the transparent
+ * air above the lip solid.
+ */
+function shrinkStaticBodyToLip(tile: Phaser.Physics.Arcade.Image, lipPx: number): void {
+  const body = tile.body as Phaser.Physics.Arcade.StaticBody | null;
+  if (!body) throw new Error("Overhang tile was created without a static body");
+  body.setSize(TILE, lipPx, false);
+  body.setOffset(0, TILE - lipPx);
 }
 
 export class DungeonScene extends Phaser.Scene {
@@ -1512,6 +1524,10 @@ export class DungeonScene extends Phaser.Scene {
             const variant = x * 17 + y * 31;
             let textureKey = textures.wall(variant);
             let enclosed = false;
+            // True when the tile draws only the thin underside lip, so its body
+            // has to shrink to match — otherwise the transparent part of the
+            // frame reads as open air but still blocks the party.
+            let lipOnly = false;
             if (textures.supportWall) {
               const underground = roomAt(this.activeDungeon.regions, x, y)?.id === this.undergroundRoomId;
               if (underground) {
@@ -1520,15 +1536,16 @@ export class DungeonScene extends Phaser.Scene {
               } else {
                 const role = openSurfaceTileRole(this.activeDungeon.grid, x, y);
                 if (role === "support") textureKey = textures.supportWall(variant);
-                else if (role === "overhang") textureKey = textures.overhang ?? textureKey;
-                else if (role === "hidden-ceiling") {
-                  textureKey = textures.overhang ?? textureKey;
+                else if (role === "overhang" && textures.overhang) {
+                  textureKey = textures.overhang;
+                  lipOnly = true;
                 }
               }
             } else {
               enclosed = exposedTerrainFaces(this.activeDungeon.grid, x, y).enclosed;
             }
             const wall = this.walls.create(px, py, textureKey).setTint(foregroundTint).setDepth(1);
+            if (lipOnly) shrinkStaticBodyToLip(wall as Phaser.Physics.Arcade.Image, OVERHANG_LIP_PX);
             if (enclosed) {
               wall.setVisible(false);
               enclosedMass.fillRect(x * TILE, y * TILE, TILE, TILE);
@@ -3069,9 +3086,13 @@ export class DungeonScene extends Phaser.Scene {
               && Math.abs(entry.x - leader.x) <= TILE * 1.5
               && Math.abs(entry.y - leader.y) <= TILE * 1.5,
           );
+          // An authored ladder is a fixture, not a feat: it grips on contact.
+          // Ropes, rigged lines, and anything slicked need the DEX check.
+          const freeClimb = nearClimbTile !== undefined && !slippery;
           const authorized =
             leader.climbing
             || wallWalking
+            || freeClimb
             || this.tryStartClimb(leader, slippery, time);
           if (authorized) {
             leader.climbing = true;
@@ -5041,7 +5062,7 @@ export class DungeonScene extends Phaser.Scene {
     return false;
   }
 
-  /** Followers use the same checked ladders/ropes as the leader. */
+  /** Followers use the same ladders/ropes as the leader, on the same terms. */
   private updateFollowerClimbs(time: number): void {
     const leader = this.party.leader;
     for (const member of this.party.members) {
@@ -5059,7 +5080,7 @@ export class DungeonScene extends Phaser.Scene {
       const verticalGap = leader.y - member.y;
       if (touching && Math.abs(verticalGap) > TILE) {
         const body = member.body as Phaser.Physics.Arcade.Body;
-        if (member.climbing || this.tryStartClimb(member, false, time)) {
+        if (member.climbing || touchingAuthored || this.tryStartClimb(member, false, time)) {
           member.climbing = true;
           body.setAllowGravity(false);
           member.setVelocityY(Math.sign(verticalGap) * 100);
