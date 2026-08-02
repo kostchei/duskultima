@@ -873,3 +873,44 @@ describe("weapon mastery binding", () => {
     expect(f.damageBonusWith("shortbow")).toBe(0);
   });
 });
+
+describe("dice expression parsing", () => {
+  it("accepts the single-die shorthand as one die", () => {
+    const d = new Dice(11);
+    for (let i = 0; i < 50; i++) {
+      const r = d.rollDetailed("d100");
+      expect(r.rolls).toHaveLength(1);
+      expect(r.total).toBeGreaterThanOrEqual(1);
+      expect(r.total).toBeLessThanOrEqual(100);
+    }
+    expect(d.rollDetailed("d6+2").modifier).toBe(2);
+  });
+
+  it("still rejects genuinely malformed expressions", () => {
+    const d = new Dice(1);
+    expect(() => d.roll("d")).toThrow(/Invalid dice expression/);
+    expect(() => d.roll("banana")).toThrow(/Invalid dice expression/);
+    expect(() => d.roll("0d6")).toThrow(/Invalid dice count/);
+  });
+
+  it("rejects a table whose dice expression cannot be parsed, at registration", () => {
+    const engine = new Engine({ seed: 1 });
+    expect(() =>
+      engine.tables.register({
+        id: "broken-table",
+        name: "Broken",
+        dice: "d",
+        entries: [{ min: 1, max: 1, text: "nothing" }],
+      }),
+    ).toThrow(/Invalid dice expression/);
+  });
+
+  it("rolls every registered table without throwing", () => {
+    const engine = makeEngine();
+    const ids = engine.tables.ids();
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      for (let i = 0; i < 30; i++) expect(engine.rollTable(id).entry).toBeDefined();
+    }
+  });
+});

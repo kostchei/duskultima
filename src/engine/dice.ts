@@ -22,7 +22,32 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-const DICE_EXPR = /^(\d+)d(\d+)([+-]\d+)?$/;
+/**
+ * Standard dice notation. The count is optional so the common shorthand for a
+ * single die ("d100", "d6") parses as one — tables and item effects are written
+ * by hand and both spellings are correct notation.
+ */
+const DICE_EXPR = /^(\d*)d(\d+)([+-]\d+)?$/i;
+
+export interface ParsedDiceExpression {
+  count: number;
+  sides: number;
+  modifier: number;
+}
+
+/**
+ * Parse "2d6+1", "1d4", "3d6-2", or the single-die shorthand "d100". Exported so
+ * hand-written data (tables, item effects) can be checked when it is registered
+ * instead of the first time something rolls it mid-run.
+ */
+export function parseDiceExpression(expr: string): ParsedDiceExpression {
+  const m = DICE_EXPR.exec(expr.replaceAll(" ", ""));
+  if (!m) throw new Error(`Invalid dice expression: "${expr}"`);
+  const count = m[1] ? Number(m[1]) : 1;
+  const sides = Number(m[2]);
+  if (count < 1 || count > 100) throw new Error(`Invalid dice count in "${expr}"`);
+  return { count, sides, modifier: m[3] ? Number(m[3]) : 0 };
+}
 
 export class Dice {
   private rng: () => number;
@@ -45,12 +70,7 @@ export class Dice {
   }
 
   rollDetailed(expr: string): { total: number; rolls: number[]; modifier: number } {
-    const m = DICE_EXPR.exec(expr.replaceAll(" ", ""));
-    if (!m) throw new Error(`Invalid dice expression: "${expr}"`);
-    const count = Number(m[1]);
-    const sides = Number(m[2]);
-    const modifier = m[3] ? Number(m[3]) : 0;
-    if (count < 1 || count > 100) throw new Error(`Invalid dice count in "${expr}"`);
+    const { count, sides, modifier } = parseDiceExpression(expr);
     const rolls: number[] = [];
     for (let i = 0; i < count; i++) rolls.push(this.die(sides));
     return { total: rolls.reduce((a, b) => a + b, 0) + modifier, rolls, modifier };

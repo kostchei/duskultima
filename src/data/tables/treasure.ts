@@ -342,7 +342,7 @@ function table(band: keyof typeof CORE_ROWS, name: string): RollableTable {
   return {
     id: `treasure-${band}`,
     name,
-    dice: "d100",
+    dice: "1d100",
     entries: CORE_ROWS[band].map((entry) => ({
       min: entry.min,
       max: entry.max,

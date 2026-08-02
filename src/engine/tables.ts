@@ -3,7 +3,7 @@
  * returns a structured entry. Unknown table ids throw.
  */
 
-import type { Dice } from "./dice";
+import { parseDiceExpression, type Dice } from "./dice";
 import type { EffectHook } from "./effects";
 
 export interface TableEntry {
@@ -48,6 +48,11 @@ export class TableRegistry {
     this.tables.set(table.id, table);
   }
 
+  /** Every registered id, so callers (and tests) can sweep the whole registry. */
+  ids(): string[] {
+    return [...this.tables.keys()];
+  }
+
   get(id: string): RollableTable {
     const t = this.tables.get(id);
     if (!t) throw new Error(`Unknown table "${id}"`);
@@ -68,6 +73,9 @@ export class TableRegistry {
 }
 
 function validateTable(table: RollableTable): void {
+  // Registration time, not roll time: a bad expression here used to surface as a
+  // crash the first time something happened to roll the table mid-run.
+  parseDiceExpression(table.dice);
   if (table.entries.length === 0) throw new Error(`Table "${table.id}" has no entries`);
   let prev = table.entries[0]!.min - 1;
   for (const e of table.entries) {
