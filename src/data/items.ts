@@ -21,6 +21,7 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "dagger", name: "Dagger", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", finesse: true, reachTiles: 1.6, weaponVisual: "dagger", valueGp: 5 },
   { id: "mace", name: "Mace", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", reachTiles: 1.6, weaponVisual: "mace", valueGp: 5 },
   { id: "staff", name: "Staff", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", twoHanded: true, reachTiles: 2.0, weaponVisual: "staff", valueGp: 2 },
+  { id: "shortsword", name: "Shortsword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 1.7, weaponVisual: "dagger", valueGp: 7 },
   { id: "spear", name: "Spear", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 2.4, weaponVisual: "spear", valueGp: 5 },
   { id: "javelin", name: "Javelin", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", finesse: true, reachTiles: 1.8, weaponVisual: "javelin", valueGp: 1 },
   // Ranged only: no reachTiles, so it can never be wielded for melee.

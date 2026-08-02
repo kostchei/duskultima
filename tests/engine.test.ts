@@ -343,7 +343,7 @@ describe("equipped appearance state", () => {
   it("equips class starting weapons as authoritative character state", () => {
     const engine = makeEngine();
     expect(createCharacter(engine, "f", "Fighter", "fighter").weapon.id).toBe("spear");
-    expect(createCharacter(engine, "t", "Thief", "thief").weapon.id).toBe("dagger");
+    expect(createCharacter(engine, "t", "Thief", "thief").weapon.id).toBe("shortsword");
     expect(createCharacter(engine, "p", "Priest", "priest").weapon.id).toBe("mace");
     expect(createCharacter(engine, "w", "Wizard", "wizard").weapon.id).toBe("staff");
   });
@@ -369,7 +369,7 @@ describe("equipped appearance state", () => {
 
   it("rejects non-weapons and exposes weapon rules through the equipped item", () => {
     const f = createCharacter(makeEngine(), "f", "Fighter", "fighter");
-    expect(() => f.equipWeapon(item("ration"))).toThrow(/not a melee weapon/);
+    expect(() => f.equipWeapon(item("ration"))).toThrow(/not a weapon that can be wielded/);
     f.equipWeapon(item("longsword"));
     expect(f.weapon.damage).toBe("1d8");
     expect(f.weapon.reachTiles).toBe(1.8);
@@ -912,5 +912,63 @@ describe("dice expression parsing", () => {
     for (const id of ids) {
       for (let i = 0; i < 30; i++) expect(engine.rollTable(id).entry).toBeDefined();
     }
+  });
+});
+
+describe("attack stat drives damage", () => {
+  const armed = (className: "fighter" | "thief", stats: Record<string, number>, weaponId: string) => {
+    const c = new Character({ id: "a", name: "Armed", className, stats: stats as never, maxHp: 10 });
+    const weapon = item(weaponId);
+    c.inventory.add(weapon, 1, true);
+    c.equipWeapon(weapon);
+    return c;
+  };
+
+  it("adds STR to melee damage", () => {
+    const engine = makeEngine(3);
+    const f = armed("fighter", { STR: 18, DEX: 8, CON: 12, INT: 10, WIS: 10, CHA: 10 }, "longsword");
+    let hits = 0;
+    for (let i = 0; i < 60; i++) {
+      const r = engine.attack({ attacker: f, targetAc: -99, damage: "1d8", weapon: item("longsword") });
+      if (!r.check.success) continue; // a natural 1 always misses
+      hits++;
+      // 1d8 + STR 18 (+4); no talents on this bare character.
+      expect(r.damage).toBeGreaterThanOrEqual(1 + 4);
+      expect(r.damage).toBeLessThanOrEqual(8 + 8 + 4); // crits double the dice
+    }
+    expect(hits).toBeGreaterThan(0);
+  });
+
+  it("uses DEX for a finesse shortsword in a dextrous hand, for hit and damage", () => {
+    const engine = makeEngine(5);
+    const t = armed("thief", { STR: 8, DEX: 18, CON: 10, INT: 10, WIS: 10, CHA: 10 }, "shortsword");
+    const sword = item("shortsword");
+    expect(sword.damage).toBe("1d6");
+    let hits = 0;
+    for (let i = 0; i < 60; i++) {
+      const r = engine.attack({ attacker: t, targetAc: -99, damage: sword.damage!, weapon: sword });
+      expect(r.check.modifier).toBe(4); // DEX 18, not STR 8
+      if (!r.check.success) continue;
+      hits++;
+      expect(r.damage).toBeGreaterThanOrEqual(1 + 4);
+    }
+    expect(hits).toBeGreaterThan(0);
+  });
+
+  it("uses DEX for the shortbow even when strength is higher", () => {
+    const engine = makeEngine(7);
+    const t = armed("thief", { STR: 18, DEX: 14, CON: 10, INT: 10, WIS: 10, CHA: 10 }, "shortbow");
+    const bow = item("shortbow");
+    // A bow can be held, so the player can cycle to it and loose.
+    expect(t.wieldedWeapon?.id).toBe("shortbow");
+    let hits = 0;
+    for (let i = 0; i < 60; i++) {
+      const r = engine.attack({ attacker: t, targetAc: -99, damage: bow.damage!, weapon: bow });
+      expect(r.check.modifier).toBe(2); // DEX 14, not STR 18
+      if (!r.check.success) continue;
+      hits++;
+      expect(r.damage).toBeGreaterThanOrEqual(1 + 2);
+    }
+    expect(hits).toBeGreaterThan(0);
   });
 });

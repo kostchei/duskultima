@@ -281,6 +281,9 @@ export class Engine {
           if (hook.kind === "extraDamageDice") damage += this.dice.roll(hook.dice);
         }
       }
+      // The stat that swung the weapon also drives its damage: STR for melee,
+      // DEX for ranged and for finesse weapons in a dextrous hand.
+      damage += a.mod(stat);
       damage += a.damageBonusWith(input.weapon?.id) + (input.weapon?.magicBonus ?? 0);
       if (melee && a.ancestry === "half-orc") damage += 1;
       const meleeMultiplier = a.effects.flatMap((effect) => effect.hooks).reduce(

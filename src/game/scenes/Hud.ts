@@ -439,7 +439,7 @@ export class HudScene extends Phaser.Scene {
         145,
         365,
         "A/D or ←/→  MOVE    W/↑/SPACE  JUMP    J/X/CTRL  ATTACK    K  CAST\n" +
-          "E  INTERACT    T  TORCH    Q  NEXT SPELL    TAB/1-4  LEADER\n" +
+          "E  INTERACT    T  TORCH    Q  NEXT SPELL    G  NEXT WEAPON    TAB/1-4  LEADER\n" +
           "C  STATS    I  GEAR    H  HOLD/FOLLOW    ESC  PAUSE\n" +
           "TIP: THE TORCH STAYS WITH WHOEVER LIGHTS IT — SWAP TO A MEMBER (TAB/1-4), PRESS T, THEN SWAP BACK",
         { ...DATA_STYLE, fontSize: "11px", lineSpacing: 5 },

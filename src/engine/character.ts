@@ -309,10 +309,15 @@ export class Character {
     this.wornArmor = def;
   }
 
-  /** Put a weapon in hand. Inventory ownership is enforced by the game/UI layer. */
+  /**
+   * Put a weapon in hand. Inventory ownership is enforced by the game/UI layer.
+   * Ranged weapons carry no `reachTiles` — they are held and loosed rather than
+   * swung, so the game layer routes their attacks to a shot.
+   */
   equipWeapon(def: ItemDef): void {
-    if (!def.tags.includes("weapon") || !def.damage || def.reachTiles === undefined) {
-      throw new Error(`${def.name} is not a melee weapon`);
+    const ranged = def.tags.includes("ranged");
+    if (!def.tags.includes("weapon") || !def.damage || (!ranged && def.reachTiles === undefined)) {
+      throw new Error(`${def.name} is not a weapon that can be wielded`);
     }
     if (def.requiredClass && def.requiredClass !== this.className) throw new Error(`Only a ${def.requiredClass} can wield ${def.name}`);
     if (def.requiredAlignment && def.requiredAlignment !== this.alignment) throw new Error(`${def.name} requires ${def.requiredAlignment} alignment`);

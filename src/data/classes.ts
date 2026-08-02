@@ -44,7 +44,7 @@ const CLASS_LIST: readonly ClassDef[] = [
     name: "thief",
     displayName: "Thief",
     hitDie: "1d4",
-    startingWeaponId: "dagger",
+    startingWeaponId: "shortsword",
     armorId: "leather-armor",
     startsWithShield: false,
     talentTableId: "thief-talents",

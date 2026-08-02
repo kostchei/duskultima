@@ -60,7 +60,7 @@ describe("character generation rules", () => {
     expect(fighter.inventory.count("javelin")).toBe(3);
 
     const thief = createCharacter(e, "kt", "T", "thief");
-    expect(thief.weapon.id).toBe("dagger");
+    expect(thief.weapon.id).toBe("shortsword");
     expect(thief.wornArmor?.id).toBe("leather-armor");
     expect(thief.inventory.has("shortbow")).toBe(true);
 
@@ -174,11 +174,13 @@ describe("character generation rules", () => {
     expect(wizard.inventory.has("staff")).toBe(false);
   });
 
-  it("equips Thief with shortbow and 2 daggers for ranged and dual melee", () => {
+  it("equips Thief with a shortsword in hand and a shortbow to cycle to", () => {
     const engine = makeEngine(42);
     const thief = createCharacter(engine, "t1", "Shadow", "thief");
-    expect(thief.wieldedWeapon?.id).toBe("dagger");
+    expect(thief.wieldedWeapon?.id).toBe("shortsword");
+    expect(thief.wieldedWeapon?.damage).toBe("1d6");
+    // Finesse, so a dextrous thief attacks and damages off DEX.
+    expect(thief.wieldedWeapon?.finesse).toBe(true);
     expect(thief.inventory.has("shortbow")).toBe(true);
-    expect(thief.inventory.count("dagger")).toBe(1);
   });
 });

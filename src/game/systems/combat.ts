@@ -85,25 +85,22 @@ export function buildAttackContext(
   const targetFacing = target.flipX ? -1 : 1;
   const attackerBehind = Math.sign(attacker.x - target.x) === -targetFacing;
 
-  if (isThief && attackerBehind) {
-    const unawareOrFlanked = hiddenAttacker || target.aiState === "patrol" || target.targetPlayer !== attacker;
-    if (unawareOrFlanked) {
-      if (ctx) {
-        // DEX check vs DC 15 with advantage for Thief
-        const check = ctx.engine.check({
+  // Striking from hiding is already the setup the backstab asks for, so it
+  // lands outright. Working an opening on a target that can see you is the
+  // part that takes a roll: DC 15 DEX, with advantage.
+  if (isThief && (hiddenAttacker || attackerBehind)) {
+    const openingEarned = hiddenAttacker
+      || ((target.aiState === "patrol" || target.targetPlayer !== attacker)
+        && (!ctx || ctx.engine.check({
           actor: attacker.character,
           stat: "DEX",
           dc: 15,
           kind: "stat",
           advantage: ["thief backstab"],
-        });
-        if (check.success) {
-          advantage.push("backstab");
-          if (scene) floatText(scene, attacker.x, attacker.y - 32, "BACKSTAB!", "#70d070", 14);
-        }
-      } else {
-        advantage.push("backstab");
-      }
+        }).success));
+    if (openingEarned) {
+      advantage.push("backstab");
+      if (scene) floatText(scene, attacker.x, attacker.y - 32, "BACKSTAB!", "#70d070", 14);
     }
   }
 
@@ -318,17 +315,24 @@ export function rangedShot(
 
   attacker.facing = target.x >= attacker.x ? 1 : -1;
   attacker.setFlipX(attacker.facing === -1);
-  const disadvantage: string[] = [];
-  if (light.levelAt(attacker.x, attacker.y) === "dark") disadvantage.push("darkness");
+  // A shot from hiding earns the same backstab a blade does. The context also
+  // carries the darkness/high-ground modifiers that used to be computed here.
+  const posCtx = buildAttackContext(attacker, target, light, ctx, scene);
+  const backstab = posCtx.advantage.includes("backstab");
+  const unaware = target.aiState === "patrol" || target.isSleeping;
 
   const result = ctx.engine.attack({
     attacker: attacker.character,
     targetAc: target.def.ac,
     damage: weapon.damage,
     weapon,
-    advantage: [],
-    disadvantage,
+    extraDamageDice: (backstab ? 1 + Math.floor(attacker.character.level / 2) : 0)
+      + assassinExtraDamageDice(attacker.character, unaware),
+    advantage: posCtx.advantage,
+    disadvantage: posCtx.disadvantage,
   });
+  // Loosing the shot gives the position away, win or lose.
+  revealCharacter(attacker.character);
 
   const isDagger = weapon.id === "dagger";
   if (isDagger) {

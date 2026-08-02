@@ -19,6 +19,7 @@ export type GameAction =
   | "attack"
   | "cast"
   | "cycleSpell"
+  | "cycleWeapon"
   // Interaction / utility (edge-triggered)
   | "interact"
   | "torch"
@@ -69,6 +70,7 @@ export const KEY_BINDINGS: Readonly<Record<string, readonly GameAction[]>> = {
   CTRL: ["attack"],
   K: ["cast"],
   Q: ["cycleSpell"],
+  G: ["cycleWeapon"],
   // Interaction / utility.
   E: ["interact"],
   F: ["throw"],
@@ -111,4 +113,4 @@ export const START_DISMISS_ACTIONS: readonly GameAction[] = [
  * CTRL is fed from a raw ControlLeft listener rather than this descriptor.
  */
 export const KEYBOARD_ADD_KEYS =
-  "A,D,W,S,F,Z,LEFT,RIGHT,UP,DOWN,SPACE,J,X,K,C,Q,E,T,H,L,M,R,TAB,ONE,TWO,THREE,FOUR,ESC,I";
+  "A,D,W,S,F,G,Z,LEFT,RIGHT,UP,DOWN,SPACE,J,X,K,C,Q,E,T,H,L,M,R,TAB,ONE,TWO,THREE,FOUR,ESC,I";

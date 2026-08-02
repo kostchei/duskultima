@@ -91,6 +91,7 @@ import {
   type TreasureQuality,
   TRAINING_STAT,
   Inventory,
+  type ItemDef,
   type StatName,
   parseAncestry,
 } from "../../engine";
@@ -3137,8 +3138,13 @@ export class DungeonScene extends Phaser.Scene {
       if (mode) this.ctx.say(`Followers: ${mode.toUpperCase()}.`);
     }
 
-    // Attack
-    if (this.actions.held("attack")) {
+    // Cycle the wielded weapon between everything carried that can be swung or loosed.
+    if (this.actions.pressed("cycleWeapon")) this.cycleLeaderWeapon(leader);
+
+    // Attack. A wielded ranged weapon looses at the nearest mark instead of swinging.
+    if (this.actions.held("attack") && this.leaderRangedWeapon(leader)) {
+      this.leaderRangedAttack(leader);
+    } else if (this.actions.held("attack")) {
       const outcome = meleeSwing(this.meleeDeps(), leader);
       if (outcome.swung) cancelShieldWall(leader.character);
       if (outcome.swung) leader.character.removeEffect("potion:invisibility");
@@ -3666,17 +3672,31 @@ export class DungeonScene extends Phaser.Scene {
         overheadHint: "hide",
         run: () => {
           const armor = leader.character.wornArmor;
+          const watcher = this.watchingMonster(leader);
+          const advantage: string[] = [];
+          if (getBaseRole(leader.character.className) === "thief") advantage.push("thief stealth");
+          if (leader.character.className === "ras-godai") advantage.push("Ras-Godai");
+          const disadvantage: string[] = [];
+          // Slipping away from something that is already looking at you is the
+          // hard version. Break line of sight first and it is an ordinary hide.
+          if (watcher) disadvantage.push(`watched by ${watcher.def.name}`);
+          if (armor?.armor?.stealthDisadvantage) disadvantage.push(armor.name);
           const result = this.ctx.engine.check({
             actor: leader.character,
             stat: "DEX",
             dc: DC.NORMAL,
             kind: "stealth",
-            advantage: leader.character.className === "ras-godai" ? ["Ras-Godai"] : undefined,
-            disadvantage: armor?.armor?.stealthDisadvantage ? [armor.name] : undefined,
+            advantage,
+            disadvantage,
           });
           if (result.success) {
             hideCharacter(leader.character);
             this.ctx.say(`${leader.character.name} becomes hidden in the room's cover.`, "#9da7ec");
+          } else if (watcher) {
+            this.ctx.say(
+              `${leader.character.name} cannot break ${watcher.def.name}'s gaze (rolled ${result.total}).`,
+              "#d07070",
+            );
           } else {
             this.ctx.say(`${leader.character.name} fails to settle into cover (rolled ${result.total}).`, "#d07070");
           }
@@ -5029,6 +5049,88 @@ export class DungeonScene extends Phaser.Scene {
     const footTy = Math.floor((body.bottom + 4) / TILE);
     const solid = (ch: string | undefined) => ch === "#" || ch === "%" || ch === "=";
     return solid(grid[footTy]?.[tx]) || solid(grid[footTy + 1]?.[tx]);
+  }
+
+  /**
+   * A hunting monster that can currently see this member — the reason hiding
+   * gets harder. Breaking line of sight (a corner, a wall, another floor) drops
+   * the watcher and hiding goes back to a plain roll.
+   */
+  private watchingMonster(member: CharacterSprite): MonsterSprite | undefined {
+    return this.monsters.find(
+      (m) =>
+        m.aliveInFight
+        && m.aiState === "aggro"
+        && !m.isSleeping
+        && Phaser.Math.Distance.Between(m.x, m.y, member.x, member.y) <= AGGRO_RANGE
+        && this.hasLineOfSight(m.x, m.y, member.x, member.y),
+    );
+  }
+
+  /** Sample the tile grid along a segment; any solid tile blocks the view. */
+  private hasLineOfSight(fromX: number, fromY: number, toX: number, toY: number): boolean {
+    const grid = this.activeDungeon.grid;
+    const solid = (ch: string | undefined) => ch === "#" || ch === "%";
+    const steps = Math.ceil(Math.hypot(toX - fromX, toY - fromY) / (TILE / 2));
+    for (let i = 1; i < steps; i++) {
+      const t = i / steps;
+      const tx = Math.floor((fromX + (toX - fromX) * t) / TILE);
+      const ty = Math.floor((fromY + (toY - fromY) * t) / TILE);
+      if (solid(grid[ty]?.[tx])) return false;
+    }
+    return true;
+  }
+
+  /** Every weapon in a character's pack, in a stable order, for cycling. */
+  private carriedWeapons(member: CharacterSprite): ItemDef[] {
+    return member.character.inventory
+      .all()
+      .map((stack) => stack.def)
+      .filter((def) => def.damage !== undefined);
+  }
+
+  /** The leader's wielded weapon when it is one that shoots rather than swings. */
+  private leaderRangedWeapon(leader: CharacterSprite): ItemDef | null {
+    const weapon = leader.character.wieldedWeapon;
+    return weapon?.tags.includes("ranged") ? weapon : null;
+  }
+
+  private cycleLeaderWeapon(leader: CharacterSprite): void {
+    const weapons = this.carriedWeapons(leader);
+    if (weapons.length < 2) {
+      this.ctx.say(`${leader.character.name} carries nothing else to fight with.`, "#a0a4b0");
+      return;
+    }
+    const currentId = leader.character.wieldedWeapon?.id;
+    const at = weapons.findIndex((def) => def.id === currentId);
+    const next = weapons[(at + 1) % weapons.length]!;
+    try {
+      if (leader.torchLit && next.twoHanded) {
+        throw new Error(`${leader.character.name} cannot wield ${next.name} while carrying a torch`);
+      }
+      leader.character.equipWeapon(next);
+      this.ctx.say(`${leader.character.name} readies their ${next.name}.`, "#e0c060");
+    } catch (error) {
+      this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
+    }
+  }
+
+  /** Loose at the nearest live monster in range; silent when there is no mark. */
+  private leaderRangedAttack(leader: CharacterSprite): void {
+    const bow = this.leaderRangedWeapon(leader);
+    if (!bow || !leader.canSwing()) return;
+    const mark = this.monsters
+      .filter((m) => m.aliveInFight && Phaser.Math.Distance.Between(leader.x, leader.y, m.x, m.y) <= FAR_PX)
+      .sort(
+        (a, b) =>
+          Phaser.Math.Distance.Between(leader.x, leader.y, a.x, a.y)
+          - Phaser.Math.Distance.Between(leader.x, leader.y, b.x, b.y),
+      )[0];
+    if (!mark) return;
+    cancelShieldWall(leader.character);
+    rangedShot(this.meleeDeps(), leader, mark, bow);
+    leader.character.removeEffect("potion:invisibility");
+    this.emitNoiseAt(leader.x, leader.y);
   }
 
   private updatePorterFollower(time: number): void {
