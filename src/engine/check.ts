@@ -33,6 +33,8 @@ export interface CheckInput {
   critThreshold?: number;
   /** Flat situational modifier supplied by the caller, such as a magic weapon bonus. */
   bonus?: number;
+  /** The weapon being swung, so Weapon Mastery bonuses only count for their own weapon. */
+  weaponId?: string;
   /** Named trained task, such as climbing, swimming, stealth, or lore. */
   task?: string;
   /** Trained tasks only require a roll when both pressure and dire stakes apply. */
@@ -69,7 +71,9 @@ export function resolveCheck(dice: Dice, input: CheckInput): CheckResult {
     advReasons.push("grit");
   }
 
-  const modifier = actor.mod(stat) + sumCheckBonus(actor.effects, kind, actor.level) + (input.bonus ?? 0);
+  const modifier = actor.mod(stat)
+    + sumCheckBonus(actor.effects, kind, actor.level, input.weaponId)
+    + (input.bonus ?? 0);
   const trained =
     (input.task !== undefined && actor.isTrainedIn(input.task))
     || actor.isTrainedIn(stat);

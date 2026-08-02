@@ -14,10 +14,7 @@ export const FIGHTER_TALENTS: RollableTable = {
       min: 2,
       max: 2,
       text: "Gain Weapon Mastery with one additional weapon type: +1 to attack and damage",
-      effects: [
-        { kind: "checkBonus", applies: "attack", bonus: 1 },
-        { kind: "damageBonus", bonus: 1 },
-      ],
+      effects: [{ kind: "weaponMasteryChoice", bonus: 1 }],
     },
     {
       min: 3,

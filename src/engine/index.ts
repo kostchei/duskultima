@@ -270,6 +270,7 @@ export class Engine {
       advantage: input.advantage,
       disadvantage: input.disadvantage,
       bonus: input.weapon?.magicBonus,
+      weaponId: input.weapon?.id,
     });
     let damage = 0;
     if (check.success) {
@@ -280,7 +281,7 @@ export class Engine {
           if (hook.kind === "extraDamageDice") damage += this.dice.roll(hook.dice);
         }
       }
-      damage += a.damageBonus + (input.weapon?.magicBonus ?? 0);
+      damage += a.damageBonusWith(input.weapon?.id) + (input.weapon?.magicBonus ?? 0);
       if (melee && a.ancestry === "half-orc") damage += 1;
       const meleeMultiplier = a.effects.flatMap((effect) => effect.hooks).reduce(
         (highest, hook) => hook.kind === "meleeDamageMultiplier" ? Math.max(highest, hook.value) : highest,

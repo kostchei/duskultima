@@ -17,8 +17,9 @@ export type CheckKind =
   | "any";
 
 export type EffectHook =
-  | { kind: "checkBonus"; applies: CheckKind; bonus: number }
-  | { kind: "checkBonusHalfLevel"; applies: CheckKind }
+  /** `weaponId` restricts the bonus to attacks made with that weapon (Weapon Mastery). */
+  | { kind: "checkBonus"; applies: CheckKind; bonus: number; weaponId?: string }
+  | { kind: "checkBonusHalfLevel"; applies: CheckKind; weaponId?: string }
   | { kind: "advantageOn"; applies: CheckKind }
   | { kind: "advantageOnSpell"; spellId: string }
   | { kind: "advantageOnStat"; stat: StatName }
@@ -31,12 +32,14 @@ export type EffectHook =
   | { kind: "acBonus"; bonus: number }
   | { kind: "acMinimum"; value: number }
   | { kind: "armorAcBonusChoice"; bonus: number }
+  /** Mastery of one more weapon type; resolved to a carried weapon on gain. */
+  | { kind: "weaponMasteryChoice"; bonus: number }
   | { kind: "armorAcBonus"; armorId: string; bonus: number }
-  | { kind: "damageBonus"; bonus: number }
+  | { kind: "damageBonus"; bonus: number; weaponId?: string }
   | { kind: "meleeDamageBonus"; bonus: number }
   | { kind: "meleeDamageMultiplier"; value: number }
   /** Weapon Mastery scaling: +floor(level / 2) damage. */
-  | { kind: "damageBonusHalfLevel" }
+  | { kind: "damageBonusHalfLevel"; weaponId?: string }
   | { kind: "maxHpBonus"; bonus: number }
   | { kind: "invisible" }
   | { kind: "waterBreathing" }
@@ -97,15 +100,25 @@ export interface Effect {
   duration?: Duration;
 }
 
-export function sumCheckBonus(effects: readonly Effect[], kind: CheckKind, level = 1): number {
+/** A weapon-scoped hook only counts when that weapon is the one being swung. */
+export function hookAppliesToWeapon(hookWeaponId: string | undefined, wieldedWeaponId: string | undefined): boolean {
+  return hookWeaponId === undefined || hookWeaponId === wieldedWeaponId;
+}
+
+export function sumCheckBonus(
+  effects: readonly Effect[],
+  kind: CheckKind,
+  level = 1,
+  weaponId?: string,
+): number {
   let total = 0;
   for (const e of effects) {
     for (const h of e.hooks) {
       if (h.kind === "checkBonus" && (h.applies === kind || h.applies === "any" || (kind === "meleeAttack" && h.applies === "attack"))) {
-        total += h.bonus;
+        if (hookAppliesToWeapon(h.weaponId, weaponId)) total += h.bonus;
       }
       if (h.kind === "checkBonusHalfLevel" && (h.applies === kind || h.applies === "any" || (kind === "meleeAttack" && h.applies === "attack"))) {
-        total += Math.floor(level / 2);
+        if (hookAppliesToWeapon(h.weaponId, weaponId)) total += Math.floor(level / 2);
       }
     }
   }

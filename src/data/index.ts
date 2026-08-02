@@ -12,6 +12,7 @@ import {
   type Stats,
   type Alignment,
   type Ancestry,
+  type Effect,
 } from "../engine";
 import { classDef } from "./classes";
 import { item } from "./items";
@@ -87,6 +88,27 @@ function ensurePrimeStat(stats: Stats, cls: ClassName): void {
 }
 
 /**
+ * Weapon Mastery is earned with a specific weapon type, and the first one a
+ * fighter has is the weapon they start holding. Class features declare their
+ * mastery hooks unbound; this stamps the weapon on before the effect is added.
+ */
+function bindMastery(feature: Effect, weaponId: string): Effect {
+  if (!feature.id.endsWith("weapon-mastery")) return feature;
+  return {
+    ...feature,
+    name: `${feature.name} (${item(weaponId).name})`,
+    hooks: feature.hooks.map((hook) =>
+      hook.kind === "checkBonus"
+        || hook.kind === "checkBonusHalfLevel"
+        || hook.kind === "damageBonus"
+        || hook.kind === "damageBonusHalfLevel"
+        ? { ...hook, weaponId }
+        : hook,
+    ),
+  };
+}
+
+/**
  * Build a level-1 character of the given class: 3d6 stats (silently rerolled
  * until heroic — see rollStats), prime stat guaranteed 15+, max HP at level 1,
  * class armor kit, starting gear and spells. AC is computed from armor + DEX,
@@ -116,7 +138,7 @@ export function createCharacter(
     ancestry,
     alignment: alignment ?? rollAlignment(engine.dice),
   });
-  for (const f of def.features) c.addEffect(structuredClone(f));
+  for (const f of def.features) c.addEffect(bindMastery(structuredClone(f), def.startingWeaponId));
   initializeClassState(c);
   if (getBaseRole(cls) === "thief") {
     for (const skill of ["thievery", "stealth", "climbing", "swimming"]) c.trainSkill(skill);

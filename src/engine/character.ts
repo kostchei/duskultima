@@ -1,6 +1,6 @@
 /** Character model: six stats, class, effects (talents + conditions), HP/AC/XP, spells. */
 
-import { critThreshold, effectiveStatScore, hasHook, sumHook, type Effect } from "./effects";
+import { critThreshold, effectiveStatScore, hookAppliesToWeapon, sumHook, type Effect } from "./effects";
 import type { Dice } from "./dice";
 import { Inventory, ItemStateTracker, type ItemDef } from "./inventory";
 
@@ -17,6 +17,14 @@ export type ClassName =
   | "ras-godai"
   | "witch"
   | "seer";
+
+/** The stat a class leans on, and where a free stat bonus goes once nothing is deficient. */
+export const PRIMARY_STAT: Record<BaseClassName, StatName> = {
+  fighter: "STR",
+  thief: "DEX",
+  priest: "WIS",
+  wizard: "INT",
+};
 
 export function getBaseRole(className: ClassName): BaseClassName {
   switch (className) {
@@ -335,26 +343,86 @@ export class Character {
   }
 
   get damageBonus(): number {
-    const halfLevel = hasHook(this.effects, "damageBonusHalfLevel")
-      ? Math.floor(this.level / 2)
-      : 0;
-    return sumHook(this.effects, "damageBonus") + halfLevel;
+    return this.damageBonusWith(this.wieldedWeapon?.id);
+  }
+
+  /**
+   * Flat damage on top of the weapon dice. Weapon Mastery hooks name the weapon
+   * they were earned with, so they only pay out while that weapon is in hand.
+   */
+  damageBonusWith(weaponId: string | undefined): number {
+    let total = 0;
+    for (const effect of this.effects) {
+      for (const hook of effect.hooks) {
+        if (hook.kind === "damageBonus" && hookAppliesToWeapon(hook.weaponId, weaponId)) {
+          total += hook.bonus;
+        }
+        if (hook.kind === "damageBonusHalfLevel" && hookAppliesToWeapon(hook.weaponId, weaponId)) {
+          total += Math.floor(this.level / 2);
+        }
+      }
+    }
+    return total;
+  }
+
+  /**
+   * Where a "+2 to one of these stats" talent puts its points. Patching a
+   * deficiency beats padding a strength, so the weakest offered stat below 10
+   * wins; with nothing under 10 the points reinforce the class's primary stat.
+   */
+  private statBonusTarget(offered: readonly StatName[]): StatName {
+    let weakest: StatName | undefined;
+    for (const stat of offered) {
+      if (this.stats[stat] >= 10) continue;
+      if (weakest === undefined || this.stats[stat] < this.stats[weakest]) weakest = stat;
+    }
+    if (weakest !== undefined) return weakest;
+
+    const primary = PRIMARY_STAT[getBaseRole(this.className)];
+    if (!offered.includes(primary)) {
+      throw new Error(
+        `Stat talent offering ${offered.join("/")} cannot reach ${this.className}'s primary stat ${primary}`,
+      );
+    }
+    return primary;
+  }
+
+  /**
+   * The weapon a new mastery attaches to: a carried weapon that is not already
+   * mastered, preferring the one in hand. Mastering a weapon twice is wasted,
+   * and a fighter's first mastery already covers their starting weapon.
+   */
+  private unmasteredWeaponId(): string {
+    const mastered = new Set(
+      this.effects.flatMap((effect) =>
+        effect.hooks.flatMap((hook) =>
+          hook.kind === "damageBonus" && hook.weaponId !== undefined ? [hook.weaponId] : [],
+        ),
+      ),
+    );
+    const carried = this.inventory.all()
+      .map((stack) => stack.def)
+      .filter((def) => def.damage !== undefined);
+    const wielded = this.wieldedWeapon;
+    const ordered = wielded ? [wielded, ...carried.filter((def) => def.id !== wielded.id)] : carried;
+    const choice = ordered.find((def) => !mastered.has(def.id)) ?? ordered[0];
+    if (!choice) throw new Error(`${this.name} has no weapon to gain Weapon Mastery with`);
+    return choice.id;
   }
 
   addEffect(effect: Effect): void {
-    const resolvedHooks = effect.hooks.map((h) => {
+    const resolvedHooks = effect.hooks.flatMap((h) => {
+      if (h.kind === "weaponMasteryChoice") {
+        const weaponId = this.unmasteredWeaponId();
+        return [
+          { kind: "checkBonus" as const, applies: "attack" as const, bonus: h.bonus, weaponId },
+          { kind: "damageBonus" as const, bonus: h.bonus, weaponId },
+        ];
+      }
       if (h.kind === "statBonusChoice") {
-        let bestStat = h.stats[0]!;
-        let maxVal = -1;
-        for (const s of h.stats) {
-          const val = this.stats[s];
-          if (val > maxVal) {
-            maxVal = val;
-            bestStat = s;
-          }
-        }
-        this.stats[bestStat] = Math.min(20, this.stats[bestStat] + h.bonus);
-        return { kind: "statBonus" as const, stat: bestStat, bonus: h.bonus };
+        const target = this.statBonusTarget(h.stats);
+        this.stats[target] = Math.min(20, this.stats[target] + h.bonus);
+        return { kind: "statBonus" as const, stat: target, bonus: h.bonus };
       }
       if (h.kind === "statBonus") {
         this.stats[h.stat] = Math.min(20, this.stats[h.stat] + h.bonus);

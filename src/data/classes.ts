@@ -27,6 +27,8 @@ const CLASS_LIST: readonly ClassDef[] = [
     startingSpellIds: [],
     features: [
       {
+        // Mastery is per weapon type. The first one lands on the fighter's
+        // starting weapon; `weaponId` is filled in at character creation.
         id: "feat-fighter-weapon-mastery",
         name: "Weapon Mastery: +1 to attack and damage, +half level to attack and damage",
         hooks: [

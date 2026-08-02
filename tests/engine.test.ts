@@ -9,6 +9,7 @@ import {
   WIZARD_MISHAP_TABLE_TIER_3_4,
   WIZARD_MISHAP_TABLE_TIER_5,
   monsterAttackRoll,
+  PRIMARY_STAT,
   resolveCheck,
   rollStats,
   statModifier,
@@ -652,22 +653,22 @@ describe("fighter class feature rules", () => {
     expect(r2.mode).toBe("normal");
   });
 
-  it("applies Weapon Mastery half level bonus to attacks", () => {
+  it("applies Weapon Mastery half level bonus with the mastered weapon only", () => {
     const engine = makeEngine();
     const f = createCharacter(engine, "f", "Fighter", "fighter");
     // Clear starting talents/features to test Weapon Mastery in isolation
     f.effects = f.effects.filter((e) => e.id === "feat-fighter-weapon-mastery");
     f.level = 4; // half level = 2
-    // Resolve an attack check
-    const r = resolveCheck(new Dice(1), {
-      actor: f,
-      stat: "STR",
-      dc: DC.NORMAL,
-      kind: "attack",
-    });
-    // Base modifier + Weapon Mastery checkBonus (1) + checkBonusHalfLevel (2)
-    const expectedMod = statModifier(f.stats.STR) + 1 + 2;
-    expect(r.modifier).toBe(expectedMod);
+    const check = (weaponId?: string) =>
+      resolveCheck(new Dice(1), { actor: f, stat: "STR", dc: DC.NORMAL, kind: "attack", weaponId });
+
+    // The fighter's mastery is bound to their starting weapon: base modifier
+    // + checkBonus (1) + checkBonusHalfLevel (2).
+    expect(check("spear").modifier).toBe(statModifier(f.stats.STR) + 1 + 2);
+    // Any other weapon is unmastered — no attack bonus, no half-level scaling.
+    expect(check("dagger").modifier).toBe(statModifier(f.stats.STR));
+    expect(f.damageBonusWith("spear")).toBe(1 + 2);
+    expect(f.damageBonusWith("dagger")).toBe(0);
   });
 
   it("auto-resolves statBonusChoice and armorAcBonusChoice", () => {
@@ -728,8 +729,12 @@ describe("fighter class feature rules", () => {
     registerTables(seededEngine);
     const f = createCharacter(seededEngine, "f", "Fighter", "fighter");
 
+    // Starting talents land after the swap and can raise the stat that STR's
+    // old value moved into, so assert the exchange rather than exact values:
+    // the heroic score is now in STR, and what was in its slot is no longer heroic.
     expect(f.stats.STR).toBeGreaterThanOrEqual(originalStats[bestStat!]);
-    expect(f.stats[bestStat!]).toBe(originalStats.STR);
+    expect(f.stats[bestStat!]).toBeGreaterThanOrEqual(originalStats.STR);
+    expect(f.stats[bestStat!]).toBeLessThan(originalStats[bestStat!]);
   });
 });
 
@@ -784,5 +789,87 @@ describe("monster attack special abilities", () => {
     expect(monster("deep-one").specialAbility).toBe("engulf");
     expect(monster("shadow").specialAbility).toBe("shadow-extinct");
     expect(monster("animated-armor").specialAbility).toBe("corrode");
+  });
+});
+
+describe("stat bonus talent targeting", () => {
+  const character = (className: "fighter" | "thief" | "priest" | "wizard", stats: Record<string, number>) =>
+    new Character({
+      id: "s",
+      name: "Subject",
+      className,
+      stats: stats as never,
+      maxHp: 8,
+    });
+
+  const grant = (c: Character, stats: readonly string[], bonus = 2) =>
+    c.addEffect({
+      id: "talent-stat",
+      name: "+bonus to one stat",
+      hooks: [{ kind: "statBonusChoice", stats: stats as never, bonus }],
+    });
+
+  it("shores up the weakest offered stat below 10", () => {
+    const f = character("fighter", { STR: 16, DEX: 9, CON: 8, INT: 10, WIS: 10, CHA: 10 });
+    grant(f, ["STR", "DEX", "CON"]);
+    expect(f.stats.CON).toBe(10);
+    expect(f.stats.DEX).toBe(9);
+    expect(f.stats.STR).toBe(16);
+  });
+
+  it("reinforces the class primary when nothing offered is deficient", () => {
+    const f = character("fighter", { STR: 13, DEX: 12, CON: 11, INT: 8, WIS: 8, CHA: 8 });
+    grant(f, ["STR", "DEX", "CON"]);
+    expect(f.stats.STR).toBe(15);
+    // A deficient stat the talent does not offer is left alone.
+    expect(f.stats.INT).toBe(8);
+  });
+
+  it("uses each class's own primary stat", () => {
+    const all = ["STR", "DEX", "CON", "INT", "WIS", "CHA"] as const;
+    for (const className of ["fighter", "thief", "priest", "wizard"] as const) {
+      const c = character(className, { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 });
+      grant(c, all);
+      const primary = PRIMARY_STAT[className];
+      expect(c.stats[primary]).toBe(14);
+    }
+  });
+
+  it("refuses to place points when the class primary is not on offer", () => {
+    const w = character("wizard", { STR: 12, DEX: 12, CON: 12, INT: 12, WIS: 12, CHA: 12 });
+    expect(() => grant(w, ["STR", "CON"])).toThrow(/primary stat INT/);
+  });
+});
+
+describe("weapon mastery binding", () => {
+  it("binds a fighter's first mastery to their starting weapon", () => {
+    const engine = makeEngine();
+    const f = createCharacter(engine, "f", "Fighter", "fighter");
+    const mastery = f.effects.find((e) => e.id === "feat-fighter-weapon-mastery");
+    expect(mastery).toBeDefined();
+    for (const hook of mastery!.hooks) {
+      expect((hook as { weaponId?: string }).weaponId).toBe("spear");
+    }
+    expect(mastery!.name).toContain("Spear");
+  });
+
+  it("sends an additional mastery to a carried weapon that is not mastered yet", () => {
+    const engine = makeEngine();
+    const f = createCharacter(engine, "f", "Fighter", "fighter");
+    f.effects = f.effects.filter((e) => e.id === "feat-fighter-weapon-mastery");
+    f.inventory.add(item("dagger"), 1, true);
+    f.addEffect({
+      id: "talent-extra-mastery",
+      name: "Weapon Mastery with one additional weapon type",
+      hooks: [{ kind: "weaponMasteryChoice", bonus: 1 }],
+    });
+
+    // The spear is already mastered by the class feature, so the talent goes to
+    // another weapon in the pack (a fighter also starts carrying javelins).
+    expect(f.damageBonusWith("spear")).toBe(1);
+    const alsoMastered = ["javelin", "dagger"].filter((id) => f.damageBonusWith(id) === 1);
+    expect(alsoMastered).toHaveLength(1);
+    // A weapon nobody carries or mastered stays unbonused.
+    expect(f.damageBonusWith("shortbow")).toBe(0);
   });
 });
