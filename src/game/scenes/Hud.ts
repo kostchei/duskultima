@@ -1137,26 +1137,52 @@ export class HudScene extends Phaser.Scene {
     });
 
     const blockNote = (row: ShopRow): string =>
-      row.block === "gold" ? " (need gold)" : row.block === "room" ? " (no room)" : row.block === "hired" ? " (already hired)" : row.block === "attempted" ? " (declined)" : "";
-    const buyLines = view.buy.length === 0
-      ? "—"
-      : view.buy.map((row, i) => {
-          const cursor = buyActive && i === view.cursor ? ">" : " ";
-          return `${cursor} ${row.name}  ${row.price}g${blockNote(row)}`;
-        }).join("\n");
-    const sellLines = view.sell.length === 0
-      ? "Nothing to sell"
-      : view.sell.map((row, i) => {
-          const cursor = !buyActive && i === view.cursor ? ">" : " ";
-          const qty = row.qty && row.qty > 1 ? ` x${row.qty}` : "";
-          return `${cursor} ${row.name}${qty}  ${row.price}g`;
-        }).join("\n");
+      row.block === "gold" ? " [no gold]" : row.block === "room" ? " [no room]" : row.block === "hired" ? " [hired]" : row.block === "attempted" ? " [declined]" : "";
+
+    // The stock list is longer than the space above the fixed control row.
+    // Keep a small window around the cursor instead of allowing wrapped rows
+    // to spill into the buttons and footer below.
+    const VISIBLE_SHOP_ROWS = 8;
+    const SHOP_ROW_CHARS = 31;
+    const renderShopRows = (rows: readonly ShopRow[], active: boolean): string => {
+      if (rows.length === 0) return active ? "—" : "Nothing to sell";
+
+      const selectedIndex = active ? view.cursor : -1;
+      const windowStart = rows.length <= VISIBLE_SHOP_ROWS
+        ? 0
+        : Math.min(
+            Math.max(0, selectedIndex - Math.floor(VISIBLE_SHOP_ROWS / 2)),
+            rows.length - VISIBLE_SHOP_ROWS,
+          );
+      const visibleRows = rows.slice(windowStart, windowStart + VISIBLE_SHOP_ROWS);
+      const rowsAbove = windowStart;
+      const rowsBelow = rows.length - (windowStart + visibleRows.length);
+      const lines = visibleRows.map((row, i) => {
+        const index = windowStart + i;
+        const cursor = active && index === view.cursor ? ">" : " ";
+        const qty = row.qty && row.qty > 1 ? ` x${row.qty}` : "";
+        const suffix = `${qty} ${row.price}g${blockNote(row)}`;
+        const maxNameChars = Math.max(1, SHOP_ROW_CHARS - cursor.length - 1 - suffix.length);
+        const name = row.name.length > maxNameChars
+          ? `${row.name.slice(0, Math.max(1, maxNameChars - 1))}…`
+          : row.name;
+        return `${cursor} ${name}${suffix}`;
+      });
+
+      return [
+        rowsAbove > 0 ? `  ▲ ${rowsAbove} more above` : "",
+        ...lines,
+        rowsBelow > 0 ? `  ▼ ${rowsBelow} more below` : "",
+      ].filter(Boolean).join("\n");
+    };
+    const buyLines = renderShopRows(view.buy, buyActive);
+    const sellLines = renderShopRows(view.sell, !buyActive);
 
     const buyText = this.add.text(w / 2 - 220, h / 2 - 74, buyLines, {
-      ...DATA_STYLE, fontSize: "11px", lineSpacing: 6, wordWrap: { width: 210 },
+      ...DATA_STYLE, fontSize: "11px", lineSpacing: 6,
     });
     const sellText = this.add.text(w / 2 + 20, h / 2 - 74, sellLines, {
-      ...DATA_STYLE, fontSize: "11px", lineSpacing: 6, wordWrap: { width: 210 },
+      ...DATA_STYLE, fontSize: "11px", lineSpacing: 6,
     });
 
     const controls = [
