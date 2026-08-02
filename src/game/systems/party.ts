@@ -100,10 +100,13 @@ export class PartyManager {
   /**
    * canStep answers "is there ground within a safe drop ahead of this
    * follower?" — followers stop at ledges unless their target is below them.
+   * routeVia offers a waypoint to walk to first: a ladder that reaches the
+   * leader's level, so followers take the rungs instead of stepping off a drop.
    */
   updateFollowers(
     now: number,
     canStep: (m: CharacterSprite, dir: -1 | 1, targetY: number) => boolean,
+    routeVia: (m: CharacterSprite) => { x: number; y: number } | null = () => null,
   ): void {
     const leader = this.leader;
     for (const m of this.members) m.isLeader = m === leader;
@@ -116,8 +119,11 @@ export class PartyManager {
         m.moveHorizontal(0, 0);
         continue;
       }
-      const target = rescue ?? { x: leader.x, y: leader.y };
-      const gap = rescue ? 20 : FOLLOW_GAP_PX;
+      // Rescue first, then any ladder standing between this follower and the
+      // leader, then the leader themselves.
+      const ladder = rescue ? null : routeVia(m);
+      const target = rescue ?? ladder ?? { x: leader.x, y: leader.y };
+      const gap = rescue ? 20 : ladder ? 8 : FOLLOW_GAP_PX;
       const dx = target.x - m.x;
       const body = m.body as Phaser.Physics.Arcade.Body;
       if (!rescue && Math.abs(dx) > TELEPORT_CATCHUP_PX) {
@@ -128,13 +134,18 @@ export class PartyManager {
       }
       if (Math.abs(dx) > gap) {
         const dir: -1 | 1 = dx > 0 ? 1 : -1;
-        if (!canStep(m, dir, target.y)) {
+        // Walking to a ladder means staying on this floor to reach it: pass the
+        // follower's own height so canStep never licenses a drop on the way.
+        if (!canStep(m, dir, ladder ? m.y : target.y)) {
           m.moveHorizontal(0, 0);
           continue;
         }
         m.moveHorizontal(dir, 0);
         const wallAhead = dir === 1 ? body.blocked.right : body.blocked.left;
-        if ((wallAhead || target.y < m.y - 40) && body.blocked.down) {
+        // Obstacles still get hopped, but a follower heading for a ladder does
+        // not jump at a leader overhead — that is what the rungs are for.
+        const jumpForHeight = !ladder && target.y < m.y - 40;
+        if ((wallAhead || jumpForHeight) && body.blocked.down) {
           m.tryJump(now);
         }
       } else {

@@ -2231,7 +2231,11 @@ export class DungeonScene extends Phaser.Scene {
     }
     this.updateLeaderInput(time, delta);
     this.updateCameraFraming(time, delta);
-    this.party.updateFollowers(time, (m, dir, targetY) => this.followerCanStep(m, dir, targetY));
+    this.party.updateFollowers(
+      time,
+      (m, dir, targetY) => this.followerCanStep(m, dir, targetY),
+      (m) => this.ladderRouteFor(m),
+    );
     this.updatePorterFollower(time);
     this.updateFollowerClimbs(time);
     this.updateFollowerSupport(time);
@@ -5157,6 +5161,45 @@ export class DungeonScene extends Phaser.Scene {
     porter.moveHorizontal(dir, 0);
     const wallAhead = dir === 1 ? body.blocked.right : body.blocked.left;
     if ((wallAhead || leader.y < porter.y - 40) && body.blocked.down) porter.tryJump(time);
+  }
+
+  /**
+   * Where a follower should walk to reach the leader's floor. When the leader is
+   * a level away and a ladder spans the gap, the answer is the foot of that
+   * ladder rather than the leader themselves — followers climb instead of
+   * stepping off ledges. Null when they are already on the same level, when
+   * they are on the rungs, or when no ladder connects the two.
+   */
+  private ladderRouteFor(member: CharacterSprite): { x: number; y: number } | null {
+    if (member.climbing) return null;
+    const leader = this.party.leader;
+    const drop = leader.y - member.y;
+    if (Math.abs(drop) <= TILE * 2) return null;
+
+    const top = Math.min(member.y, leader.y);
+    const bottom = Math.max(member.y, leader.y);
+    // Ladder tiles are authored one per cell; a usable ladder is a column whose
+    // run of cells reaches from one floor to the other.
+    const columns = new Map<number, { x: number; top: number; bottom: number }>();
+    for (const zone of this.climbTiles) {
+      const key = Math.round(zone.x / TILE);
+      const seen = columns.get(key);
+      if (seen) {
+        seen.top = Math.min(seen.top, zone.y);
+        seen.bottom = Math.max(seen.bottom, zone.y);
+      } else {
+        columns.set(key, { x: zone.x, top: zone.y, bottom: zone.y });
+      }
+    }
+
+    const spanning = [...columns.values()].filter(
+      (column) => column.top <= top + TILE && column.bottom >= bottom - TILE,
+    );
+    if (spanning.length === 0) return null;
+    const nearest = spanning.sort(
+      (a, b) => Math.abs(a.x - member.x) - Math.abs(b.x - member.x),
+    )[0]!;
+    return { x: nearest.x, y: member.y };
   }
 
   private tryStartClimb(member: CharacterSprite, slippery: boolean, time: number): boolean {
