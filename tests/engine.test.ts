@@ -972,3 +972,48 @@ describe("attack stat drives damage", () => {
     expect(hits).toBeGreaterThan(0);
   });
 });
+
+describe("which stat a weapon uses", () => {
+  const wielder = (stats: Record<string, number>) =>
+    new Character({ id: "s", name: "Swinger", className: "fighter", stats: stats as never, maxHp: 10 });
+
+  const attackWith = (statsIn: Record<string, number>, weaponId: string) => {
+    const engine = makeEngine(13);
+    const c = wielder(statsIn);
+    const weapon = item(weaponId);
+    return engine.attack({ attacker: c, targetAc: -99, damage: weapon.damage!, weapon });
+  };
+
+  it("uses STR on a plain weapon however dextrous the wielder", () => {
+    // Longsword has no finesse tag, so DEX never gets a look in.
+    const r = attackWith({ STR: 12, DEX: 18, CON: 10, INT: 10, WIS: 10, CHA: 10 }, "longsword");
+    expect(r.check.modifier).toBe(1); // STR 12, not DEX 18
+  });
+
+  it("keeps STR on a finesse weapon unless DEX is strictly higher", () => {
+    const stronger = attackWith({ STR: 18, DEX: 12, CON: 10, INT: 10, WIS: 10, CHA: 10 }, "shortsword");
+    expect(stronger.check.modifier).toBe(4); // STR wins
+
+    // Equal modifiers are not "higher", so STR keeps the weapon.
+    const tied = attackWith({ STR: 14, DEX: 15, CON: 10, INT: 10, WIS: 10, CHA: 10 }, "shortsword");
+    expect(statModifier(14)).toBe(statModifier(15));
+    expect(tied.check.modifier).toBe(2);
+
+    const nimbler = attackWith({ STR: 12, DEX: 18, CON: 10, INT: 10, WIS: 10, CHA: 10 }, "shortsword");
+    expect(nimbler.check.modifier).toBe(4); // DEX wins
+  });
+
+  it("never drops a landed hit below 1 damage on a weak wielder", () => {
+    const engine = makeEngine(21);
+    const weakling = wielder({ STR: 3, DEX: 3, CON: 10, INT: 10, WIS: 10, CHA: 10 });
+    const sword = item("longsword");
+    let landed = 0;
+    for (let i = 0; i < 80; i++) {
+      const r = engine.attack({ attacker: weakling, targetAc: -99, damage: sword.damage!, weapon: sword });
+      if (!r.check.success) continue;
+      landed++;
+      expect(r.damage).toBeGreaterThanOrEqual(1); // 1d8 - 4 can go to zero or below
+    }
+    expect(landed).toBeGreaterThan(0);
+  });
+});
