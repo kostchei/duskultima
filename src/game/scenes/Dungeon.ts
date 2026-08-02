@@ -521,7 +521,10 @@ export class DungeonScene extends Phaser.Scene {
 
     // A capture-only query flag keeps the normal title flow unchanged while
     // allowing deterministic, unobscured art-direction screenshots.
-    const autostart = new URLSearchParams(window.location.search).get("autostart") === "1";
+    // `?autostart=1` is the tooling hook; `skipBriefing` is the mobile
+    // quickstart, which is meant to reach play without any opening panel.
+    const autostart = new URLSearchParams(window.location.search).get("autostart") === "1"
+      || this.registry.get("skipBriefing") === true;
     // A fresh controller per `create` — the scene restart *is* the reset, so the
     // controller never has to unwind a terminal mode.
     this.modes = new ModeController(this.modeHost(), autostart || this.loadedState?.rewindWorld ? "playing" : "briefing");

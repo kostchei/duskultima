@@ -2,15 +2,27 @@
 
 import Phaser from "phaser";
 import { generateTextures } from "../textures";
-import { RENDER_SCALE, GAME_W, GAME_H } from "../display";
+import { IS_MOBILE_DISPLAY, RENDER_SCALE, GAME_W, GAME_H } from "../display";
 import { SaveRepository } from "../SaveRepository";
 import { showAlert, showConfirm } from "../ui/modal";
 import { currentInputFamily } from "../input/inputFamily";
 import { textButton } from "../ui/button";
+import { randomRunSelection, startRun } from "../quickstart";
+
+const SAVE_SLOTS = [0, 1, 2, 3];
 
 export class BootScene extends Phaser.Scene {
   constructor() {
     super("Boot");
+  }
+
+  private anySaveExists(): boolean {
+    return SAVE_SLOTS.some((slot) => SaveRepository.exists(slot));
+  }
+
+  /** Roll a beginning and go. `skipBriefing` is the no-intro-screens mobile path. */
+  private quickstart(skipBriefing: boolean): void {
+    startRun(this, { ...randomRunSelection(), ancestry: "human" }, skipBriefing);
   }
 
   create(): void {
@@ -26,6 +38,16 @@ export class BootScene extends Phaser.Scene {
       this.scene.start("EquipmentShowroom");
       return;
     }
+
+    // Mobile skips the title screen entirely and lands in play. Only on the
+    // session's first Boot, so returning here from in-game doesn't bounce
+    // straight back out — and only with nothing to lose, since a fresh run
+    // eventually overwrites the autosave.
+    if (IS_MOBILE_DISPLAY && !this.registry.get("bootShown") && !this.anySaveExists()) {
+      this.quickstart(true);
+      return;
+    }
+    this.registry.set("bootShown", true);
 
     const w = GAME_W;
     const h = GAME_H;
@@ -61,23 +83,23 @@ export class BootScene extends Phaser.Scene {
       resolution: RENDER_SCALE,
     }).setOrigin(0.5);
 
-    // New Game Button — the first tap a mobile player ever makes here, so it
-    // gets the shared textButton's larger hit rect and pressed feedback.
+    // Any fresh run eventually overwrites the autosave, so both start paths
+    // ask first when there is progress on disk.
+    const guardProgress = (begin: () => void) => {
+      if (this.anySaveExists()) {
+        showConfirm(this, "Starting a new game will eventually overwrite your autosave and progress. Proceed?", begin);
+        return;
+      }
+      begin();
+    };
+
+    // Quickstart — a rolled destination, location, and class, straight into play.
     textButton(
       this,
       w / 2,
-      h / 2 - 20,
-      "[ Start New Game ]",
-      () => {
-        const startRun = () => {
-          this.scene.start("NewGame");
-        };
-        if (SaveRepository.exists(0) || SaveRepository.exists(1) || SaveRepository.exists(2) || SaveRepository.exists(3)) {
-          showConfirm(this, "Starting a new game will eventually overwrite your autosave and progress. Proceed?", startRun);
-          return;
-        }
-        startRun();
-      },
+      h / 2 - 22,
+      "[ QUICKSTART ]",
+      () => guardProgress(() => this.quickstart(false)),
       {
         fontSize: "16px",
         idleColor: "#ffd45f",
@@ -87,8 +109,25 @@ export class BootScene extends Phaser.Scene {
       },
     );
 
+    // New Game Button — the first tap a mobile player ever makes here, so it
+    // gets the shared textButton's larger hit rect and pressed feedback.
+    textButton(
+      this,
+      w / 2,
+      h / 2 + 12,
+      "[ Start New Game ]",
+      () => guardProgress(() => this.scene.start("NewGame")),
+      {
+        fontSize: "14px",
+        idleColor: "#a0a4b0",
+        pressedColor: "#ffffff",
+        resolution: RENDER_SCALE,
+        padding: { x: 10, y: 5 },
+      },
+    );
+
     // Load slots
-    this.add.text(w / 2, h / 2 + 30, "RESUME EXPEDITION", {
+    this.add.text(w / 2, h / 2 + 50, "RESUME EXPEDITION", {
       fontFamily: 'Consolas, monospace',
       fontSize: "12px",
       color: "#a0a4b0",
@@ -140,13 +179,13 @@ export class BootScene extends Phaser.Scene {
       return btn;
     };
 
-    makeLoadBtn(h / 2 + 65, "Slot 1", 1);
-    makeLoadBtn(h / 2 + 95, "Slot 2", 2);
-    makeLoadBtn(h / 2 + 125, "Slot 3", 3);
-    makeLoadBtn(h / 2 + 155, "Auto-Save", 0);
+    makeLoadBtn(h / 2 + 80, "Slot 1", 1);
+    makeLoadBtn(h / 2 + 108, "Slot 2", 2);
+    makeLoadBtn(h / 2 + 136, "Slot 3", 3);
+    makeLoadBtn(h / 2 + 164, "Auto-Save", 0);
 
     // Export/Import
-    const exportBtn = this.add.text(w / 2 - 80, h / 2 + 195, "[ Export Saves ]", {
+    const exportBtn = this.add.text(w / 2 - 80, h / 2 + 202, "[ Export Saves ]", {
       fontFamily: 'Consolas, monospace',
       fontSize: "11px",
       color: "#a0a4b0",
@@ -154,7 +193,7 @@ export class BootScene extends Phaser.Scene {
       resolution: RENDER_SCALE,
     }).setOrigin(0.5);
 
-    const importBtn = this.add.text(w / 2 + 80, h / 2 + 195, "[ Import Saves ]", {
+    const importBtn = this.add.text(w / 2 + 80, h / 2 + 202, "[ Import Saves ]", {
       fontFamily: 'Consolas, monospace',
       fontSize: "11px",
       color: "#a0a4b0",

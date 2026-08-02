@@ -6,7 +6,7 @@ import { textButton } from "../ui/button";
 import type { VisualSkinId, ZonePackId } from "../visual/model";
 import { ZONE_PACKS, zonePackInfo } from "../visual/skins";
 import { startingClassesForZone, startingLocationsForZone } from "../startingChoices";
-import { GameContext } from "../context";
+import { startRun } from "../quickstart";
 
 /** Touch-complete new-run setup: destination, exact starting location, then class. */
 export class NewGameScene extends Phaser.Scene {
@@ -128,13 +128,11 @@ export class NewGameScene extends Phaser.Scene {
   }
 
   private begin(): void {
-    this.registry.set("dungeonIndex", 0);
-    this.registry.set("runSeed", Math.floor(Math.random() * 0x1_0000_0000));
-    this.registry.set("startingZone", this.zone);
-    this.registry.set("startingSkinId", this.skinId);
-    this.registry.set("startingClass", this.className);
-    this.registry.set("startingAncestry", this.ancestry);
-    this.registry.set("ctx", new GameContext());
-    this.scene.start("Dungeon");
+    startRun(this, {
+      zone: this.zone,
+      skinId: this.skinId,
+      className: this.className,
+      ancestry: this.ancestry,
+    });
   }
 }
