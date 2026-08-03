@@ -1,0 +1,5458 @@
+[
+  {
+    "id": "goblin",
+    "name": "Goblin",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 3444,
+    "npc_name": "Venture Co. Workman",
+    "sounds": {
+      "aggro": {
+        "title": "GoblinMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547218/GoblinMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "GoblinMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547220/GoblinMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "GoblinMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547229/GoblinMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "bittermold",
+    "name": "Bittermold Scuttler",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 4279,
+    "npc_name": "Rotting Sludge",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "bogthorn",
+    "name": "Bogthorn",
+    "biome": "diablerie",
+    "archetype": "plant",
+    "npc_id": 14278,
+    "npc_name": "Tendris Warpwood",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gloom-ogre",
+    "name": "Gloom Ogre",
+    "biome": "diablerie",
+    "archetype": "brute",
+    "npc_id": 1140,
+    "npc_name": "Mo'grosh Enforcer",
+    "sounds": {
+      "aggro": {
+        "title": "OgreAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547778/OgreAggroA.ogg"
+      },
+      "attack": {
+        "title": "OgreAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547780/OgreAttackA.ogg"
+      },
+      "wound": {
+        "title": "OgreWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547787/OgreWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "madman",
+    "name": "Madman",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Deranged Cultist",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "flagellant",
+    "name": "Flagellant",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 4420,
+    "npc_name": "Razormane Zealot",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "cultist-brawler",
+    "name": "Cultist Brawler",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 3728,
+    "npc_name": "Defias Brawler",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "cultist-witch",
+    "name": "Cultist Witch",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 3729,
+    "npc_name": "Defias Shadowweaver",
+    "sounds": {
+      "aggro": {
+        "title": "HumanFemaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547285/HumanFemaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanFemaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547287/HumanFemaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanFemaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547294/HumanFemaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rotgrub-swarm",
+    "name": "Rotgrub Swarm",
+    "biome": "diablerie",
+    "archetype": "swarm",
+    "npc_id": 11568,
+    "npc_name": "Deepslide Parasite",
+    "sounds": {
+      "aggro": {
+        "title": "CryptFiendAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546599/CryptFiendAggroA.ogg"
+      },
+      "attack": {
+        "title": "CryptFiendAttackB",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546600/CryptFiendAttackB.ogg"
+      },
+      "wound": {
+        "title": "CryptFiendWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546609/CryptFiendWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "maggot-pack",
+    "name": "Maggot Pack",
+    "biome": "diablerie",
+    "archetype": "swarm",
+    "npc_id": 11568,
+    "npc_name": "Parasitic Maggot",
+    "sounds": {
+      "aggro": {
+        "title": "CryptFiendAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546599/CryptFiendAggroA.ogg"
+      },
+      "attack": {
+        "title": "CryptFiendAttackB",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546600/CryptFiendAttackB.ogg"
+      },
+      "wound": {
+        "title": "CryptFiendWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546609/CryptFiendWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "carrion-crawler",
+    "name": "Carrion Crawler",
+    "biome": "diablerie",
+    "archetype": "vermin",
+    "npc_id": 7351,
+    "npc_name": "Tomb Reaver",
+    "sounds": {
+      "aggro": {
+        "title": "CryptFiendAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546599/CryptFiendAggroA.ogg"
+      },
+      "attack": {
+        "title": "CryptFiendAttackB",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546600/CryptFiendAttackB.ogg"
+      },
+      "wound": {
+        "title": "CryptFiendWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546609/CryptFiendWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "great-carrion-crawler",
+    "name": "Great Carrion Crawler",
+    "biome": "diablerie",
+    "archetype": "vermin",
+    "npc_id": 7351,
+    "npc_name": "Tomb Reaver",
+    "sounds": {
+      "aggro": {
+        "title": "CryptFiendAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546599/CryptFiendAggroA.ogg"
+      },
+      "attack": {
+        "title": "CryptFiendAttackB",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546600/CryptFiendAttackB.ogg"
+      },
+      "wound": {
+        "title": "CryptFiendWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546609/CryptFiendWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "webber-spider",
+    "name": "Webber Spider",
+    "biome": "diablerie",
+    "archetype": "spider",
+    "npc_id": 7040,
+    "npc_name": "Giant Webwood Spider",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "spitter-spider",
+    "name": "Spitter Spider",
+    "biome": "diablerie",
+    "archetype": "spider",
+    "npc_id": 10374,
+    "npc_name": "Shadow Web Weaver",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "arachnorok",
+    "name": "Arachnorok",
+    "biome": "diablerie",
+    "archetype": "spider",
+    "npc_id": 10813,
+    "npc_name": "Crystal Web Reaver",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "quillboar-wretch",
+    "name": "Quillboar Wretch",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4419,
+    "npc_name": "Razormane Scout",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "quillboar-chopper",
+    "name": "Quillboar Chopper",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4420,
+    "npc_name": "Razormane Hunter",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "quillboar-slasher",
+    "name": "Quillboar Slasher",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 3261,
+    "npc_name": "Bristleback Striker",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "quillboar-spearhide",
+    "name": "Quillboar Spearhide",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 3263,
+    "npc_name": "Bristleback Spearhide",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "quillboar-geomancer",
+    "name": "Quillboar Geomancer",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4421,
+    "npc_name": "Razormane Geomancer",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "quillboar-necromancer",
+    "name": "Quillboar Necromancer",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 3265,
+    "npc_name": "Bristleback Necromancer",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "razormane-hunter",
+    "name": "Razormane Hunter",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4420,
+    "npc_name": "Razormane Hunter",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "razormane-frenzy",
+    "name": "Razormane Frenzy",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4422,
+    "npc_name": "Razormane Defender",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "razormane-warstalker",
+    "name": "Razormane Warstalker",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4419,
+    "npc_name": "Razormane Scout",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "razormane-geomancer",
+    "name": "Razormane Geomancer",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4421,
+    "npc_name": "Razormane Geomancer",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "bristleback-bladewarden",
+    "name": "Bristleback Bladewarden",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 3268,
+    "npc_name": "Bristleback Bladewarden",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "bristleback-thornweaver",
+    "name": "Bristleback Thornweaver",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 3261,
+    "npc_name": "Bristleback Thornweaver",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "razormane-seer",
+    "name": "Razormane Seer",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4421,
+    "npc_name": "Razormane Seer",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "razormane-warfrenzy",
+    "name": "Razormane Warfrenzy",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 4422,
+    "npc_name": "Razormane Warfrenzy",
+    "sounds": {
+      "aggro": {
+        "title": "QuillBoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548236/QuillBoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "QuillBoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548237/QuillBoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "QuillBoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/12/548243/QuillBoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "timber-wolf",
+    "name": "Timber Wolf",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 1769,
+    "npc_name": "Timber Wolf",
+    "sounds": {
+      "aggro": {
+        "title": "WolfAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549163/WolfAggroA.ogg"
+      },
+      "attack": {
+        "title": "WolfAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549165/WolfAttackA.ogg"
+      },
+      "wound": {
+        "title": "WolfWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549171/WolfWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "vulture",
+    "name": "Vulture",
+    "biome": "diablerie",
+    "archetype": "avian",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "hunting-cat",
+    "name": "Hunting Cat",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "savannah-huntress",
+    "name": "Savannah Huntress",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "pridemane",
+    "name": "Pridemane",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "zhevra",
+    "name": "Zhevra",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "prairie-dog",
+    "name": "Prairie Dog",
+    "biome": "diablerie",
+    "archetype": "vermin",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "WolfAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549163/WolfAggroA.ogg"
+      },
+      "attack": {
+        "title": "WolfAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549165/WolfAttackA.ogg"
+      },
+      "wound": {
+        "title": "WolfWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549171/WolfWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "heckfang-scavenger",
+    "name": "Heckfang Scavenger",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "adder",
+    "name": "Adder",
+    "biome": "diablerie",
+    "archetype": "serpent",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "stormsnout",
+    "name": "Stormsnout",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546445/BoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "BoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546447/BoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "BoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546453/BoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dusthoof-giraffe",
+    "name": "Dusthoof Giraffe",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "plains-strider",
+    "name": "Towering Plains Strider",
+    "biome": "diablerie",
+    "archetype": "avian",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "stone-elemental",
+    "name": "Stone Elemental",
+    "biome": "diablerie",
+    "archetype": "elemental",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "wind-elemental",
+    "name": "Wind Elemental",
+    "biome": "diablerie",
+    "archetype": "elemental",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "eldritch-bone",
+    "name": "Eldritch Bone",
+    "biome": "diablerie",
+    "archetype": "skeletal",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SkeletonAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548518/SkeletonAggroA.ogg"
+      },
+      "attack": {
+        "title": "SkeletonAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548520/SkeletonAttackA.ogg"
+      },
+      "wound": {
+        "title": "SkeletonWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548527/SkeletonWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "eldritch-flesh",
+    "name": "Eldritch Flesh",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "GhoulAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547058/GhoulAggroA.ogg"
+      },
+      "attack": {
+        "title": "GhoulAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547060/GhoulAttackA.ogg"
+      },
+      "wound": {
+        "title": "GhoulWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547067/GhoulWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gibbering-mouther",
+    "name": "Gibbering Mouther",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "wild-boar",
+    "name": "Wild Boar",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546445/BoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "BoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546447/BoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "BoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546453/BoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-boar",
+    "name": "Giant Boar",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546445/BoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "BoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546447/BoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "BoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546453/BoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dire-boar",
+    "name": "Dire Boar",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 3098,
+    "npc_name": "Mottled Boar",
+    "sounds": {
+      "aggro": {
+        "title": "BoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546445/BoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "BoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546447/BoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "BoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546453/BoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-warthog",
+    "name": "Giant Warthog",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546445/BoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "BoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546447/BoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "BoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546453/BoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "daeodon",
+    "name": "Daeodon",
+    "biome": "diablerie",
+    "archetype": "boar",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546445/BoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "BoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546447/BoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "BoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546453/BoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "swinetaur",
+    "name": "Swinetaur",
+    "biome": "diablerie",
+    "archetype": "centaur",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "wereboar",
+    "name": "Wereboar",
+    "biome": "diablerie",
+    "archetype": "brute",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BoarAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546445/BoarAggroA.ogg"
+      },
+      "attack": {
+        "title": "BoarAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546447/BoarAttackA.ogg"
+      },
+      "wound": {
+        "title": "BoarWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/546453/BoarWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "large-bat",
+    "name": "Large Bat",
+    "biome": "diablerie",
+    "archetype": "flyer",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "blind-hunter",
+    "name": "Blind Hunter",
+    "biome": "diablerie",
+    "archetype": "flyer",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "blood-of-agamaggan",
+    "name": "Blood of Agamaggan",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ghoul",
+    "name": "Ghoul",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "GhoulAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547058/GhoulAggroA.ogg"
+      },
+      "attack": {
+        "title": "GhoulAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547060/GhoulAttackA.ogg"
+      },
+      "wound": {
+        "title": "GhoulWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547067/GhoulWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "barrow-ghast",
+    "name": "Barrow Ghast",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "skrell",
+    "name": "Skrell Raptor",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "tar-bat",
+    "name": "Tar Bat",
+    "biome": "diablerie",
+    "archetype": "flyer",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "howler",
+    "name": "Howler Halfling",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mutant-catfish",
+    "name": "Mutant Catfish",
+    "biome": "diablerie",
+    "archetype": "serpent",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ichor-ooze",
+    "name": "Ichor Ooze",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gordock-breeg",
+    "name": "Gordock Breeg",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "plogrina-bittermold",
+    "name": "Plogrina Bittermold",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dralech",
+    "name": "Dralech Bone-Axe Demon",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "marrow-fiend",
+    "name": "Marrow Fiend",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "spider",
+    "name": "Spider",
+    "biome": "diablerie",
+    "archetype": "spider",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rat",
+    "name": "Rat",
+    "biome": "diablerie",
+    "archetype": "vermin",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "jellyfish",
+    "name": "Jellyfish",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-centipede",
+    "name": "Giant Centipede",
+    "biome": "diablerie",
+    "archetype": "vermin",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "stingbat",
+    "name": "Stingbat",
+    "biome": "diablerie",
+    "archetype": "flyer",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "badger",
+    "name": "Badger",
+    "biome": "diablerie",
+    "archetype": "quadruped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "fairy",
+    "name": "Fairy",
+    "biome": "diablerie",
+    "archetype": "flyer",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "acolyte",
+    "name": "Acolyte",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "peasant",
+    "name": "Peasant",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "spider-swarm",
+    "name": "Spider Swarm",
+    "biome": "diablerie",
+    "archetype": "swarm",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "violet-fungus",
+    "name": "Violet Fungus",
+    "biome": "diablerie",
+    "archetype": "plant",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-wasp",
+    "name": "Giant Wasp",
+    "biome": "diablerie",
+    "archetype": "flyer",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rot-flower-gloaming",
+    "name": "Rot Flower",
+    "biome": "diablerie",
+    "archetype": "plant",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-frog",
+    "name": "Giant Frog",
+    "biome": "diablerie",
+    "archetype": "vermin",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-leech",
+    "name": "Giant Leech",
+    "biome": "diablerie",
+    "archetype": "vermin",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gray-ooze",
+    "name": "Gray Ooze",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "will-o-wisp",
+    "name": "Will-o'-Wisp",
+    "biome": "diablerie",
+    "archetype": "elemental",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "zombie",
+    "name": "Zombie",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "GhoulAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547058/GhoulAggroA.ogg"
+      },
+      "attack": {
+        "title": "GhoulAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547060/GhoulAttackA.ogg"
+      },
+      "wound": {
+        "title": "GhoulWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/547067/GhoulWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ettercap",
+    "name": "Ettercap",
+    "biome": "diablerie",
+    "archetype": "spider",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "scarecrow",
+    "name": "Scarecrow",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "harpy",
+    "name": "Harpy",
+    "biome": "diablerie",
+    "archetype": "avian",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "strangler",
+    "name": "Strangler",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "centipede-swarm",
+    "name": "Centipede Swarm",
+    "biome": "diablerie",
+    "archetype": "swarm",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dryad",
+    "name": "Dryad",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "shambling-mound",
+    "name": "Shambling Mound",
+    "biome": "diablerie",
+    "archetype": "plant",
+    "npc_id": 215,
+    "npc_name": "Humanoid",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "siren",
+    "name": "Siren",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 6073,
+    "npc_name": "Deep Siren",
+    "sounds": {
+      "aggro": {
+        "title": "NagaMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547690/NagaMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "NagaMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547692/NagaMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "NagaMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547699/NagaMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "werewolf",
+    "name": "Werewolf",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 1769,
+    "npc_name": "Shadowhide Worgen",
+    "sounds": {
+      "aggro": {
+        "title": "WolfAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549163/WolfAggroA.ogg"
+      },
+      "attack": {
+        "title": "WolfAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549165/WolfAttackA.ogg"
+      },
+      "wound": {
+        "title": "WolfWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549171/WolfWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gelatinous-cube",
+    "name": "Gelatinous Cube",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 4279,
+    "npc_name": "Corrosive Sludge",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "troll",
+    "name": "Troll",
+    "biome": "diablerie",
+    "archetype": "brute",
+    "npc_id": 1164,
+    "npc_name": "Jungle Troll Warrior",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "weald-hag",
+    "name": "Weald Hag",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 247,
+    "npc_name": "Weald Hag",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "black-pudding",
+    "name": "Black Pudding",
+    "biome": "diablerie",
+    "archetype": "ooze",
+    "npc_id": 12268,
+    "npc_name": "Black Sludge",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "night-hag",
+    "name": "Night Hag",
+    "biome": "diablerie",
+    "archetype": "biped",
+    "npc_id": 247,
+    "npc_name": "Gutter Hag",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "treant",
+    "name": "Treant",
+    "biome": "diablerie",
+    "archetype": "plant",
+    "npc_id": 14278,
+    "npc_name": "Ironbark Treant",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "sand-jackal",
+    "name": "Sand Jackal",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 4538,
+    "npc_name": "Starving Hyena",
+    "sounds": {
+      "aggro": {
+        "title": "WolfAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549163/WolfAggroA.ogg"
+      },
+      "attack": {
+        "title": "WolfAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549165/WolfAttackA.ogg"
+      },
+      "wound": {
+        "title": "WolfWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549171/WolfWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "scorpion",
+    "name": "Scorpion",
+    "biome": "red-sands",
+    "archetype": "vermin",
+    "npc_id": 5624,
+    "npc_name": "Scorpid Reaver",
+    "sounds": {
+      "aggro": {
+        "title": "ScorpidAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/548466/ScorpidAggroA.ogg"
+      },
+      "attack": {
+        "title": "ScorpidAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/548468/ScorpidAttackA.ogg"
+      },
+      "wound": {
+        "title": "ScorpidWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/548474/ScorpidWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "desert-bandit",
+    "name": "Desert Bandit",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 5472,
+    "npc_name": "Wastewander Bandit",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "donkey",
+    "name": "Donkey",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 3098,
+    "npc_name": "Pack Mule",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rookie",
+    "name": "Rookie Pit Fighter",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 1738,
+    "npc_name": "Defias Novice",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "cobra-snake",
+    "name": "Cobra Snake",
+    "biome": "red-sands",
+    "archetype": "serpent",
+    "npc_id": 14447,
+    "npc_name": "Cobra Serpent",
+    "sounds": {
+      "aggro": {
+        "title": "CrocodileAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546574/CrocodileAggroA.ogg"
+      },
+      "attack": {
+        "title": "CrocodileAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546576/CrocodileAttackA.ogg"
+      },
+      "wound": {
+        "title": "CrocodileWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546582/CrocodileWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "apprentice",
+    "name": "Apprentice Sorcerer",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 3729,
+    "npc_name": "Apprentice Sorcerer",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "silver-camel",
+    "name": "Silver Camel",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 3098,
+    "npc_name": "Pack Kodo",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "scrag",
+    "name": "Scrag Monitor Lizard",
+    "biome": "red-sands",
+    "archetype": "vermin",
+    "npc_id": 6508,
+    "npc_name": "Monitor Lizard",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "siruul",
+    "name": "Siruul Nomad",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 5472,
+    "npc_name": "Wastewander Nomad",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "camel",
+    "name": "Camel",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 3098,
+    "npc_name": "Pack Kodo",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "velociraptor",
+    "name": "Velociraptor",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 6505,
+    "npc_name": "Jungle Raptor",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dretch-demon",
+    "name": "Dretch Demon",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 416,
+    "npc_name": "Dretch Demon",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "imp-devil",
+    "name": "Imp Devil",
+    "biome": "red-sands",
+    "archetype": "flyer",
+    "npc_id": 416,
+    "npc_name": "Fiery Imp",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-dung-beetle",
+    "name": "Giant Dung Beetle",
+    "biome": "red-sands",
+    "archetype": "vermin",
+    "npc_id": 11736,
+    "npc_name": "Silithid Scarab",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "horse",
+    "name": "Horse",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 3098,
+    "npc_name": "Chestnut Mare",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ras-godai",
+    "name": "Ras-Godai Assassin",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 1738,
+    "npc_name": "Shadow Assassin",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-scorpion",
+    "name": "Giant Scorpion",
+    "biome": "red-sands",
+    "archetype": "vermin",
+    "npc_id": 5626,
+    "npc_name": "Deathstrike Scorpid",
+    "sounds": {
+      "aggro": {
+        "title": "ScorpidAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/548466/ScorpidAggroA.ogg"
+      },
+      "attack": {
+        "title": "ScorpidAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/548468/ScorpidAttackA.ogg"
+      },
+      "wound": {
+        "title": "ScorpidWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/18/548474/ScorpidWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ashen-mystic",
+    "name": "Ashen Mystic",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 5474,
+    "npc_name": "Ashen Shaman",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "war-horse",
+    "name": "War Horse",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 3098,
+    "npc_name": "Warhorse",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "war-scrag",
+    "name": "War Scrag",
+    "biome": "red-sands",
+    "archetype": "vermin",
+    "npc_id": 6508,
+    "npc_name": "War Lizard",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "lion",
+    "name": "Lion",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 7019,
+    "npc_name": "Savannah Highmane",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "smilodon",
+    "name": "Smilodon",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 7019,
+    "npc_name": "Saber-toothed Cat",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "azer",
+    "name": "Azer Fire Dwarf",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 234,
+    "npc_name": "Dark Iron Azer",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "barbed-devil",
+    "name": "Barbed Devil",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 10435,
+    "npc_name": "Barbed Fiend",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "piranha-swarm",
+    "name": "Piranha Swarm",
+    "biome": "red-sands",
+    "archetype": "swarm",
+    "npc_id": 10433,
+    "npc_name": "Frenzy Swarm",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "scarab-swarm",
+    "name": "Scarab Swarm",
+    "biome": "red-sands",
+    "archetype": "swarm",
+    "npc_id": 11736,
+    "npc_name": "Silithid Swarmer",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dunefiend",
+    "name": "Dunefiend",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 1144,
+    "npc_name": "Silithid Dunefiend",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gorilla",
+    "name": "Gorilla",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 6508,
+    "npc_name": "Un'Goro Gorilla",
+    "sounds": {
+      "aggro": {
+        "title": "YetiAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549195/YetiAggroA.ogg"
+      },
+      "attack": {
+        "title": "YetiAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549197/YetiAttackA.ogg"
+      },
+      "wound": {
+        "title": "YetiWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549203/YetiWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "pterodactyl",
+    "name": "Pterodactyl",
+    "biome": "red-sands",
+    "archetype": "flyer",
+    "npc_id": 6505,
+    "npc_name": "Pterrordax",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "snake-swarm",
+    "name": "Snake Swarm",
+    "biome": "red-sands",
+    "archetype": "swarm",
+    "npc_id": 14447,
+    "npc_name": "Snake Swarm",
+    "sounds": {
+      "aggro": {
+        "title": "CrocodileAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546574/CrocodileAggroA.ogg"
+      },
+      "attack": {
+        "title": "CrocodileAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546576/CrocodileAttackA.ogg"
+      },
+      "wound": {
+        "title": "CrocodileWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546582/CrocodileWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "hell-hound",
+    "name": "Hell Hound",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 1769,
+    "npc_name": "Core Hound",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rust-monster",
+    "name": "Rust Monster",
+    "biome": "red-sands",
+    "archetype": "vermin",
+    "npc_id": 1144,
+    "npc_name": "Chitinous Rust Beetle",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "iron-warlord",
+    "name": "Iron Warlord",
+    "biome": "red-sands",
+    "archetype": "brute",
+    "npc_id": 1788,
+    "npc_name": "Iron Warlord",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "hero",
+    "name": "Gladiator Hero",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 1738,
+    "npc_name": "Arena Champion",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "salamander",
+    "name": "Salamander",
+    "biome": "red-sands",
+    "archetype": "serpent",
+    "npc_id": 5623,
+    "npc_name": "Fire Salamander",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-snake",
+    "name": "Giant Snake",
+    "biome": "red-sands",
+    "archetype": "serpent",
+    "npc_id": 14447,
+    "npc_name": "Giant Python",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rhinoceros",
+    "name": "Rhinoceros",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 7435,
+    "npc_name": "Rhino Beast",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "canyon-ape",
+    "name": "Canyon Ape",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 6508,
+    "npc_name": "Canyon Ape",
+    "sounds": {
+      "aggro": {
+        "title": "YetiAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549195/YetiAggroA.ogg"
+      },
+      "attack": {
+        "title": "YetiAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549197/YetiAttackA.ogg"
+      },
+      "wound": {
+        "title": "YetiWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549203/YetiWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "succubus-incubus",
+    "name": "Succubus / Incubus",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 10435,
+    "npc_name": "Succubus",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "nightmare",
+    "name": "Nightmare",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 1769,
+    "npc_name": "Fiery Nightmare",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "manticore",
+    "name": "Manticore",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 3268,
+    "npc_name": "Wyvern Manticore",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gorgon",
+    "name": "Gorgon Iron Bull",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 10321,
+    "npc_name": "Hatecrest Siren",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dust-devil",
+    "name": "Dust Devil",
+    "biome": "red-sands",
+    "archetype": "elemental",
+    "npc_id": 5623,
+    "npc_name": "Dust Devil",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mirage",
+    "name": "Mirage",
+    "biome": "red-sands",
+    "archetype": "elemental",
+    "npc_id": 5623,
+    "npc_name": "Mirage Illusion",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "clay-golem",
+    "name": "Clay Golem",
+    "biome": "red-sands",
+    "archetype": "brute",
+    "npc_id": 8909,
+    "npc_name": "Clay Golem",
+    "sounds": {
+      "aggro": {
+        "title": "OgreAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547778/OgreAggroA.ogg"
+      },
+      "attack": {
+        "title": "OgreAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547780/OgreAttackA.ogg"
+      },
+      "wound": {
+        "title": "OgreWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547787/OgreWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "stone-golem",
+    "name": "Stone Golem",
+    "biome": "red-sands",
+    "archetype": "brute",
+    "npc_id": 8909,
+    "npc_name": "Stone Sentinel",
+    "sounds": {
+      "aggro": {
+        "title": "OgreAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547778/OgreAggroA.ogg"
+      },
+      "attack": {
+        "title": "OgreAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547780/OgreAttackA.ogg"
+      },
+      "wound": {
+        "title": "OgreWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547787/OgreWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rakshasa",
+    "name": "Rakshasa",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 10435,
+    "npc_name": "Rakshasa Lord",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "bulette",
+    "name": "Bulette",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 1144,
+    "npc_name": "Land Shark Bulette",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "sphinx",
+    "name": "Sphinx",
+    "biome": "red-sands",
+    "archetype": "quadruped",
+    "npc_id": 15206,
+    "npc_name": "Obsidian Destroyer",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "iron-golem",
+    "name": "Iron Golem",
+    "biome": "red-sands",
+    "archetype": "brute",
+    "npc_id": 8909,
+    "npc_name": "Iron Golem",
+    "sounds": {
+      "aggro": {
+        "title": "OgreAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547778/OgreAggroA.ogg"
+      },
+      "attack": {
+        "title": "OgreAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547780/OgreAttackA.ogg"
+      },
+      "wound": {
+        "title": "OgreWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547787/OgreWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "djinni",
+    "name": "Djinni",
+    "biome": "red-sands",
+    "archetype": "elemental",
+    "npc_id": 5623,
+    "npc_name": "Air Djinni",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mummy",
+    "name": "Mummy",
+    "biome": "red-sands",
+    "archetype": "biped",
+    "npc_id": 11520,
+    "npc_name": "Sandfury Tomb Guardian",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rime-crab",
+    "name": "Rime Crab",
+    "biome": "midnight-sun",
+    "archetype": "vermin",
+    "npc_id": 10433,
+    "npc_name": "Frost Crustacean",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "skeleton",
+    "name": "Skeleton",
+    "biome": "midnight-sun",
+    "archetype": "skeletal",
+    "npc_id": 1783,
+    "npc_name": "Skeletal Raider",
+    "sounds": {
+      "aggro": {
+        "title": "SkeletonAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548518/SkeletonAggroA.ogg"
+      },
+      "attack": {
+        "title": "SkeletonAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548520/SkeletonAttackA.ogg"
+      },
+      "wound": {
+        "title": "SkeletonWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548527/SkeletonWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mastiff",
+    "name": "Mastiff",
+    "biome": "midnight-sun",
+    "archetype": "quadruped",
+    "npc_id": 1769,
+    "npc_name": "Guard Dog Mastiff",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "frost-raider",
+    "name": "Frost Raider",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 11600,
+    "npc_name": "Frostmane Raider",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "nord",
+    "name": "Nord Warrior",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 234,
+    "npc_name": "Norse Warrior",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-bat",
+    "name": "Giant Bat",
+    "biome": "midnight-sun",
+    "archetype": "flyer",
+    "npc_id": 10374,
+    "npc_name": "Dread Bat",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "wolf",
+    "name": "Wolf",
+    "biome": "midnight-sun",
+    "archetype": "quadruped",
+    "npc_id": 1769,
+    "npc_name": "Forest Wolf",
+    "sounds": {
+      "aggro": {
+        "title": "WolfAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549163/WolfAggroA.ogg"
+      },
+      "attack": {
+        "title": "WolfAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549165/WolfAttackA.ogg"
+      },
+      "wound": {
+        "title": "WolfWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549171/WolfWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "draugr",
+    "name": "Frost Draugr",
+    "biome": "midnight-sun",
+    "archetype": "skeletal",
+    "npc_id": 1783,
+    "npc_name": "Frost Draugr",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "sea-nymph",
+    "name": "Sea Nymph",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 6073,
+    "npc_name": "Sea Nymph",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dverg",
+    "name": "Dverg Craftsman",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 234,
+    "npc_name": "Dwarf Craftsman",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "cockatrice",
+    "name": "Cockatrice",
+    "biome": "midnight-sun",
+    "archetype": "avian",
+    "npc_id": 14447,
+    "npc_name": "Cockatrice",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "hippogriff",
+    "name": "Hippogriff",
+    "biome": "midnight-sun",
+    "archetype": "avian",
+    "npc_id": 14447,
+    "npc_name": "Elven Hippogriff",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "shark",
+    "name": "Shark",
+    "biome": "midnight-sun",
+    "archetype": "serpent",
+    "npc_id": 10433,
+    "npc_name": "Reef Shark",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dire-wolf",
+    "name": "Dire Wolf",
+    "biome": "midnight-sun",
+    "archetype": "quadruped",
+    "npc_id": 1783,
+    "npc_name": "Dire Wolf",
+    "sounds": {
+      "aggro": {
+        "title": "WolfAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549163/WolfAggroA.ogg"
+      },
+      "attack": {
+        "title": "WolfAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549165/WolfAttackA.ogg"
+      },
+      "wound": {
+        "title": "WolfWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549171/WolfWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "oracle",
+    "name": "Nordic Oracle",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 11600,
+    "npc_name": "Norse Priestess",
+    "sounds": {
+      "aggro": {
+        "title": "HumanFemaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547285/HumanFemaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanFemaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547287/HumanFemaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanFemaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547294/HumanFemaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "moose",
+    "name": "Moose",
+    "biome": "midnight-sun",
+    "archetype": "quadruped",
+    "npc_id": 7435,
+    "npc_name": "Bull Moose",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "gargoyle",
+    "name": "Gargoyle",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 10393,
+    "npc_name": "Gargoyle",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "snow-ape",
+    "name": "Snow Ape",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 7437,
+    "npc_name": "Snow Ape Yeti",
+    "sounds": {
+      "aggro": {
+        "title": "YetiAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549195/YetiAggroA.ogg"
+      },
+      "attack": {
+        "title": "YetiAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549197/YetiAttackA.ogg"
+      },
+      "wound": {
+        "title": "YetiWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549203/YetiWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "bat-swarm",
+    "name": "Bat Swarm",
+    "biome": "midnight-sun",
+    "archetype": "swarm",
+    "npc_id": 10374,
+    "npc_name": "Bat Swarm",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "griffon",
+    "name": "Griffon",
+    "biome": "midnight-sun",
+    "archetype": "avian",
+    "npc_id": 14447,
+    "npc_name": "Gryphon",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "frost-draugr-lord",
+    "name": "Frost Draugr Lord",
+    "biome": "midnight-sun",
+    "archetype": "skeletal",
+    "npc_id": 1788,
+    "npc_name": "Draugr Overlord",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-crab",
+    "name": "Giant Crab",
+    "biome": "midnight-sun",
+    "archetype": "vermin",
+    "npc_id": 10433,
+    "npc_name": "Silt Crawler",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "winter-wolf",
+    "name": "Winter Wolf",
+    "biome": "midnight-sun",
+    "archetype": "quadruped",
+    "npc_id": 7015,
+    "npc_name": "Winterwolf",
+    "sounds": {
+      "aggro": {
+        "title": "WolfAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549163/WolfAggroA.ogg"
+      },
+      "attack": {
+        "title": "WolfAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549165/WolfAttackA.ogg"
+      },
+      "wound": {
+        "title": "WolfWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/11/549171/WolfWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ghost",
+    "name": "Ghost",
+    "biome": "midnight-sun",
+    "archetype": "elemental",
+    "npc_id": 1106,
+    "npc_name": "Ghost",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "bone-naga",
+    "name": "Bone Naga",
+    "biome": "midnight-sun",
+    "archetype": "serpent",
+    "npc_id": 10321,
+    "npc_name": "Skeletal Naga",
+    "sounds": {
+      "aggro": {
+        "title": "SkeletonAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548518/SkeletonAggroA.ogg"
+      },
+      "attack": {
+        "title": "SkeletonAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548520/SkeletonAttackA.ogg"
+      },
+      "wound": {
+        "title": "SkeletonWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/06/548527/SkeletonWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "plesiosaurus",
+    "name": "Plesiosaurus",
+    "biome": "midnight-sun",
+    "archetype": "serpent",
+    "npc_id": 10433,
+    "npc_name": "Plesiosaurus",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "werebear",
+    "name": "Werebear",
+    "biome": "midnight-sun",
+    "archetype": "biped",
+    "npc_id": 7021,
+    "npc_name": "Ursoc Werebear",
+    "sounds": {
+      "aggro": {
+        "title": "BearAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546410/BearAggroA.ogg"
+      },
+      "attack": {
+        "title": "BearAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546412/BearAttackA.ogg"
+      },
+      "wound": {
+        "title": "BearWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546418/BearWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "frost-troll",
+    "name": "Frost Troll",
+    "biome": "midnight-sun",
+    "archetype": "brute",
+    "npc_id": 11600,
+    "npc_name": "Frostmane Troll",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "brown-bear",
+    "name": "Brown Bear",
+    "biome": "midnight-sun",
+    "archetype": "quadruped",
+    "npc_id": 7021,
+    "npc_name": "Northern Grizzly",
+    "sounds": {
+      "aggro": {
+        "title": "BearAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546410/BearAggroA.ogg"
+      },
+      "attack": {
+        "title": "BearAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546412/BearAttackA.ogg"
+      },
+      "wound": {
+        "title": "BearWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546418/BearWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "orca",
+    "name": "Orca",
+    "biome": "midnight-sun",
+    "archetype": "serpent",
+    "npc_id": 10433,
+    "npc_name": "Killer Whale Orca",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "deep-troll",
+    "name": "Deep Troll",
+    "biome": "midnight-sun",
+    "archetype": "brute",
+    "npc_id": 1140,
+    "npc_name": "Cave Troll",
+    "sounds": {
+      "aggro": {
+        "title": "MurlocAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547661/MurlocAggroA.ogg"
+      },
+      "attack": {
+        "title": "MurlocAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547663/MurlocAttackA.ogg"
+      },
+      "wound": {
+        "title": "MurlocWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547669/MurlocWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-manta-ray",
+    "name": "Giant Manta Ray",
+    "biome": "midnight-sun",
+    "archetype": "serpent",
+    "npc_id": 10433,
+    "npc_name": "Manta Ray",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "megalodon-shark",
+    "name": "Megalodon Shark",
+    "biome": "midnight-sun",
+    "archetype": "serpent",
+    "npc_id": 10433,
+    "npc_name": "Megalodon Shark",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "stone-giant",
+    "name": "Stone Giant",
+    "biome": "midnight-sun",
+    "archetype": "brute",
+    "npc_id": 7440,
+    "npc_name": "Mountain Giant",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "wraith",
+    "name": "Wraith",
+    "biome": "midnight-sun",
+    "archetype": "elemental",
+    "npc_id": 7015,
+    "npc_name": "Frost Spectre",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rime-walker",
+    "name": "Rime Walker",
+    "biome": "midnight-sun",
+    "archetype": "elemental",
+    "npc_id": 7440,
+    "npc_name": "Rime Walker",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mammoth",
+    "name": "Mammoth",
+    "biome": "midnight-sun",
+    "archetype": "quadruped",
+    "npc_id": 7435,
+    "npc_name": "Ice River Mammoth",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "remorhaz",
+    "name": "Remorhaz",
+    "biome": "midnight-sun",
+    "archetype": "vermin",
+    "npc_id": 7435,
+    "npc_name": "Ice Worm / Remorhaz",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "valkyrie",
+    "name": "Valkyrie",
+    "biome": "midnight-sun",
+    "archetype": "flyer",
+    "npc_id": 11600,
+    "npc_name": "Valkyrie / Shieldmaiden",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "blood-tick-swarm",
+    "name": "Blood Tick Swarm",
+    "biome": "river-of-night",
+    "archetype": "swarm",
+    "npc_id": 11568,
+    "npc_name": "Blood Swarmer",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "viperian",
+    "name": "Viperian Warrior",
+    "biome": "river-of-night",
+    "archetype": "serpent",
+    "npc_id": 10321,
+    "npc_name": "Hatecrest Serpent",
+    "sounds": {
+      "aggro": {
+        "title": "NagaMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547690/NagaMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "NagaMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547692/NagaMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "NagaMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547699/NagaMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rot-flower",
+    "name": "Rot Flower",
+    "biome": "river-of-night",
+    "archetype": "plant",
+    "npc_id": 14278,
+    "npc_name": "Whip Vine",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ape",
+    "name": "Ape",
+    "biome": "river-of-night",
+    "archetype": "biped",
+    "npc_id": 6508,
+    "npc_name": "Mistvale Gorilla",
+    "sounds": {
+      "aggro": {
+        "title": "YetiAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549195/YetiAggroA.ogg"
+      },
+      "attack": {
+        "title": "YetiAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549197/YetiAttackA.ogg"
+      },
+      "wound": {
+        "title": "YetiWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/549203/YetiWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-spider",
+    "name": "Giant Spider",
+    "biome": "river-of-night",
+    "archetype": "spider",
+    "npc_id": 6505,
+    "npc_name": "Jungle Stalker Spider",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ankheg",
+    "name": "Ankheg",
+    "biome": "river-of-night",
+    "archetype": "vermin",
+    "npc_id": 1144,
+    "npc_name": "Jungle Burrower",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "viperian-oracle",
+    "name": "Viperian Oracle",
+    "biome": "river-of-night",
+    "archetype": "serpent",
+    "npc_id": 10321,
+    "npc_name": "Hatecrest Oracle",
+    "sounds": {
+      "aggro": {
+        "title": "NagaMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547690/NagaMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "NagaMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547692/NagaMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "NagaMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547699/NagaMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "crocodile",
+    "name": "Crocodile",
+    "biome": "river-of-night",
+    "archetype": "serpent",
+    "npc_id": 1142,
+    "npc_name": "Giant Crocolisk",
+    "sounds": {
+      "aggro": {
+        "title": "CrocodileAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546574/CrocodileAggroA.ogg"
+      },
+      "attack": {
+        "title": "CrocodileAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546576/CrocodileAttackA.ogg"
+      },
+      "wound": {
+        "title": "CrocodileWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546582/CrocodileWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "doppelganger",
+    "name": "Doppelganger",
+    "biome": "river-of-night",
+    "archetype": "biped",
+    "npc_id": 215,
+    "npc_name": "Shapechanger",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "leprechaun",
+    "name": "Leprechaun",
+    "biome": "river-of-night",
+    "archetype": "biped",
+    "npc_id": 474,
+    "npc_name": "Forest Sprite",
+    "sounds": {
+      "aggro": {
+        "title": "GoblinMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547218/GoblinMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "GoblinMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547220/GoblinMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "GoblinMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547229/GoblinMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ziggurat-guardian",
+    "name": "Ziggurat Guardian",
+    "biome": "river-of-night",
+    "archetype": "brute",
+    "npc_id": 1164,
+    "npc_name": "Zul'Gurub Berserker",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "basilisk",
+    "name": "Basilisk",
+    "biome": "river-of-night",
+    "archetype": "quadruped",
+    "npc_id": 6508,
+    "npc_name": "Jungle Basilisk",
+    "sounds": {
+      "aggro": {
+        "title": "CrocodileAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546574/CrocodileAggroA.ogg"
+      },
+      "attack": {
+        "title": "CrocodileAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546576/CrocodileAttackA.ogg"
+      },
+      "wound": {
+        "title": "CrocodileWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/32/546582/CrocodileWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-octopus",
+    "name": "Giant Octopus",
+    "biome": "river-of-night",
+    "archetype": "serpent",
+    "npc_id": 6073,
+    "npc_name": "Deep Kraken Tentacle",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "sea-hag",
+    "name": "Sea Hag",
+    "biome": "river-of-night",
+    "archetype": "biped",
+    "npc_id": 6073,
+    "npc_name": "Deep Siren / Sea Hag",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "oni",
+    "name": "Oni Ogremage",
+    "biome": "river-of-night",
+    "archetype": "biped",
+    "npc_id": 1140,
+    "npc_name": "Ogre Mage",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "druid",
+    "name": "Jungle Druid",
+    "biome": "river-of-night",
+    "archetype": "biped",
+    "npc_id": 6505,
+    "npc_name": "Jungle Druid",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "couatl",
+    "name": "Couatl",
+    "biome": "river-of-night",
+    "archetype": "serpent",
+    "npc_id": 14447,
+    "npc_name": "Wind Serpent",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "naga",
+    "name": "Serpent Naga",
+    "biome": "river-of-night",
+    "archetype": "serpent",
+    "npc_id": 10321,
+    "npc_name": "Serpent Naga",
+    "sounds": {
+      "aggro": {
+        "title": "NagaMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547690/NagaMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "NagaMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547692/NagaMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "NagaMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/547699/NagaMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "giant-rat",
+    "name": "Giant Rat",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "vermin",
+    "npc_id": 211,
+    "npc_name": "Deep Cave Rat",
+    "sounds": {
+      "aggro": {
+        "title": "GiantsAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547184/GiantsAggroA.ogg"
+      },
+      "attack": {
+        "title": "GiantsAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547186/GiantsAttackA.ogg"
+      },
+      "wound": {
+        "title": "GiantsWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/19/547192/GiantsWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "blind-eel",
+    "name": "Blind Eel",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "serpent",
+    "npc_id": 10433,
+    "npc_name": "Abyssal Eel",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "deep-one",
+    "name": "Deep One",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "biped",
+    "npc_id": 6073,
+    "npc_name": "Murkdeep Murloc",
+    "sounds": {
+      "aggro": {
+        "title": "MurlocAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547661/MurlocAggroA.ogg"
+      },
+      "attack": {
+        "title": "MurlocAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547663/MurlocAttackA.ogg"
+      },
+      "wound": {
+        "title": "MurlocWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547669/MurlocWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "merfolk",
+    "name": "Merfolk",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "biped",
+    "npc_id": 6073,
+    "npc_name": "Deep Siren",
+    "sounds": {
+      "aggro": {
+        "title": "MurlocAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547661/MurlocAggroA.ogg"
+      },
+      "attack": {
+        "title": "MurlocAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547663/MurlocAttackA.ogg"
+      },
+      "wound": {
+        "title": "MurlocWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547669/MurlocWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "cave-creeper",
+    "name": "Cave Creeper",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "vermin",
+    "npc_id": 211,
+    "npc_name": "Cave Crawler",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "shadow",
+    "name": "Living Shadow",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "elemental",
+    "npc_id": 1860,
+    "npc_name": "Living Shadow",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mushroomfolk",
+    "name": "Mushroomfolk Myconid",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "plant",
+    "npc_id": 14278,
+    "npc_name": "Sporeling / Myconid",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "deep-priest",
+    "name": "Deep Priest",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "biped",
+    "npc_id": 6073,
+    "npc_name": "Abyssal Priest",
+    "sounds": {
+      "aggro": {
+        "title": "MurlocAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547661/MurlocAggroA.ogg"
+      },
+      "attack": {
+        "title": "MurlocAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547663/MurlocAttackA.ogg"
+      },
+      "wound": {
+        "title": "MurlocWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/45/547669/MurlocWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "chuul",
+    "name": "Chuul Crab-Horror",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "vermin",
+    "npc_id": 10433,
+    "npc_name": "Claw Crawler",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "void-spider",
+    "name": "Void Spider",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "spider",
+    "npc_id": 10374,
+    "npc_name": "Void Spider",
+    "sounds": {
+      "aggro": {
+        "title": "SpiderAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548655/SpiderAggroA.ogg"
+      },
+      "attack": {
+        "title": "SpiderAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548656/SpiderAttackA.ogg"
+      },
+      "wound": {
+        "title": "SpiderWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/548662/SpiderWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mimic",
+    "name": "Mimic",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "ooze",
+    "npc_id": 12268,
+    "npc_name": "Sludge Mimic",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "cloaker",
+    "name": "Cloaker",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "flyer",
+    "npc_id": 15509,
+    "npc_name": "Cloaker Fiend",
+    "sounds": {
+      "aggro": {
+        "title": "BatAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546380/BatAggroA.ogg"
+      },
+      "attack": {
+        "title": "BatAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546382/BatAttackA.ogg"
+      },
+      "wound": {
+        "title": "BatWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/40/546388/BatWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "invisible-stalker",
+    "name": "Invisible Stalker",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "elemental",
+    "npc_id": 1860,
+    "npc_name": "Air Elemental Stalker",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "cave-brute",
+    "name": "Cave Brute",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "brute",
+    "npc_id": 15206,
+    "npc_name": "Underdark Troglodyte",
+    "sounds": {
+      "aggro": {
+        "title": "OgreAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547778/OgreAggroA.ogg"
+      },
+      "attack": {
+        "title": "OgreAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547780/OgreAttackA.ogg"
+      },
+      "wound": {
+        "title": "OgreWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547787/OgreWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "primordial-slime",
+    "name": "Primordial Slime",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "ooze",
+    "npc_id": 12268,
+    "npc_name": "Primordial Ooze",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "roper",
+    "name": "Roper Tentacle Fiend",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "plant",
+    "npc_id": 15206,
+    "npc_name": "Tentacle Roper",
+    "sounds": {
+      "aggro": {
+        "title": "TreantAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548842/TreantAggroA.ogg"
+      },
+      "attack": {
+        "title": "TreantAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548844/TreantAttackA.ogg"
+      },
+      "wound": {
+        "title": "TreantWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/20/548850/TreantWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "otyugh",
+    "name": "Otyugh Garbage Beast",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "ooze",
+    "npc_id": 12268,
+    "npc_name": "Garbage Beast",
+    "sounds": {
+      "aggro": {
+        "title": "SlimeAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548586/SlimeAggroA.ogg"
+      },
+      "attack": {
+        "title": "SlimeAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548588/SlimeAttackA.ogg"
+      },
+      "wound": {
+        "title": "SlimeWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/548595/SlimeWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "void-spawn",
+    "name": "Void Spawn",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "elemental",
+    "npc_id": 15509,
+    "npc_name": "Void Spawn",
+    "sounds": {
+      "aggro": {
+        "title": "FireElementalAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546890/FireElementalAggroA.ogg"
+      },
+      "attack": {
+        "title": "FireElementalAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546892/FireElementalAttackA.ogg"
+      },
+      "wound": {
+        "title": "FireElementalWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/50/546898/FireElementalWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "glabrezu-demon",
+    "name": "Glabrezu Demon",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "brute",
+    "npc_id": 10435,
+    "npc_name": "Pit Lord / Greater Demon",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "archmage",
+    "name": "Archmage",
+    "biome": "dwellers-in-the-deep",
+    "archetype": "biped",
+    "npc_id": 230,
+    "npc_name": "Archmage",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "sewer-rat-swarm",
+    "name": "Sewer Rat Swarm",
+    "biome": "city-of-masks",
+    "archetype": "swarm",
+    "npc_id": 211,
+    "npc_name": "Sewer Rat Swarm",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "thug",
+    "name": "Guild Thug",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 1738,
+    "npc_name": "Guild Thug",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "animated-armor",
+    "name": "Animated Armor",
+    "biome": "city-of-masks",
+    "archetype": "brute",
+    "npc_id": 8909,
+    "npc_name": "Animated Sentinel",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "elf",
+    "name": "Noble Elf Duelist",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 234,
+    "npc_name": "Noble Elf Duelist",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "dire-rat",
+    "name": "Dire Rat",
+    "biome": "city-of-masks",
+    "archetype": "vermin",
+    "npc_id": 211,
+    "npc_name": "Dire Rat",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "thief-rogue",
+    "name": "Masked Rogue",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 1738,
+    "npc_name": "Masked Rogue",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "masked-conjurer",
+    "name": "Masked Conjurer",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 239,
+    "npc_name": "Masked Conjurer",
+    "sounds": {
+      "aggro": {
+        "title": "HumanFemaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547285/HumanFemaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanFemaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547287/HumanFemaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanFemaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/15/547294/HumanFemaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "guild-master",
+    "name": "Guild Master",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 1738,
+    "npc_name": "Guild Master",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "mage",
+    "name": "High Mage",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 239,
+    "npc_name": "High Mage",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "rat-swarm",
+    "name": "Giant Rat Swarm",
+    "biome": "city-of-masks",
+    "archetype": "swarm",
+    "npc_id": 211,
+    "npc_name": "Giant Rat Swarm",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "ogre",
+    "name": "Ogre Bouncer",
+    "biome": "city-of-masks",
+    "archetype": "brute",
+    "npc_id": 1140,
+    "npc_name": "Ogre Bouncer",
+    "sounds": {
+      "aggro": {
+        "title": "OgreAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547778/OgreAggroA.ogg"
+      },
+      "attack": {
+        "title": "OgreAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547780/OgreAttackA.ogg"
+      },
+      "wound": {
+        "title": "OgreWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547787/OgreWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "owlbear",
+    "name": "Owlbear Guard",
+    "biome": "city-of-masks",
+    "archetype": "quadruped",
+    "npc_id": 2924,
+    "npc_name": "Wildkin Guard",
+    "sounds": {
+      "aggro": {
+        "title": "BearAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546410/BearAggroA.ogg"
+      },
+      "attack": {
+        "title": "BearAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546412/BearAttackA.ogg"
+      },
+      "wound": {
+        "title": "BearWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/10/546418/BearWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "elephant",
+    "name": "War Elephant",
+    "biome": "city-of-masks",
+    "archetype": "quadruped",
+    "npc_id": 190,
+    "npc_name": "War Elephant / Kodo",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "flesh-golem",
+    "name": "Flesh Golem",
+    "biome": "city-of-masks",
+    "archetype": "brute",
+    "npc_id": 8911,
+    "npc_name": "Patchwork Flesh Golem",
+    "sounds": {
+      "aggro": {
+        "title": "OgreAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547778/OgreAggroA.ogg"
+      },
+      "attack": {
+        "title": "OgreAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547780/OgreAttackA.ogg"
+      },
+      "wound": {
+        "title": "OgreWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/02/547787/OgreWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "horned-devil",
+    "name": "Horned Devil",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 245,
+    "npc_name": "Infernal / Horned Demon",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "triceratops",
+    "name": "Triceratops",
+    "biome": "city-of-masks",
+    "archetype": "quadruped",
+    "npc_id": 246,
+    "npc_name": "Stegodon",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "night-hag-city",
+    "name": "Night Hag of the Gutter",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 247,
+    "npc_name": "Gutter Hag",
+    "sounds": {
+      "aggro": {
+        "title": "ImpAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547400/ImpAggroA.ogg"
+      },
+      "attack": {
+        "title": "ImpAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547402/ImpAttackA.ogg"
+      },
+      "wound": {
+        "title": "ImpWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/30/547408/ImpWoundA.ogg"
+      }
+    }
+  },
+  {
+    "id": "medusa",
+    "name": "Medusa Cultist",
+    "biome": "city-of-masks",
+    "archetype": "biped",
+    "npc_id": 248,
+    "npc_name": "Medusa Cultist",
+    "sounds": {
+      "aggro": {
+        "title": "HumanMaleAggroA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547326/HumanMaleAggroA.ogg"
+      },
+      "attack": {
+        "title": "HumanMaleAttackA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547328/HumanMaleAttackA.ogg"
+      },
+      "wound": {
+        "title": "HumanMaleWoundA",
+        "url": "https://wow.zamimg.com/sound-ids/classic/enus/22/547337/HumanMaleWoundA.ogg"
+      }
+    }
+  }
+]
