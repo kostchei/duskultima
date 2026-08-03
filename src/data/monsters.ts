@@ -12,14 +12,12 @@ import type { MonsterBiome, MonsterDef, MonsterRole } from "../engine";
 import { pickMonster } from "../engine";
 import type { Dice } from "../engine/dice";
 import { DIABLERIE_ROSTER } from "./rosters/diablerie";
-import {
-  CITY_OF_MASKS_ROSTER,
-  DEEP_ROSTER,
-  DIABLERIE_HOLDOVERS,
-  MIDNIGHT_SUN_ROSTER,
-  RED_SANDS_ROSTER,
-  RIVER_OF_NIGHT_ROSTER,
-} from "./rosters/legacy";
+import { DIABLERIE_HOLDOVERS } from "./rosters/legacy";
+import { RED_SANDS_ROSTER } from "./rosters/red-sands";
+import { MIDNIGHT_SUN_ROSTER } from "./rosters/midnight-sun";
+import { RIVER_OF_NIGHT_ROSTER } from "./rosters/river-of-night";
+import { DEEP_ROSTER } from "./rosters/dwellers-in-the-deep";
+import { CITY_OF_MASKS_ROSTER } from "./rosters/city-of-masks";
 import { assertRosterComplete } from "./rosters/build";
 
 const ROSTERS: Record<MonsterBiome, readonly MonsterDef[]> = {

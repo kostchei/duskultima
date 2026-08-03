@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { TILE } from "../../textures";
 import type { EnvironmentTextureKeys, VisualSkin } from "../model";
+import { DEFAULT_RIM_STYLE, edgeTextureKey, ensureEdgeTextures, RIM_STYLES } from "./edges";
 import {
   creviceGrime,
   curvatureDivergence,
@@ -93,6 +94,28 @@ function sdfBevelField(
       graphics.fillRect(px, py, Math.min(2, x + width - px), Math.min(2, y + height - py));
     }
   }
+}
+
+/**
+ * The four warped corners of a tile's stone face, bled past the tile bounds.
+ *
+ * Terrain is a mass, not a bag of bricks. A face inset inside its 32x32 frame
+ * leaves a dark gutter on all four sides, so every tile reads as a separate
+ * floating block and the seams simply redraw the grid — which is the same
+ * artifact, at higher frequency, as the flat top edge. Bleeding the face out
+ * means neighbouring tiles butt together with no seam at all, and the only
+ * breaks in the mass are the ones `textures/edges.ts` erodes into the faces
+ * that actually border open air.
+ */
+function massFace(seed: number, amplitude: number, frequency = 0.1, bleed = 3): Phaser.Geom.Point[] {
+  const lo = -bleed;
+  const hi = TILE + bleed;
+  return [
+    domainWarp({ x: lo, y: lo }, seed, amplitude, frequency),
+    domainWarp({ x: hi, y: lo }, seed + 1, amplitude, frequency),
+    domainWarp({ x: hi, y: hi }, seed + 2, amplitude, frequency),
+    domainWarp({ x: lo, y: hi }, seed + 3, amplitude, frequency),
+  ].map((point) => new Phaser.Geom.Point(point.x, point.y));
 }
 
 function noiseCurve(
@@ -880,17 +903,11 @@ function generateMugdulblubKeep(scene: Phaser.Scene): void {
     texture(scene, `${p}-wall-${variant}`, TILE, TILE, (g) => {
       g.fillStyle(0x0a0f0c, 1); g.fillRect(0, 0, TILE, TILE);
       const seed = 100 + variant * 10;
-      const tL = domainWarp({ x: 2, y: 2 }, seed, 2.2, 0.1);
-      const tR = domainWarp({ x: 30, y: 2 }, seed + 1, 2.2, 0.1);
-      const bR = domainWarp({ x: 30, y: 30 }, seed + 2, 2.2, 0.1);
-      const bL = domainWarp({ x: 2, y: 30 }, seed + 3, 2.2, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 2.2);
       const base = creviceGrime(16, 16, seed) > 0.45 ? 0x223028 : 0x2e4035;
-      castPolygonShadow(g, points, 2.8);
       g.fillStyle(base, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 3, 3, 26, 26, 4.5, seed, base);
-      g.lineStyle(1, 0x4d6655, 0.8); g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 4.5, seed, base);
       // Slime drips
       g.fillStyle(0x6eb043, 0.85);
       for (let x = 6; x < 30; x += 8) {
@@ -1069,18 +1086,11 @@ function generateRimeSeaCaves(scene: Phaser.Scene): void {
     texture(scene, `${p}-wall-${variant}`, TILE, TILE, (g) => {
       g.fillStyle(0x060f17, 1); g.fillRect(0, 0, TILE, TILE);
       const seed = 200 + variant * 10;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.5, 0.12);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.5, 0.12);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.5, 0.12);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.5, 0.12);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.5, 0.12);
       const base = creviceGrime(16, 16, seed) > 0.45 ? 0x1b2d3c : 0x273e52;
-      castPolygonShadow(g, points, 2.2, 0.48);
       g.fillStyle(base, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 3.5, seed, base);
-      // Frost glaze rim
-      g.lineStyle(1.5, 0x75c7e8, 0.9); g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 3.5, seed, base);
       g.fillStyle(0xd6f3ff, 0.7);
       for (let s = 0; s < 4; s++) g.fillCircle(4 + s * 7, 4 + (s % 2) * 20, 1);
       frostBloom(g, variant % 2 === 0 ? 10 : 22, variant === 1 ? 10 : 21, 7, seed);
@@ -1200,18 +1210,12 @@ function generateFrostJarlTomb(scene: Phaser.Scene): void {
       g.fillRect(0, 0, 32, 32);
 
       const seed = 500 + variant * 14;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.6, 0.1);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.6, 0.1);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.6, 0.1);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.6, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.6);
 
       const baseColor = variant === 0 ? 0x162c3d : variant === 1 ? 0x1b364a : 0x214159;
-      castPolygonShadow(g, points, 3.0, 0.65);
       g.fillStyle(baseColor, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 2.5, seed, baseColor);
-      g.lineStyle(1, 0x3d6888, 0.85); g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 2.5, seed, baseColor);
 
       // Frost-bloom crystals on rock surface
       frostBloom(g, 6, 6, 4, seed);
@@ -1377,23 +1381,15 @@ function generateFellGlacier(scene: Phaser.Scene): void {
     texture(scene, `${p}-wall-${variant}`, TILE, TILE, (g) => {
       g.fillStyle(0x0d1a24, 1); g.fillRect(0, 0, TILE, TILE);
       const seed = 810 + variant * 19;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.8, 0.1);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.8, 0.1);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.8, 0.1);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.8, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.8);
       const base = variant === 0 ? 0x38607d : variant === 1 ? 0x2c5170 : 0x436e8b;
-      castPolygonShadow(g, points, 2.6, 0.5);
       g.fillStyle(base, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 4.0, seed, base);
+      sdfBevelField(g, 0, 0, TILE, TILE, 4.0, seed, base);
 
-      // Sun-struck upper lip: the glacier's top edge always catches the light.
-      // Only the top edge is lit — a rim on all four sides would outline every
-      // tile, and once terrain columns take sub-tile offsets to follow a slope
-      // those outlines read as a wall of stacked cubes rather than one sheet.
-      g.fillStyle(0xdff2fb, 0.4); g.fillRect(1, 1, 30, 2);
-      g.lineStyle(1, 0xa9dcf2, 0.5); g.lineBetween(1, 1, 31, 1);
+      // The glacier's top edge catches the light, but the lit line itself now
+      // belongs to the eroded edge art and the surface crust — baking one into
+      // the tile would draw it across buried ice as well.
 
       // Compression banding — the annual layers ice records as it flows.
       g.lineStyle(1, 0x1d3d57, 0.55);
@@ -1597,17 +1593,11 @@ function generateOvergrownZiggurat(scene: Phaser.Scene): void {
     texture(scene, `${p}-wall-${variant}`, TILE, TILE, (g) => {
       g.fillStyle(0x05120a, 1); g.fillRect(0, 0, TILE, TILE);
       const seed = 300 + variant * 10;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.8, 0.1);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.8, 0.1);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.8, 0.1);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.8, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.8);
       const base = creviceGrime(16, 16, seed) > 0.45 ? 0x18241d : 0x223328;
-      castPolygonShadow(g, points, 3.2, 0.62);
       g.fillStyle(base, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 2.5, seed, base);
-      g.lineStyle(1, 0x3d5945, 0.85); g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 2.5, seed, base);
       // Noise-warped vines cross the block face and sprout alternating leaves.
       noiseCurve(g, 6, 0, 31, seed + 11, 0x489654, 2, true);
       noiseCurve(g, 25, 0, 28, seed + 29, 0x62b866, 1, true);
@@ -1695,21 +1685,12 @@ function generateDrownedStarCenote(scene: Phaser.Scene): void {
       g.fillRect(0, 0, 32, 32);
 
       const seed = 350 + variant * 12;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.8, 0.1);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.8, 0.1);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.8, 0.1);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.8, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.8);
 
       const baseColor = variant === 0 ? 0x0c2733 : variant === 1 ? 0x0f3442 : 0x143e4f;
-      castPolygonShadow(g, points, 3.0, 0.65);
       g.fillStyle(baseColor, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 2.5, seed, baseColor);
-
-      // Waterline moss & cyan bioluminescent star-algae flecks
-      g.lineStyle(1, 0x1e5569, 0.85);
-      g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 2.5, seed, baseColor);
 
       // Hanging water droplets / glowing cyan star nodes
       g.fillStyle(0x00f2d6, 0.85);
@@ -1987,17 +1968,11 @@ function generateNulnFungalGrottos(scene: Phaser.Scene): void {
     texture(scene, `${p}-wall-${variant}`, TILE, TILE, (g) => {
       g.fillStyle(0x05100a, 1); g.fillRect(0, 0, TILE, TILE);
       const seed = 400 + variant * 10;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.6, 0.1);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.6, 0.1);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.6, 0.1);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.6, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.6);
       const base = creviceGrime(16, 16, seed) > 0.45 ? 0x15241b : 0x1f3326;
-      castPolygonShadow(g, points, 2.4, 0.52);
       g.fillStyle(base, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 5, seed, base);
-      g.lineStyle(1, 0x3d664a, 0.8); g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 5, seed, base);
       // Shelf fungi are stacked fan wedges with luminous cap rims.
       for (const shelf of [{ x: 3, y: 9, r: 6 }, { x: 23, y: 23, r: 7 }]) {
         g.fillStyle(0x347d4b, 1);
@@ -2094,18 +2069,12 @@ function generateLibrariansChasm(scene: Phaser.Scene): void {
       g.fillRect(0, 0, 32, 32);
 
       const seed = 600 + variant * 16;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.5, 0.1);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.5, 0.1);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.5, 0.1);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.5, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.5);
 
       const baseColor = variant === 0 ? 0x1b1824 : variant === 1 ? 0x221e2d : 0x292436;
-      castPolygonShadow(g, points, 3.0, 0.65);
       g.fillStyle(baseColor, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 2.5, seed, baseColor);
-      g.lineStyle(1, 0x473e57, 0.85); g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 2.5, seed, baseColor);
 
       // Bookshelf shelf inset with colorful leather book spines
       g.fillStyle(0x110e17, 0.95); g.fillRect(4, 14, 24, 12);
@@ -2445,18 +2414,12 @@ function generateSunkenThievesGuild(scene: Phaser.Scene): void {
       g.fillRect(0, 0, 32, 32);
 
       const seed = 700 + variant * 18;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.4, 0.1);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.4, 0.1);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.4, 0.1);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.4, 0.1);
-      const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
+      const points = massFace(seed, 1.4);
 
       const baseColor = variant === 0 ? 0x242029 : variant === 1 ? 0x2b2733 : 0x302b38;
-      castPolygonShadow(g, points, 3.0, 0.65);
       g.fillStyle(baseColor, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 2.5, seed, baseColor);
-      g.lineStyle(1, 0x4f475c, 0.85); g.strokePoints(points, true);
+      sdfBevelField(g, 0, 0, TILE, TILE, 2.5, seed, baseColor);
 
       // Brick mortar lines
       g.lineStyle(1, 0x18151f, 0.8);
@@ -2730,17 +2693,24 @@ function generateHiddenFaceTemple(scene: Phaser.Scene): void {
   });
 }
 
-const genericKeys = (backdrop: string): EnvironmentTextureKeys => ({
-  wall: (variant) => `tile-wall-${variant % 3}`,
-  platform: "tile-platform",
-  weakWall: "tile-weak",
-  climb: "tile-climb",
-  portcullis: "tile-portcullis",
-  door: "door",
-  backdrop,
-  foregroundTint: 0xffffff,
-  decorations: { mushrooms: "deco-mushrooms", bones: "deco-bones", banner: "deco-banner", stalactite: "deco-stalactite" },
-});
+/** Variants of every eroded family, independent of how many wall variants a skin draws. */
+const EDGE_VARIANTS = 3;
+
+const genericKeys = (scene: Phaser.Scene, backdrop: string): EnvironmentTextureKeys => {
+  ensureEdgeTextures(scene, "tile", DEFAULT_RIM_STYLE, (_mask, variant) => `tile-wall-${variant % 3}`, EDGE_VARIANTS);
+  return {
+    wall: (variant) => `tile-wall-${variant % 3}`,
+    edge: (mask, variant) => edgeTextureKey("tile", mask, variant % EDGE_VARIANTS),
+    platform: "tile-platform",
+    weakWall: "tile-weak",
+    climb: "tile-climb",
+    portcullis: "tile-portcullis",
+    door: "door",
+    backdrop,
+    foregroundTint: 0xffffff,
+    decorations: { mushrooms: "deco-mushrooms", bones: "deco-bones", banner: "deco-banner", stalactite: "deco-stalactite" },
+  };
+};
 
 export function ensureVisualSkinTextures(
   scene: Phaser.Scene,
@@ -2748,7 +2718,7 @@ export function ensureVisualSkinTextures(
   legacyBackdrop: string,
   daytime = false,
 ): EnvironmentTextureKeys {
-  if (!skin) return genericKeys(legacyBackdrop);
+  if (!skin) return genericKeys(scene, legacyBackdrop);
 
   let prefix = "";
   let wallVariantCount = 3;
@@ -2815,11 +2785,23 @@ export function ensureVisualSkinTextures(
     prefix = "skin-hidden-face-temple";
     generateHiddenFaceTemple(scene);
   } else {
-    return genericKeys(legacyBackdrop);
+    return genericKeys(scene, legacyBackdrop);
+  }
+
+  // Two eroded families, because an open-sky skin draws two different rocks: the
+  // decorated face that meets the sky, and the support art the underground room
+  // and the buried middle of a mass use. Breaking a support tile's side with the
+  // sky-facing rock would put the wrong material on the chip.
+  const rim = RIM_STYLES[skin.id];
+  ensureEdgeTextures(scene, prefix, rim, (_mask, variant) => `${prefix}-wall-${variant % wallVariantCount}`, EDGE_VARIANTS);
+  if (openSky) {
+    ensureEdgeTextures(scene, `${prefix}-sup`, rim, (_mask, variant) => `${prefix}-support-${variant % 3}`, EDGE_VARIANTS);
   }
 
   return {
     wall: (variant) => `${prefix}-wall-${variant % wallVariantCount}`,
+    edge: (mask, variant) => edgeTextureKey(prefix, mask, variant % EDGE_VARIANTS),
+    supportEdge: openSky ? (mask, variant) => edgeTextureKey(`${prefix}-sup`, mask, variant % EDGE_VARIANTS) : undefined,
     supportWall: openSky ? (variant) => `${prefix}-support-${variant % 3}` : undefined,
     overhang: openSky ? `${prefix}-overhang` : undefined,
     climbBackdrop: openSky ? `${prefix}-support-1` : undefined,

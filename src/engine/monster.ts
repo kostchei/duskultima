@@ -113,6 +113,8 @@ export const MONSTER_SIZE_PX: Record<MonsterSize, { w: number; h: number }> = {
 
 const LEVEL_DAMAGE = [
   "1d4", "1d6", "1d6", "1d8", "1d10", "2d6", "2d6", "2d8", "2d10", "3d8", "3d10",
+  "3d12", "4d10", "4d12", "5d10", "5d12", "6d12", "7d12", "8d12", "10d12", "12d12",
+  "12d12", "14d12", "16d12", "18d12", "20d12", "24d12", "28d12", "30d12", "40d12",
 ] as const;
 
 /** AC / to-hit / wisdom shifts that give each role a different feel at one level. */
@@ -140,8 +142,8 @@ export interface DerivedMonsterStats {
  * override individual fields where a monster earns an exception.
  */
 export function monsterStatsForLevel(level: number, role: MonsterRole): DerivedMonsterStats {
-  if (!Number.isInteger(level) || level < 0 || level > 10) {
-    throw new Error(`Monster level must be an integer 0-10, got ${level}`);
+  if (!Number.isInteger(level) || level < 0 || level > 30) {
+    throw new Error(`Monster level must be an integer 0-30, got ${level}`);
   }
   const shift = ROLE_SHIFT[role];
   if (!shift) throw new Error(`Unknown monster role "${role}"`);
@@ -150,11 +152,11 @@ export function monsterStatsForLevel(level: number, role: MonsterRole): DerivedM
     Math.max(0, level + shift.damageStep),
   );
   return {
-    ac: Math.min(19, 10 + Math.ceil(level / 2) + shift.ac),
+    ac: Math.min(24, 10 + Math.ceil(level / 2) + shift.ac),
     hitDice: level === 0 ? "1d4" : `${level}d8`,
     attackBonus: 1 + Math.floor(level / 2) + shift.hit,
     damage: LEVEL_DAMAGE[damageIndex]!,
-    wisMod: Math.min(4, Math.floor(level / 3) + shift.wis),
+    wisMod: Math.min(8, Math.floor(level / 3) + shift.wis),
     xpTier: level <= 3 ? "minor" : level <= 7 ? "major" : "legendary",
   };
 }

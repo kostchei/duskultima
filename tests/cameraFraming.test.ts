@@ -4,6 +4,8 @@ import {
   CAMERA_FORWARD_CENTRE_SHIFT,
   CameraFramingController,
   ELEVATED_DROP_TILES,
+  FEET_OFFSET_PX,
+  floorFeetMarginPx,
   horizontalOffsetFor,
   isElevatedSupport,
   verticalOffsetForMode,
@@ -33,11 +35,13 @@ describe("horizontalOffsetFor", () => {
 });
 
 describe("verticalOffsetForMode", () => {
-  it("raises the camera so feet sit near the bottom in floor framing", () => {
+  it("stands the leader clear of the bottom edge in floor framing", () => {
     const offset = verticalOffsetForMode("floor", GAME_H);
-    // leader screen y (sprite origin) + feet offset should land near GAME_H - TILE/2
-    const feetScreenY = offset + GAME_H / 2 + 15;
-    expect(feetScreenY).toBeCloseTo(GAME_H - 16, 0);
+    // Leader sprite origin plus the feet offset lands one margin off the bottom,
+    // so the ground they are standing on stays in frame.
+    const feetScreenY = offset + GAME_H / 2 + FEET_OFFSET_PX;
+    expect(feetScreenY).toBeCloseTo(GAME_H - floorFeetMarginPx(GAME_H), 0);
+    expect(floorFeetMarginPx(GAME_H)).toBeGreaterThan(3 * 32);
   });
 
   it("centres the leader vertically in elevated framing", () => {
@@ -85,7 +89,7 @@ describe("CameraFramingController", () => {
     const controller = new CameraFramingController(viewW, viewH);
     const target = controller.reset(1, "floor");
     expect(target.offsetX + viewW / 2).toBeCloseTo(viewW * 0.2, 5);
-    expect(target.offsetY + viewH / 2 + 15).toBeCloseTo(viewH - 16, 5);
+    expect(target.offsetY + viewH / 2 + FEET_OFFSET_PX).toBeCloseTo(viewH - floorFeetMarginPx(viewH), 5);
   });
 
   it("does not snap when facing changes — the smoothed value eases toward the new target", () => {

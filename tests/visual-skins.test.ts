@@ -22,6 +22,7 @@ import {
   selectOpenTerrainRoomRoles,
   selectUndergroundRoomId,
 } from "../src/game/visual/openTerrain";
+import { EDGE_LEFT, EDGE_MASKS, EDGE_RIGHT, EDGE_TOP, terrainEdgeMask } from "../src/game/visual/terrainVisibility";
 
 vi.mock("phaser", () => ({
   default: {
@@ -154,9 +155,21 @@ describe("ensureVisualSkinTextures", () => {
 
     for (const skinId of leadSkinIds) {
       const generatedKeys = new Set<string>();
+      // Edge erosion composites through a 2D canvas. Headless, all that matters
+      // is that a source texture reports itself canvas-backed and the derived
+      // key gets registered, so the calls are recorded and discarded.
+      const stubContext = new Proxy({}, {
+        get: () => () => {},
+        set: () => true,
+      }) as unknown as CanvasRenderingContext2D;
       const mockScene = {
         textures: {
           exists: (key: string) => generatedKeys.has(key),
+          get: () => ({ getSourceImage: () => ({ getContext: () => stubContext }) }),
+          createCanvas: (key: string) => {
+            generatedKeys.add(key);
+            return { getContext: () => stubContext, refresh: () => {} };
+          },
         },
         add: {
           graphics: () => ({
@@ -221,6 +234,18 @@ describe("ensureVisualSkinTextures", () => {
             ]
           : [keys.backdrop]),
         ...Object.values(keys.decorations),
+        // One eroded variant per exposed-face mask, plus a second family from
+        // the support art wherever a skin draws one.
+        ...EDGE_MASKS.flatMap((mask) => Array.from(
+          { length: 3 },
+          (_, variant) => `skin-${skinId}-edge-${mask}-${variant}`,
+        )),
+        ...(openSky
+          ? EDGE_MASKS.flatMap((mask) => Array.from(
+              { length: 3 },
+              (_, variant) => `skin-${skinId}-sup-edge-${mask}-${variant}`,
+            ))
+          : []),
       ]);
       expect(generatedKeys).toEqual(expectedKeys);
     }
@@ -244,6 +269,23 @@ describe("open-surface terrain support", () => {
     expect(openSurfaceTileRole(grid, 1, 0)).toBe("surface-edge");
     expect(openSurfaceTileRole(grid, 1, 1)).toBe("overhang");
     expect(openSurfaceTileRole(grid, 2, 0)).toBe("surface-edge");
+  });
+
+  it("names the exposed faces so a run's ends break differently from its middle", () => {
+    // ".###." — one three-tile ledge with open air above it.
+    const ledge = [".....", ".###.", "#####"];
+    expect(terrainEdgeMask(ledge, 1, 1)).toBe(EDGE_TOP | EDGE_LEFT);
+    expect(terrainEdgeMask(ledge, 2, 1)).toBe(EDGE_TOP);
+    expect(terrainEdgeMask(ledge, 3, 1)).toBe(EDGE_TOP | EDGE_RIGHT);
+    // Buried rock has nothing to break and keeps its flat art.
+    expect(terrainEdgeMask(ledge, 2, 2)).toBe(0);
+    // A lone pillar breaks on all three faces at once.
+    expect(terrainEdgeMask([".....", ".#...", "#####"], 1, 1)).toBe(EDGE_TOP | EDGE_LEFT | EDGE_RIGHT);
+  });
+
+  it("offers an eroded variant for every mask a solid tile can carry", () => {
+    expect([...EDGE_MASKS]).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(EDGE_MASKS).not.toContain(0);
   });
 
   it("keeps stacked bands solid instead of reading them as hanging ceilings", () => {

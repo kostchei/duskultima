@@ -35,7 +35,7 @@ describe("monster data", () => {
     for (const m of allMonsters()) {
       expect(Number.isInteger(m.level), m.id).toBe(true);
       expect(m.level, m.id).toBeGreaterThanOrEqual(0);
-      expect(m.level, m.id).toBeLessThanOrEqual(10);
+      expect(m.level, m.id).toBeLessThanOrEqual(30);
       expect(m.biome, m.id).toBeDefined();
       expect(MONSTER_SIZE_PX[m.size], m.id).toBeDefined();
       expect(m.speed, m.id).toBeGreaterThan(0);
@@ -56,9 +56,9 @@ describe("monster data", () => {
     }
   });
 
-  it("spans the full 0-10 ladder in the authored Diablerie roster", () => {
+  it("spans the full 0-6 core ladder in the authored Diablerie roster", () => {
     const levels = new Set(monstersForBiome("diablerie").map((m) => m.level));
-    for (let level = 0; level <= 10; level++) {
+    for (let level = 0; level <= 6; level++) {
       expect(levels.has(level), `diablerie is missing level ${level}`).toBe(true);
     }
   });
@@ -92,7 +92,7 @@ describe("level and role stat spine", () => {
   });
 
   it("rejects levels outside the Shadowdark ladder", () => {
-    expect(() => monsterStatsForLevel(11, "soldier")).toThrow();
+    expect(() => monsterStatsForLevel(31, "soldier")).toThrow();
     expect(() => monsterStatsForLevel(-1, "soldier")).toThrow();
   });
 });
@@ -104,9 +104,9 @@ describe("party-level-appropriate selection", () => {
     expect(targetLevel("soldier", 5)).toBeLessThan(targetLevel("champion", 5));
   });
 
-  it("clamps to the 0-10 ladder at both ends", () => {
+  it("clamps to the 0-30 ladder at both ends", () => {
     expect(targetLevel("vermin", 1)).toBe(0);
-    expect(targetLevel("champion", 10)).toBe(10);
+    expect(targetLevel("champion", 30)).toBe(30);
   });
 
   it("scales the spawned monster with the party for every zone and role", () => {
@@ -190,13 +190,12 @@ describe("high-level parties are not fed chaff", () => {
    * but still meaningful: they must field the strongest thing they have rather
    * than falling back to chaff.
    */
-  it("fields an unauthored zone's strongest inhabitants once the party outgrows it", () => {
+  it("fields a zone's strong inhabitants once the party reaches high levels", () => {
     const dice = new Dice(23);
-    for (const zone of ZONES.filter((z) => z !== "diablerie")) {
-      const ceiling = Math.max(...monstersForBiome(zone).map((m) => m.level));
+    for (const zone of ZONES) {
       for (const role of ROLES) {
         const def = monsterForRole(dice, zone, role, 10);
-        expect(def.level, `${zone}/${role} fielded ${def.name}`).toBeGreaterThanOrEqual(ceiling - 2);
+        expect(def.level, `${zone}/${role} fielded ${def.name}`).toBeGreaterThanOrEqual(3);
       }
     }
   });

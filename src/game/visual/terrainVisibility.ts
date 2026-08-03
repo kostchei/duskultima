@@ -37,3 +37,30 @@ export function exposedTerrainFaces(grid: readonly string[], x: number, y: numbe
     enclosed: !floor && !ceiling && !leftWall && !rightWall,
   };
 }
+
+/**
+ * Bits naming the three faces that can carry a broken edge. The underside is
+ * excluded: an exposed ceiling already collapses to the `overhang` lip tile,
+ * which is its own art.
+ */
+export const EDGE_TOP = 1;
+export const EDGE_LEFT = 2;
+export const EDGE_RIGHT = 4;
+/** Every mask an edge texture may be asked for; 0 is untouched interior rock. */
+export const EDGE_MASKS = [1, 2, 3, 4, 5, 6, 7] as const;
+
+/**
+ * Packs the exposed faces of a solid cell into a mask.
+ *
+ * Tile art is otherwise chosen by a position hash, which cannot know that a
+ * ledge ends here — that is what leaves a run of rock terminating in a square
+ * corner. Keying the eroded variant on the neighbourhood instead means a left
+ * end, a right end, a lone pillar and the middle of a run each break
+ * differently, and two adjoining tiles never chip the same shared face twice.
+ */
+export function terrainEdgeMask(grid: readonly string[], x: number, y: number): number {
+  const faces = exposedTerrainFaces(grid, x, y);
+  return (faces.floor ? EDGE_TOP : 0)
+    | (faces.leftWall ? EDGE_LEFT : 0)
+    | (faces.rightWall ? EDGE_RIGHT : 0);
+}

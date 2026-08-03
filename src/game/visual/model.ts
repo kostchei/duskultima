@@ -65,6 +65,14 @@ export interface VisualSkin {
 
 export interface EnvironmentTextureKeys {
   wall(variant: number): string;
+  /**
+   * The wall art with its exposed faces chewed away, keyed by the mask from
+   * `visual/terrainVisibility.ts`. Only ever asked for with a non-zero mask;
+   * buried rock keeps the flat `wall` art.
+   */
+  edge(mask: number, variant: number): string;
+  /** The same erosion applied to `supportWall`, where a skin has one. */
+  supportEdge?(mask: number, variant: number): string;
   /** Optional topology-aware alternatives used by open-surface skins. */
   supportWall?(variant: number): string;
   overhang?: string;

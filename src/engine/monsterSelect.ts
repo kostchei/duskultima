@@ -56,7 +56,7 @@ export function targetLevel(role: MonsterRole, partyLevel: number): number {
   }
   const offset = ROLE_LEVEL_OFFSET[role];
   if (offset === undefined) throw new Error(`Unknown monster role "${role}"`);
-  return Math.max(0, Math.min(10, partyLevel + offset));
+  return Math.max(0, Math.min(30, partyLevel + offset));
 }
 
 /**

@@ -30,8 +30,24 @@ export interface CameraFramingTarget {
 export const CAMERA_FORWARD_SHARE = 0.8;
 /** Fraction of GAME_W the camera centre shifts ahead of the leader (80/20 split). */
 export const CAMERA_FORWARD_CENTRE_SHIFT = CAMERA_FORWARD_SHARE - 0.5;
+/**
+ * Share of the view height kept below the leader's feet in floor framing.
+ *
+ * This was a half-tile, which put the feet at 97% of the view height: the floor
+ * ran off the bottom edge, the ground just crossed was never in frame, and the
+ * whole budget went to ceiling that floor framing is chosen precisely because
+ * there is nothing interesting in. A share rather than a pixel count so the
+ * composition survives zoom — at 540 logical pixels this is a little over three
+ * tiles of ground.
+ *
+ * This is the knob for "the view sits too high/low"; nothing else needs to move.
+ */
+export const FLOOR_FEET_MARGIN_SHARE = 0.2;
+
 /** Target on-screen margin between the leader's feet and the bottom edge in floor framing. */
-export const FLOOR_FEET_MARGIN_PX = TILE / 2;
+export function floorFeetMarginPx(viewH: number = GAME_H): number {
+  return viewH * FLOOR_FEET_MARGIN_SHARE;
+}
 /** Vertical distance from a character's origin to its feet, matching the shadow offset in CharacterSprite. */
 export const FEET_OFFSET_PX = 15;
 /** Damping half-life-ish time constant for horizontal look-ahead changes. */
@@ -55,7 +71,7 @@ export function horizontalOffsetFor(facing: 1 | -1, viewW: number = GAME_W): num
 
 /** Vertical follow offset for a resolved framing mode. */
 export function verticalOffsetForMode(mode: VerticalMode, viewH: number = GAME_H): number {
-  if (mode === "floor") return viewH - FLOOR_FEET_MARGIN_PX - viewH / 2 - FEET_OFFSET_PX;
+  if (mode === "floor") return viewH / 2 - floorFeetMarginPx(viewH) - FEET_OFFSET_PX;
   return 0;
 }
 

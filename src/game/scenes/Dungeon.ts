@@ -208,7 +208,7 @@ import { isSurfaceTile } from "../visual/surfaceSteps";
 import { groundYPx, isProfileSurfaceRow } from "../systems/groundFollow";
 import { resolveTargetConnector } from "../level/connectorTargets";
 import { CameraFramingController, FEET_OFFSET_PX, isElevatedSupport } from "../systems/cameraFraming";
-import { exposedTerrainFaces } from "../visual/terrainVisibility";
+import { exposedTerrainFaces, terrainEdgeMask } from "../visual/terrainVisibility";
 import {
   canTraverseConnector,
   openConnector,
@@ -1639,20 +1639,29 @@ export class DungeonScene extends Phaser.Scene {
         switch (ch) {
           case "#": {
             const variant = x * 17 + y * 31;
-            let textureKey = textures.wall(variant);
+            // Which faces of this tile border open air. Buried rock keeps its
+            // flat art; anything with a mask draws from the eroded family so the
+            // exposed faces chip instead of ruling a straight grid line, and a
+            // run that ends here breaks differently from its middle.
+            const mask = terrainEdgeMask(this.activeDungeon.grid, x, y);
+            let textureKey = mask === 0 ? textures.wall(variant) : textures.edge(mask, variant);
             let enclosed = false;
             // True when the tile draws only the thin underside lip, so its body
             // has to shrink to match — otherwise the transparent part of the
             // frame reads as open air but still blocks the party.
             let lipOnly = false;
             if (textures.supportWall) {
+              const supportEdge = textures.supportEdge;
+              const supportKey = mask === 0 || !supportEdge
+                ? textures.supportWall(variant)
+                : supportEdge(mask, variant);
               const underground = roomAt(this.activeDungeon.regions, x, y)?.id === this.undergroundRoomId;
               if (underground) {
                 enclosed = exposedTerrainFaces(this.activeDungeon.grid, x, y).enclosed;
-                textureKey = textures.supportWall(variant);
+                textureKey = supportKey;
               } else {
                 const role = openSurfaceTileRole(this.activeDungeon.grid, x, y);
-                if (role === "support") textureKey = textures.supportWall(variant);
+                if (role === "support") textureKey = supportKey;
                 else if (role === "overhang" && textures.overhang) {
                   textureKey = textures.overhang;
                   lipOnly = true;
