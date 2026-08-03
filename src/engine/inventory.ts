@@ -157,6 +157,9 @@ export interface ItemDef {
   slotCost: number;
   /** How many units stack into one instance (e.g. coins: 100 per slot). */
   bundleSize: number;
+  /** Different named items with the same group share bundle slots. This lets
+   * gems and trinkets retain separate inventory lines while packing 10/slot. */
+  slotGroup?: string;
   /** Units carried free before slots are charged (coins: first 100 free). */
   freeQty?: number;
   tags: readonly string[];
@@ -226,6 +229,43 @@ export function stackSlots(def: ItemDef, qty: number): number {
   return Math.ceil(charged / def.bundleSize) * def.slotCost;
 }
 
+/** Total occupied slots, pooling differently named stacks that share a slot group. */
+function slotsForStacks(stacks: readonly ItemStack[]): number {
+  let used = 0;
+  const groups = new Map<string, { def: ItemDef; qty: number }>();
+  for (const stack of stacks) {
+    const group = stack.def.slotGroup;
+    if (!group) {
+      used += stackSlots(stack.def, stack.qty);
+      continue;
+    }
+    const pooled = groups.get(group);
+    if (pooled) {
+      if (pooled.def.slotCost !== stack.def.slotCost || pooled.def.bundleSize !== stack.def.bundleSize) {
+        throw new Error(`Slot group "${group}" has inconsistent packing rules`);
+      }
+      pooled.qty += stack.qty;
+    } else {
+      groups.set(group, { def: stack.def, qty: stack.qty });
+    }
+  }
+  for (const pooled of groups.values()) used += stackSlots(pooled.def, pooled.qty);
+  return used;
+}
+
+function adjustedStacks(
+  stacks: readonly ItemStack[],
+  changes: readonly { def: ItemDef; delta: number }[],
+): ItemStack[] {
+  const adjusted = stacks.map((stack) => ({ def: stack.def, qty: stack.qty }));
+  for (const change of changes) {
+    const stack = adjusted.find((candidate) => candidate.def.id === change.def.id);
+    if (stack) stack.qty += change.delta;
+    else if (change.delta > 0) adjusted.push({ def: change.def, qty: change.delta });
+  }
+  return adjusted.filter((stack) => stack.qty > 0);
+}
+
 export class Inventory {
   private readonly baseCapacity: number;
   private stacks: ItemStack[] = [];
@@ -243,9 +283,7 @@ export class Inventory {
   }
 
   slotsUsed(): number {
-    let used = 0;
-    for (const s of this.stacks) used += stackSlots(s.def, s.qty);
-    return used;
+    return slotsForStacks(this.stacks);
   }
 
   slotsFree(): number {
@@ -254,13 +292,12 @@ export class Inventory {
 
   canAdd(def: ItemDef, qty = 1): boolean {
     if (def.slotCost === 0) return true;
-    const existing = this.stacks.find((s) => s.def.id === def.id);
-    const newSlots =
-      this.slotsUsed() -
-      (existing ? stackSlots(def, existing.qty) : 0) +
-      stackSlots(def, (existing?.qty ?? 0) + qty);
-    const addedCapacity = (def.capacityBonus ?? 0) * qty;
-    return newSlots <= this.capacity + addedCapacity;
+    const after = adjustedStacks(this.stacks, [{ def, delta: qty }]);
+    const capacityAfter = this.baseCapacity + after.reduce(
+      (total, stack) => total + (stack.def.capacityBonus ?? 0) * stack.qty,
+      0,
+    );
+    return slotsForStacks(after) <= capacityAfter;
   }
 
   /**
@@ -271,18 +308,15 @@ export class Inventory {
   canSwap(removeId: string, addDef: ItemDef, removeQty = 1, addQty = 1): boolean {
     const removeStack = this.stacks.find((s) => s.def.id === removeId);
     if (!removeStack || removeStack.qty < removeQty) return false;
-    const freed = stackSlots(removeStack.def, removeStack.qty) - stackSlots(removeStack.def, removeStack.qty - removeQty);
-    const usedAfter = this.slotsUsed() - freed;
-    const existingQty =
-      removeId === addDef.id
-        ? removeStack.qty - removeQty
-        : this.stacks.find((s) => s.def.id === addDef.id)?.qty ?? 0;
-    const newSlots = usedAfter - stackSlots(addDef, existingQty) + stackSlots(addDef, existingQty + addQty);
-    const capacityAfter =
-      this.capacity -
-      (removeStack.def.capacityBonus ?? 0) * removeQty +
-      (addDef.capacityBonus ?? 0) * addQty;
-    return newSlots <= capacityAfter;
+    const after = adjustedStacks(this.stacks, [
+      { def: removeStack.def, delta: -removeQty },
+      { def: addDef, delta: addQty },
+    ]);
+    const capacityAfter = this.baseCapacity + after.reduce(
+      (total, stack) => total + (stack.def.capacityBonus ?? 0) * stack.qty,
+      0,
+    );
+    return slotsForStacks(after) <= capacityAfter;
   }
 
   add(def: ItemDef, qty = 1, force = false): void {
@@ -310,8 +344,12 @@ export class Inventory {
     if (!stack || stack.qty < qty) {
       throw new Error(`Cannot remove ${qty}x "${itemId}": have ${stack?.qty ?? 0}`);
     }
-    const capacityAfter = this.capacity - (stack.def.capacityBonus ?? 0) * qty;
-    const slotsAfter = this.slotsUsed() - stackSlots(stack.def, stack.qty) + stackSlots(stack.def, stack.qty - qty);
+    const after = adjustedStacks(this.stacks, [{ def: stack.def, delta: -qty }]);
+    const capacityAfter = this.baseCapacity + after.reduce(
+      (total, candidate) => total + (candidate.def.capacityBonus ?? 0) * candidate.qty,
+      0,
+    );
+    const slotsAfter = slotsForStacks(after);
     if (slotsAfter > capacityAfter) {
       throw new Error(`Cannot remove ${stack.def.name}: empty it first (${slotsAfter}/${capacityAfter} slots)`);
     }

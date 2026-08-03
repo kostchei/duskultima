@@ -191,14 +191,19 @@ export const RAS_GODAI_TALENTS: RollableTable = {
 };
 
 const WITCH_SPELLS = [
-  { id: "cauldron", tier: 1 }, { id: "witchlight", tier: 1 }, { id: "fog", tier: 1 },
-  { id: "spidersilk", tier: 2 }, { id: "cats-eye", tier: 2 }, { id: "bogboil", tier: 2 },
-  { id: "howl", tier: 3 }, { id: "broomstick", tier: 3 }, { id: "speak-with-dead", tier: 3 },
+  { id: "cauldron", tier: 1 }, { id: "witchlight", tier: 1 },
+  { id: "spidersilk", tier: 2 }, { id: "bogboil", tier: 2 },
+  { id: "broomstick", tier: 3 }, { id: "speak-with-dead", tier: 3 },
+  { id: "dimension-door", tier: 4 }, { id: "polymorph", tier: 4 },
+  { id: "scrying", tier: 5 }, { id: "shapechange", tier: 5 },
 ] as const;
 
 const SEER_SPELLS = [
-  { id: "chant", tier: 1 }, { id: "trance", tier: 1 }, { id: "seer-potion", tier: 1 }, { id: "evoke-rage", tier: 1 },
-  { id: "fate", tier: 2 }, { id: "read-runes", tier: 2 }, { id: "cast-out", tier: 3 }, { id: "wolfshape", tier: 3 },
+  { id: "chant", tier: 1 }, { id: "evoke-rage", tier: 1 },
+  { id: "fate", tier: 2 }, { id: "read-runes", tier: 2 },
+  { id: "cast-out", tier: 3 }, { id: "wolfshape", tier: 3 },
+  { id: "odins-wisdom", tier: 4 }, { id: "thors-thunder", tier: 4 },
+  { id: "world-tree", tier: 5 }, { id: "world-serpent", tier: 5 },
 ] as const;
 
 export const WITCH_TALENTS: RollableTable = {

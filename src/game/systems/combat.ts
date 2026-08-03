@@ -252,6 +252,7 @@ export function meleeSwing(deps: MeleeDeps, attacker: CharacterSprite): SwingOut
     if (result.check.crit) swordCrit();
     else swordClang();
     applyDamageToMonster(deps, target, totalDamage, attacker);
+    applyThorns(deps, target, attacker);
   } else {
     whoosh();
     floatText(deps.scene, target.x, target.y - 16, `${die} miss`, "#8888aa");
@@ -265,6 +266,22 @@ export function meleeSwing(deps: MeleeDeps, attacker: CharacterSprite): SwingOut
     floatText(scene, attacker.x, attacker.y - 46, "ASSASSIN!", "#d9b3ff", 12);
   }
   return { swung: true, check: result.check, damage: result.check.success ? totalDamage : undefined };
+}
+
+/**
+ * A thorned monster answers every melee hit with its own hide. Ranged attackers
+ * are untouched — the point of quills is that closing costs you.
+ */
+export function applyThorns(
+  deps: MeleeDeps,
+  target: MonsterSprite,
+  attacker: CharacterSprite,
+): void {
+  if (target.def.specialAbility !== "thorns" || !attacker.alive) return;
+  const damage = deps.ctx.engine.dice.roll("1d4");
+  attacker.character.takeDamage(damage);
+  floatText(deps.scene, attacker.x, attacker.y - 28, `${damage} thorns`, "#c8d060", 11);
+  deps.ctx.say(`${target.def.name}'s quills bite back for ${damage}.`, "#c8d060");
 }
 
 export function applyDamageToMonster(deps: MeleeDeps, target: MonsterSprite, damage: number, attacker?: CharacterSprite): void {

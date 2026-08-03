@@ -24,8 +24,14 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "shortsword", name: "Shortsword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 1.7, weaponVisual: "dagger", valueGp: 7 },
   { id: "spear", name: "Spear", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 2.4, weaponVisual: "spear", valueGp: 5 },
   { id: "javelin", name: "Javelin", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", finesse: true, reachTiles: 1.8, weaponVisual: "javelin", valueGp: 1 },
+  { id: "warhammer", name: "Warhammer", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d8", reachTiles: 1.7, weaponVisual: "mace", valueGp: 10 },
+  { id: "bastard-sword", name: "Bastard Sword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d10", twoHanded: true, reachTiles: 1.9, weaponVisual: "longsword", valueGp: 10 },
+  { id: "greatsword", name: "Greatsword", slotCost: 2, bundleSize: 1, tags: ["weapon"], damage: "1d12", twoHanded: true, reachTiles: 2.0, weaponVisual: "longsword", valueGp: 12 },
+  { id: "greataxe", name: "Greataxe", slotCost: 2, bundleSize: 1, tags: ["weapon"], damage: "1d10", twoHanded: true, reachTiles: 2.0, weaponVisual: "mace", valueGp: 9 },
   // Ranged only: no reachTiles, so it can never be wielded for melee.
   { id: "shortbow", name: "Shortbow", slotCost: 1, bundleSize: 1, tags: ["weapon", "ranged"], damage: "1d4", finesse: true, valueGp: 6 },
+  { id: "longbow", name: "Longbow", slotCost: 2, bundleSize: 1, tags: ["weapon", "ranged"], damage: "1d8", finesse: true, twoHanded: true, valueGp: 10 },
+  { id: "crossbow", name: "Crossbow", slotCost: 2, bundleSize: 1, tags: ["weapon", "ranged"], damage: "1d10", finesse: true, twoHanded: true, valueGp: 60 },
   {
     id: "starfall-blade", name: "Starfall Blade", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic"],
     treasureQuality: "fabulous", magicBonus: 1, benefitRolls: 1,
@@ -129,10 +135,18 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
 ];
 
 const BASE_ITEMS = new Map(BASE_ITEM_LIST.map((entry) => [entry.id, entry]));
+
+/** Small valuables share a pouch even when their exact names remain separate. */
+function isPouchSizedTreasure(name: string): boolean {
+  if (/\b(?:giant|large|life-sized|full-length)\b/i.test(name)) return false;
+  return /\b(?:pebbles?|tooth|gem|emerald|pearl|sapphire|diamond|locket|pin|ring|necklace|pendant|circlet|torc|charm|token|scarab|statuette|game pieces|dice)\b/i.test(name);
+}
+
 const CORE_TREASURE_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.map((spec) => {
   const base = spec.baseItemId ? BASE_ITEMS.get(spec.baseItemId) : undefined;
   if (spec.baseItemId && !base) throw new Error(`Unknown core treasure base item "${spec.baseItemId}"`);
   const generatedSpell = spec.spellTier ? magicItemSpell(spec.spellTier, 1) : undefined;
+  const pouchSized = !base && isPouchSizedTreasure(spec.name);
   return {
     ...(base ?? { slotCost: 1, bundleSize: 1, tags: ["treasure"] }),
     id: spec.id,
@@ -140,12 +154,16 @@ const CORE_TREASURE_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.map((sp
     name: spec.name,
     description: spec.description,
     valueGp: spec.valueGp,
+    slotCost: spec.slotCost ?? base?.slotCost ?? 1,
+    bundleSize: pouchSized ? 10 : (base?.bundleSize ?? 1),
+    slotGroup: pouchSized ? "small-treasure" : base?.slotGroup,
     treasureQuality: spec.treasureQuality,
     xpValue: { poor: 0, normal: 1, fabulous: 3, legendary: 10 }[spec.treasureQuality],
     magicBonus: spec.magicBonus ?? base?.magicBonus,
     benefitRolls: spec.benefitRolls ?? base?.benefitRolls,
     curseRolls: spec.curseRolls ?? base?.curseRolls,
     personality: spec.personality ?? base?.personality,
+    benefits: spec.benefits ?? base?.benefits,
     boundSpellId: generatedSpell?.id ?? base?.boundSpellId,
     use: spec.spellContainer
       ? {

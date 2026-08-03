@@ -72,7 +72,7 @@ export function resolveCheck(dice: Dice, input: CheckInput): CheckResult {
   }
 
   const modifier = actor.mod(stat)
-    + sumCheckBonus(actor.effects, kind, actor.level, input.weaponId)
+    + sumCheckBonus(actor.effects, kind, actor.level, input.weaponId, stat)
     + (input.bonus ?? 0);
   const trained =
     (input.task !== undefined && actor.isTrainedIn(input.task))

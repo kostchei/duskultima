@@ -17,6 +17,7 @@ import {
   rollReaction,
   type EncounterDistance,
   type MonsterActivity,
+  type MonsterDef,
   type MonsterReaction,
 } from "../../engine";
 
@@ -28,10 +29,14 @@ export interface EncounterDeps {
   dungeon: DungeonDefinition;
   camera: () => Phaser.Cameras.Scene2D.Camera;
   partyInTotalDarkness: () => boolean;
-  /** Spawn `count` encounter monsters near screen edge x, with their rolled activity/reaction/distance. */
+  /**
+   * The wave itself: which zone monster, and how many of it the party's level
+   * budget allows. Chaff swarms, brutes come alone.
+   */
+  rollEncounterWave: () => readonly MonsterDef[];
+  /** Spawn one encounter wave near screen edge x, with its rolled activity/reaction/distance. */
   spawnWave: (
-    monsterId: string,
-    count: number,
+    wave: readonly MonsterDef[],
     x: number,
     activity: MonsterActivity,
     reaction: MonsterReaction,
@@ -64,13 +69,12 @@ export class EncounterSystem {
     const distance = rollDistance(ctx.engine.dice);
     const offsetPx = DISTANCE_OFFSET_PX[distance];
     const spawnX = fromLeft ? cam.worldView.left - offsetPx : cam.worldView.right + offsetPx;
-    const count = ctx.engine.dice.roll("1d3");
     const activity = rollActivity(ctx.engine.dice);
     const reaction = rollReaction(ctx.engine.dice);
     ctx.say(
       dark ? "Something moves in the pitch black..." : "You sense something nearby...",
       "#c07be0",
     );
-    this.deps.spawnWave(dungeon.encounterMonsterId, count, spawnX, activity, reaction, distance);
+    this.deps.spawnWave(this.deps.rollEncounterWave(), spawnX, activity, reaction, distance);
   }
 }

@@ -55,6 +55,7 @@ export * from "./inventory";
 export * from "./itemActions";
 export * from "./magicItems";
 export * from "./monster";
+export * from "./monsterSelect";
 export * from "./movement";
 export * from "./potions";
 export * from "./spells";
@@ -112,6 +113,15 @@ export class Engine {
 
   allCharacters(): readonly Character[] {
     return [...this.characters.values()];
+  }
+
+  /** Whether any caster is currently focusing the named spell on this character. */
+  private hasFocusedSpellOn(spellId: string, targetId: string): boolean {
+    return [...this.characters.values()].some((caster) => caster.effects.some((effect) =>
+      effect.duration?.unit === "focus" &&
+      effect.hooks.some((hook) => hook.kind === "focusSpell" && hook.spellId === spellId) &&
+      effect.hooks.some((hook) => hook.kind === "focusTarget" && hook.targetId === targetId),
+    ));
   }
 
   /** Game loop entry point: advances all engine time. */
@@ -290,7 +300,8 @@ export class Engine {
         (highest, hook) => hook.kind === "meleeDamageMultiplier" ? Math.max(highest, hook.value) : highest,
         1,
       );
-      if (!input.weapon?.tags.includes("ranged")) damage *= meleeMultiplier;
+      const worldSerpentMultiplier = melee && this.hasFocusedSpellOn("world-serpent", a.id) ? 2 : 1;
+      if (!input.weapon?.tags.includes("ranged")) damage *= Math.max(meleeMultiplier, worldSerpentMultiplier);
       if (melee) for (const effect of a.effects) for (const hook of effect.hooks) {
         if (hook.kind === "meleeDamageBonus") damage += hook.bonus;
       }
@@ -403,6 +414,11 @@ export class Engine {
       return false;
     }
     if (character.effects.some((effect) => effect.hooks.some((hook) => hook.kind === "damageImmune"))) return false;
+    if (this.hasFocusedSpellOn("world-tree", character.id) && amount >= character.hp) {
+      character.takeDamage(Math.max(0, character.hp - 1));
+      this.log.append(this.clock.elapsedMs, "seer.world-tree", { who: character.id, amount });
+      return false;
+    }
     character.takeDamage(amount);
     // Damage is a distraction: a failed spell check ends Focus without losing the known spell.
     if (character.hp === 0) {

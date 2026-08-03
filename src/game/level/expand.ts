@@ -3,12 +3,19 @@
  * scene can render, plus the (x, y) room regions the scene reasons about.
  *
  * Each macro-cell becomes a fixed CELL_W x CELL_H block. Room cells are carved out
- * of solid rock as enclosed chambers with a floor; connectors are carved along the
+ * of solid rock as chambers with a floor; connectors are carved along the
  * macro path of each graph edge — a doorway for horizontal (beside) links, and a
  * staggered one-way-ledge shaft for vertical (above/below) links. The ledge
  * spacing (3 tiles) sits inside the jump height (~3.16 tiles) and the safe-fall
  * allowance (4 tiles), so every vertical connector is traversable up and down by
  * any class without fall damage.
+ *
+ * Two things break the old flat-box grid. Floors come from the relief height
+ * field (`relief.ts`) rather than one constant row per cell, so chambers and the
+ * corridors joining them ramp, terrace and dip, and a vault may lean end to end.
+ * And `ExpandOptions.openSky` carves each band up to the terrace above instead
+ * of to a fixed headroom, which is what makes a roofless subzone roofless — the
+ * one difference it may make to the grid is turning ceiling rock into air.
  *
  * The result is shaped as a DungeonDefinition so the existing renderer consumes it
  * unchanged. This is the Milestone 2 bridge from the M1 pipeline to the screen.
@@ -28,9 +35,10 @@ import {
 import type { RoomRegion } from "./geometry";
 import { chooseRoomTemplate, stampRoom, templateHash, type RoomStamp } from "./templates";
 import { validatePhysicalDungeon } from "./physical";
+import { buildRelief, HEADROOM_ROWS, type ReliefField } from "./relief";
+import { CELL_H, CELL_W } from "./cellSize";
 
-export const CELL_W = 20;
-export const CELL_H = 12;
+export { CELL_H, CELL_W };
 
 const NPC_NAMES = ["Aster Vale", "Brother Senn", "Mara Quill", "Old Kest", "Veyra Ash"] as const;
 const NPC_ROLES = ["lost cartographer", "oathbound pilgrim", "rival delver", "ruin keeper"] as const;
@@ -68,13 +76,34 @@ function npcDialogue(outcome: TalkableNpcOutcome): { introduction: string; resol
   }
 }
 
-/** Encounter-monster id -> level tile glyph understood by the renderer. */
-const MONSTER_GLYPH: Record<string, string> = {
-  goblin: "g",
-  skeleton: "s",
-  "giant-rat": "r",
-  "gloom-ogre": "O",
-};
+/**
+ * The role glyphs a stamped room may place. Which creature fills one is not
+ * decided here: the scene resolves the glyph against the active zone's roster
+ * at the party's level (see `systems/monsterRoster.ts`), so the same layout
+ * reads as quillboar in one scroll and draugr in another.
+ */
+const MONSTER_GLYPHS = ["g", "s", "r"] as const;
+
+/**
+ * The role glyph a room stamps: the climax room fields the level's champion,
+ * every other room draws a stable role from its id and the run seed. Never
+ * consumes rules RNG.
+ */
+function glyphForRoom(seed: number, roomId: string, beat: Beat): string {
+  if (beat === "climax") return "O";
+  let hash = (seed ^ 0x9e3779b9) >>> 0;
+  for (let i = 0; i < roomId.length; i++) {
+    hash = Math.imul(hash ^ roomId.charCodeAt(i), 0x85ebca6b) >>> 0;
+  }
+  // Finalizer: without it the ids differ only in their last character and the
+  // high bits this indexes on come out identical for every room.
+  // Each step re-coerces to unsigned: `^=` yields a signed int32, and a
+  // negative remainder would index off the front of the glyph list.
+  hash = (hash ^ (hash >>> 16)) >>> 0;
+  hash = Math.imul(hash, 0x7feb352d) >>> 0;
+  hash = (hash ^ (hash >>> 15)) >>> 0;
+  return MONSTER_GLYPHS[hash % MONSTER_GLYPHS.length]!;
+}
 
 const BEAT_LABEL: Record<Beat, { title: string }> = {
   entrance: { title: "THE GATE" },
@@ -103,28 +132,115 @@ function get(grid: Grid, x: number, y: number): string | undefined {
 }
 
 const cellOx = (col: number): number => col * CELL_W;
-const cellOy = (row: number): number => row * CELL_H;
 const cellCenterX = (col: number): number => col * CELL_W + Math.floor(CELL_W / 2);
-/** Standing row (feet) inside a cell; solid floor sits one row below it. */
-const standingY = (row: number): number => row * CELL_H + CELL_H - 3;
 
-/** Carve an enclosed chamber with a floor out of the solid rock. */
-function carveRoom(grid: Grid, col: number, row: number): void {
-  const ox = cellOx(col);
-  const oy = cellOy(row);
-  for (let y = oy + 1; y <= oy + CELL_H - 3; y++) {
-    for (let x = ox + 1; x <= ox + CELL_W - 2; x++) set(grid, x, y, ".");
-  }
-  // Floor surface: the row just below the standing row stays solid (already "#").
+/**
+ * Rock left under a terrace on an open-sky level: the thickness of the cliff
+ * shelf the band above stands on. Two rows reads as ground seen from below
+ * rather than as a floating slab.
+ */
+const OPEN_SKY_SHELF_ROWS = 2;
+
+/**
+ * Every carving helper samples the same relief height field, so a room's floor,
+ * the corridor that enters it and the content stamped on it can never disagree
+ * about where the ground is. `standingY` is now a function of x as well as of
+ * the macro row: that single change is what turns flat boxes into terrain.
+ */
+interface Carver {
+  relief: ReliefField;
+  /** Feet row for a macro row at global tile x. */
+  standingY(row: number, x: number): number;
+  /** Top row of a cell's carved void at global tile x. */
+  cellTopY(row: number, x: number): number;
+  /**
+   * Highest ground among this column and its two neighbours. Carving up to it
+   * (plus clearance) is what keeps neighbouring columns four-connected across a
+   * step: without it a two-row drop leaves the two voids touching only at a
+   * diagonal, which is a wall to the party and to the flood-fill proofs.
+   */
+  crestY(row: number, x: number): number;
 }
 
-/** A walkable doorway/corridor at floor level between two same-row cell centres. */
-function carveHorizontalCorridor(grid: Grid, xA: number, xB: number, y: number): void {
+/**
+ * `openSky` is what makes a roofless level actually roofless. Enclosed vaults
+ * carve a fixed headroom and leave the rock above it as ceiling; an open-sky
+ * level instead carves each band all the way up until it meets the underside of
+ * the terrace above, and the topmost band all the way to the sky. Without this,
+ * an "open world" subzone still renders a lid over every walkable strip — and
+ * the enclosed-rock fill hides the horizon behind it.
+ */
+function makeCarver(relief: ReliefField, openSky: boolean): Carver {
+  const crestY = (row: number, x: number): number => Math.min(
+    relief.surfaceY(row, x - 1),
+    relief.surfaceY(row, x),
+    relief.surfaceY(row, x + 1),
+  );
+  const cellTopY = (row: number, x: number): number => {
+    const enclosed = crestY(row, x) - HEADROOM_ROWS;
+    if (!openSky) return enclosed;
+    // Open to the sky above the top band; below it, open to the shelf overhead.
+    const above = row === 0 ? 0 : relief.surfaceY(row - 1, x) + 1 + OPEN_SKY_SHELF_ROWS;
+    return Math.min(enclosed, above);
+  };
+  return {
+    relief,
+    standingY: (row, x) => relief.surfaceY(row, x),
+    cellTopY,
+    crestY,
+  };
+}
+
+/**
+ * Carve a chamber out of the solid rock, following the cell's relief profile
+ * column by column. Under a roof, headroom is constant, so a crest lifts the
+ * ceiling with the floor and a basin drops it — the chamber shears rather than
+ * stretches. Under open sky the ceiling is gone and the carve runs up to the
+ * terrace above (see `makeCarver`).
+ *
+ * The cell's two edge columns are deliberately left solid. They are the walls
+ * that keep rooms separate, and on an open-sky level they become the standing
+ * walls of the landscape: hedge rows in the Rot-Bramble, serac walls on the Fell
+ * Glacier, parapets on the rooftops. Carving them would silently connect rooms
+ * that the layout's locks and secrets assume are apart.
+ */
+function carveRoom(grid: Grid, carver: Carver, col: number, row: number): void {
+  const ox = cellOx(col);
+  for (let x = ox + 1; x <= ox + CELL_W - 2; x++) {
+    const floor = carver.standingY(row, x);
+    for (let y = carver.cellTopY(row, x); y <= floor; y++) set(grid, x, y, ".");
+    set(grid, x, floor + 1, "#");
+  }
+}
+
+/**
+ * A handhold on the face of a relief step. `|` is non-solid to collision and
+ * drives the scene's climb zone, so it reads as a rope or root on the drop and
+ * guarantees followers (who refuse blind ledges) can still get back up.
+ *
+ * Carved after every corridor: a corridor lays solid floor rock under its span
+ * and would otherwise cap the top of the handhold it crosses.
+ */
+function carveReliefClimb(grid: Grid, carver: Carver, row: number, x: number): void {
+  const levels = [carver.standingY(row, x), carver.standingY(row, x - 1), carver.standingY(row, x + 1)];
+  for (let y = Math.min(...levels); y <= Math.max(...levels); y++) set(grid, x, y, "|");
+}
+
+/**
+ * A walkable corridor between two cell centres, following the height field the
+ * whole way. On a tilted vault this is the long ramp that sells the lean; on a
+ * level one it is the old flat doorway. Three rows of headroom keep a mover from
+ * clipping their head on the step where the floor rises a row.
+ */
+function carveHorizontalCorridor(grid: Grid, carver: Carver, row: number, xA: number, xB: number): void {
   const lo = Math.min(xA, xB);
   const hi = Math.max(xA, xB);
   for (let x = lo; x <= hi; x++) {
-    set(grid, x, y, ".");
-    set(grid, x, y - 1, ".");
+    const y = carver.standingY(row, x);
+    // Open the same column the room carve would, so a corridor threading an
+    // open-sky level is a ledge under the sky rather than a covered tunnel.
+    const top = Math.min(carver.cellTopY(row, x), carver.crestY(row, x) - 2);
+    for (let cy = top; cy <= y; cy++) set(grid, x, cy, ".");
     set(grid, x, y + 1, "#"); // floor to walk on
   }
 }
@@ -150,55 +266,52 @@ type Phase = "horizontal" | "vertical";
  * carved in a first pass and vertical ladders in a second, so at a routed corner
  * the ladder is laid last and stays intact where a corridor crosses it.
  */
-function carveConnection(grid: Grid, path: readonly MacroPoint[], phase: Phase): void {
+function carveConnection(grid: Grid, carver: Carver, path: readonly MacroPoint[], phase: Phase): void {
+  const shaft = (col: number, upper: number, lower: number): void => {
+    const cx = cellCenterX(col);
+    carveVerticalShaft(grid, cx, carver.standingY(upper, cx), carver.standingY(lower, cx));
+  };
   for (let i = 0; i + 1 < path.length; i++) {
     const a = path[i]!;
     const b = path[i + 1]!;
     if (a.row === b.row) {
       if (phase === "horizontal") {
-        carveHorizontalCorridor(grid, cellCenterX(a.column), cellCenterX(b.column), standingY(a.row));
+        carveHorizontalCorridor(grid, carver, a.row, cellCenterX(a.column), cellCenterX(b.column));
       }
     } else if (a.column === b.column) {
-      if (phase === "vertical") {
-        const upper = Math.min(a.row, b.row);
-        const lower = Math.max(a.row, b.row);
-        carveVerticalShaft(grid, cellCenterX(a.column), standingY(upper), standingY(lower));
-      }
+      if (phase === "vertical") shaft(a.column, Math.min(a.row, b.row), Math.max(a.row, b.row));
     } else {
       const cornerCol = b.column;
       const cornerRow = a.row;
       if (phase === "horizontal") {
-        carveHorizontalCorridor(grid, cellCenterX(a.column), cellCenterX(cornerCol), standingY(a.row));
+        carveHorizontalCorridor(grid, carver, a.row, cellCenterX(a.column), cellCenterX(cornerCol));
       } else if (phase === "vertical") {
-        const upper = Math.min(cornerRow, b.row);
-        const lower = Math.max(cornerRow, b.row);
-        carveVerticalShaft(grid, cellCenterX(cornerCol), standingY(upper), standingY(lower));
+        shaft(cornerCol, Math.min(cornerRow, b.row), Math.max(cornerRow, b.row));
       }
     }
   }
 }
 
-function endpointTile(point: MacroPoint): { x: number; y: number } {
-  return { x: cellCenterX(point.column), y: standingY(point.row) };
+function endpointTile(carver: Carver, point: MacroPoint): { x: number; y: number } {
+  const x = cellCenterX(point.column);
+  return { x, y: carver.standingY(point.row, x) };
 }
 
 /** First connector tile outside the source room, used for gates and secret doors. */
-function blockerTile(path: readonly MacroPoint[]): { x: number; y: number } {
+function blockerTile(carver: Carver, path: readonly MacroPoint[]): { x: number; y: number } {
   const from = path[0]!;
   const next = path[1]!;
   if (from.row === next.row) {
-    return {
-      x: next.column > from.column ? cellOx(from.column) + CELL_W : cellOx(from.column),
-      y: standingY(from.row),
-    };
+    const x = next.column > from.column ? cellOx(from.column) + CELL_W : cellOx(from.column);
+    return { x, y: carver.standingY(from.row, x) };
   }
-  return {
-    x: cellCenterX(from.column),
-    y: next.row > from.row ? standingY(from.row) + 1 : standingY(from.row) - 1,
-  };
+  const x = cellCenterX(from.column);
+  const y = carver.standingY(from.row, x);
+  return { x, y: next.row > from.row ? y + 1 : y - 1 };
 }
 
 function expandedConnector(
+  carver: Carver,
   conn: DungeonConnection,
   path: readonly MacroPoint[],
   requirement: AbstractDungeon["requirements"][number] | undefined,
@@ -219,10 +332,10 @@ function expandedConnector(
     state: conn.state,
     direction: conn.direction,
     requirement,
-    entry: endpointTile(path[0]!),
-    landing: endpointTile(path[path.length - 1]!),
-    waypoints: path.map(endpointTile),
-    blocker: closed ? blockerTile(path) : undefined,
+    entry: endpointTile(carver, path[0]!),
+    landing: endpointTile(carver, path[path.length - 1]!),
+    waypoints: path.map((point) => endpointTile(carver, point)),
+    blocker: closed ? blockerTile(carver, path) : undefined,
     vertical,
   };
 }
@@ -249,20 +362,35 @@ const EMPTY_POOLS: VariantPools = {
   sanctuary: [0],
 };
 
+export interface ExpandOptions {
+  /**
+   * The level is roofless. Bands carve upward to the terrace above instead of to
+   * a fixed headroom, so nothing renders a lid over walkable ground.
+   */
+  openSky?: boolean;
+}
+
 /** Expand an abstract dungeon into a renderable, region-annotated definition. */
-export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
+export function expandDungeon(abstract: AbstractDungeon, options: ExpandOptions = {}): DungeonDefinition {
+  const relief = buildRelief({
+    seed: abstract.seed,
+    macroWidth: abstract.macroWidth,
+    macroHeight: abstract.macroHeight,
+    roomCells: new Set(abstract.rooms.map((room) => `${room.position.column},${room.position.row}`)),
+  });
+  const carver = makeCarver(relief, options.openSky === true);
   const width = abstract.macroWidth * CELL_W;
-  const height = abstract.macroHeight * CELL_H;
+  // A tilted vault is a parallelogram, so the grid grows by the total lean.
+  const height = abstract.macroHeight * CELL_H + relief.extraRows;
   const grid = makeGrid(width, height);
 
   const base = themeBase(abstract.themeId);
-  const monsterGlyph = MONSTER_GLYPH[base.encounterMonsterId] ?? "g";
 
   const roomByNode = new Map<string, DungeonRoomNode>();
   for (const room of abstract.rooms) roomByNode.set(room.id, room);
 
-  // 1. Carve every room chamber.
-  for (const room of abstract.rooms) carveRoom(grid, room.position.column, room.position.row);
+  // 1. Carve every room chamber, following the cell's relief profile.
+  for (const room of abstract.rooms) carveRoom(grid, carver, room.position.column, room.position.row);
 
   // 2. Carve connectors in global phases. Vertical shafts must be applied after
   // every horizontal corridor, otherwise a later corridor can refill a shaft's
@@ -272,12 +400,21 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
     const to = roomByNode.get(conn.toRoomId)!;
     return [from.position, ...conn.routedCells, to.position] satisfies MacroPoint[];
   });
-  for (const path of paths) carveConnection(grid, path, "horizontal");
-  for (const path of paths) carveConnection(grid, path, "vertical");
+  for (const path of paths) carveConnection(grid, carver, path, "horizontal");
+  for (const path of paths) carveConnection(grid, carver, path, "vertical");
+
+  // 3. Relief handholds last: a corridor lays floor rock across its whole span
+  // and would cap any handhold carved before it.
+  for (const room of abstract.rooms) {
+    const { column, row } = room.position;
+    for (const localX of relief.cell(column, row).climbColumns) {
+      carveReliefClimb(grid, carver, row, cellOx(column) + localX);
+    }
+  }
 
   const requirements = new Map(abstract.requirements.map((r) => [r.id, r]));
   const connectors = abstract.connections.map((conn, i) =>
-    expandedConnector(conn, paths[i]!, conn.requirementId ? requirements.get(conn.requirementId) : undefined),
+    expandedConnector(carver, conn, paths[i]!, conn.requirementId ? requirements.get(conn.requirementId) : undefined),
   );
   const routedUses = new Map<string, { point: MacroPoint; roomIds: Set<string>; count: number }>();
   for (const connection of abstract.connections) for (const point of connection.routedCells) {
@@ -292,7 +429,7 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
     .filter((use) => use.count > 1)
     .map((use, index) => ({
       id: `junction-${index}`,
-      tile: endpointTile(use.point),
+      tile: endpointTile(carver, use.point),
       roomIds: [...use.roomIds].sort(),
     }));
 
@@ -308,16 +445,22 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
   const roomContents: ExpandedRoomContent[] = [];
   const talkableNpcs: TalkableNpcSpec[] = [];
 
-  // 3. Stamp room contents after all carving, so nothing floats over a shaft.
+  // 4. Stamp room contents after all carving, so nothing floats over a shaft.
   for (const room of abstract.rooms) {
     const ox = cellOx(room.position.column);
-    const y = standingY(room.position.row);
+    // Content follows the relief: `canStand` resolves the standing row for the
+    // column being probed, so a brazier on a terrace sits on that terrace rather
+    // than hanging in the air where the old single floor row used to be.
+    const floorAt = (localX: number): number => carver.standingY(room.position.row, ox + localX);
     const stamp: RoomStamp = {
       width: CELL_W,
-      monsterGlyph,
-      put: (localX, ch) => set(grid, ox + localX, y, ch),
+      // Which role a room's monsters take is stable per room and per seed, so
+      // a reloaded layout stages the same kind of fight it did before.
+      monsterGlyph: glyphForRoom(abstract.seed, room.id, room.beat),
+      put: (localX, ch) => set(grid, ox + localX, floorAt(localX), ch),
       canStand: (localX) => {
         const x = ox + localX;
+        const y = floorAt(localX);
         return (
           get(grid, x, y) === "." &&
           get(grid, x, y - 1) === "." &&
@@ -377,7 +520,7 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
       talkableNpcs.push({
         id: `npc-${room.node}`,
         roomId: room.id,
-        tile: { x: ox + stamped.npcLocalX, y },
+        tile: { x: ox + stamped.npcLocalX, y: floorAt(stamped.npcLocalX) },
         name: NPC_NAMES[npcHash % NPC_NAMES.length]!,
         role: NPC_ROLES[(npcHash >>> 4) % NPC_ROLES.length]!,
         alignment: alignmentRoll < 3 ? "law" : alignmentRoll < 5 ? "neutral" : "chaos",
@@ -392,13 +535,17 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
     }
   }
 
-  // 4. Closed connector states sit above room decoration and retain stable tile
+  // 5. Closed connector states sit above room decoration and retain stable tile
   // coordinates for the scene's interaction/persistence layer.
   for (const connector of connectors) stampBlocker(grid, connector);
 
+  // Regions stay CELL_H tall and are stated at their left edge; on a tilted
+  // vault they are parallelograms, and `shearRows` tells `roomAt` how far the
+  // box slides down as x advances. Keeping the box height fixed is what stops
+  // vertically-adjacent rooms from overlapping once the vault leans.
   const regions: RoomRegion[] = abstract.rooms.map((room, index) => {
     const ox = cellOx(room.position.column);
-    const oy = cellOy(room.position.row);
+    const oy = relief.surfaceY(room.position.row, ox) - (CELL_H - 3);
     const label = BEAT_LABEL[room.beat];
     return {
       id: room.id,
@@ -410,6 +557,8 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
       y2: oy + CELL_H - 1,
       labelX: cellCenterX(room.position.column),
       beat: room.beat,
+      shearRows: relief.shearRows,
+      macro: { column: room.position.column, row: room.position.row },
     };
   });
 
@@ -422,6 +571,11 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
     width,
     height,
     regions,
+    groundProfile: {
+      bands: Array.from({ length: abstract.macroHeight }, (_, band) =>
+        Array.from({ length: width }, (_unused, x) => relief.surfaceYExact(band, x)),
+      ),
+    },
     connectors,
     roomContents,
     talkableNpcs,
@@ -431,8 +585,6 @@ export function expandDungeon(abstract: AbstractDungeon): DungeonDefinition {
     traps: [],
     trapKinds: [],
     danger: base.danger,
-    encounterMonsterId: base.encounterMonsterId,
-    bossMonsterId: base.bossMonsterId,
   };
   const physical = validatePhysicalDungeon(expanded);
   if (!physical.ok) throw new Error(`Invalid physical dungeon: ${physical.diagnostics.join(",")}`);

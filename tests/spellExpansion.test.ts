@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Engine } from "../src/engine";
-import { createCharacter, registerTables, spell, spellsForClass } from "../src/data";
+import { CLASS_SPELL_ROSTER, createCharacter, registerTables, spell, spellsForClass, unlockClassSpellsForLevel } from "../src/data";
 import { deserializeCharacter, serializeCharacter } from "../src/game/state";
 
 function engine(seed = 1): Engine {
@@ -10,6 +10,27 @@ function engine(seed = 1): Engine {
 }
 
 describe("Phase 2 spell expansion", () => {
+  it("provides two usable spells per tier for every full caster and unlocks tiers by level", () => {
+    for (const roster of Object.values(CLASS_SPELL_ROSTER)) {
+      for (const tier of [1, 2, 3, 4, 5]) expect(roster[tier]).toHaveLength(2);
+    }
+    const rules = engine();
+    const seer = createCharacter(rules, "seer-roster", "Runa", "seer");
+    expect(seer.knownSpells.map((known) => known.spellId)).toEqual(CLASS_SPELL_ROSTER.seer[1]);
+    seer.level = 3;
+    expect(unlockClassSpellsForLevel(seer)).toEqual(CLASS_SPELL_ROSTER.seer[2]);
+    seer.level = 9;
+    unlockClassSpellsForLevel(seer);
+    expect(seer.knownSpells.map((known) => known.spellId)).toEqual(Object.values(CLASS_SPELL_ROSTER.seer).flat());
+  });
+
+  it("supports shared Witch/Wizard spells with the casting stat of their caster", () => {
+    const rules = engine();
+    const witch = createCharacter(rules, "shared-witch", "Mara", "witch");
+    witch.learnSpell("dimension-door");
+    expect(() => rules.cast(witch, spell("dimension-door"))).not.toThrow();
+    expect(spell("dimension-door").class).toEqual(["wizard", "witch"]);
+  });
   it("uses the core Wizard damage ladder's authoritative tiers and decisions", () => {
     expect(spell("acid-arrow")).toMatchObject({ tier: 2, range: "far", focus: true, dice: "1d6", target: "enemy" });
     expect(spell("lightning-bolt")).toMatchObject({ tier: 3, range: "far", dice: "3d6", target: "direction" });

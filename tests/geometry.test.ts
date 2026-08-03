@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { roomAt, roomAtTolerant } from "../src/game/level/geometry";
+import {
+  regionCenter,
+  regionRowsAt,
+  regionShearAt,
+  roomAt,
+  roomAtTolerant,
+  type RoomRegion,
+} from "../src/game/level/geometry";
 import { DUNGEONS, LEGACY_REGIONS, ROOM_BANDS, dungeonAt } from "../src/game/level/dungeons";
 
 describe("room geometry", () => {
@@ -49,5 +56,43 @@ describe("room geometry", () => {
         }
       });
     }
+  });
+
+  describe("tilted vaults", () => {
+    /** A 20-wide, 12-tall cell that drops five rows across its width. */
+    const tilted: RoomRegion = {
+      id: "room-1", title: "THE GATE", hud: "ROOM 1", labelX: 10,
+      x1: 0, y1: 0, x2: 19, y2: 11, shearRows: 5,
+    };
+    const level: RoomRegion = { ...tilted, shearRows: 0 };
+
+    it("slides the box down as x advances, ending a full cell lower", () => {
+      expect(regionShearAt(tilted, 0)).toBe(0);
+      expect(regionShearAt(tilted, 19)).toBe(5);
+      expect(regionRowsAt(tilted, 0)).toEqual({ top: 0, bottom: 11 });
+      expect(regionRowsAt(tilted, 19)).toEqual({ top: 5, bottom: 16 });
+    });
+
+    it("leaves a level region exactly where its bounds say", () => {
+      for (const x of [0, 7, 19]) expect(regionRowsAt(level, x)).toEqual({ top: 0, bottom: 11 });
+    });
+
+    it("claims the downhill end and releases the rows the lean has left", () => {
+      // Row 14 at the far edge is inside the tilted room but outside the level one.
+      expect(roomAt([tilted], 19, 14)?.id).toBe("room-1");
+      expect(roomAt([level], 19, 14)).toBeUndefined();
+      // Row 2 at the far edge is above the tilted room's floor entirely.
+      expect(roomAt([tilted], 19, 2)).toBeUndefined();
+      expect(roomAt([level], 19, 2)?.id).toBe("room-1");
+    });
+
+    it("centres on the sheared middle, not the stated box", () => {
+      expect(regionCenter(tilted)).toEqual({ x: 10, y: 9 });
+      expect(regionCenter(level)).toEqual({ x: 10, y: 6 });
+    });
+
+    it("tolerates the divider column at the region's downhill edge", () => {
+      expect(roomAtTolerant([tilted], 20, 14)?.id).toBe("room-1");
+    });
   });
 });

@@ -35,7 +35,7 @@ import { ALL_TREASURE_TABLES } from "./tables/treasure";
 export { classDef, type ClassDef } from "./classes";
 export { allItems, generatedMagicItem, item } from "./items";
 export { monster } from "./monsters";
-export { highestAvailableSpellIndex, highestAvailableDamagingSpellIndex, magicItemSpell, spell, spellForMagicItem, spellsForClass } from "./spells";
+export { CLASS_SPELL_ROSTER, highestAvailableSpellIndex, highestAvailableDamagingSpellIndex, magicItemSpell, spell, spellForMagicItem, spellsForClass, unlockClassSpellsForLevel } from "./spells";
 export { isPlebName, plebNameForSeed, randomPlebName } from "./names";
 export { ALL_TREASURE_TABLES } from "./tables/treasure";
 

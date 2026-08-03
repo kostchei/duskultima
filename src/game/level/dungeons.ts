@@ -290,6 +290,20 @@ export interface VariantPools {
   sanctuary: readonly number[];
 }
 
+/**
+ * The continuous ground height the tile grid only approximates.
+ *
+ * One entry per macro band, each an array of fractional tile rows indexed by
+ * tile column. The grid has to round these to whole rows, which turns a shallow
+ * lean into a staircase; movers instead stand on these exact heights, so a
+ * fourteen-degree vault is walked as a real slope rather than as steps. Absent
+ * on authored legacy layouts, which are flat by construction.
+ */
+export interface GroundProfile {
+  /** Fractional tile row of the standing surface: `[band][tileX]`. */
+  readonly bands: readonly (readonly number[])[];
+}
+
 export interface DungeonDefinition {
   id: string;
   name: string;
@@ -301,6 +315,8 @@ export interface DungeonDefinition {
   height: number;
   /** (x, y) room regions replacing the horizontal-band lookup. */
   regions: readonly RoomRegion[];
+  /** Exact standing heights; movers follow these rather than the rounded grid. */
+  groundProfile?: GroundProfile;
   /** Present on expanded non-linear layouts; authored legacy dungeons have none. */
   connectors?: readonly ExpandedConnector[];
   roomContents?: readonly ExpandedRoomContent[];
@@ -316,10 +332,6 @@ export interface DungeonDefinition {
   trapKinds: readonly FeaturedTrapKind[];
   /** Crawling danger level: 1 deadly (check every crawl round), 2 risky, 3 unsafe. */
   danger: 1 | 2 | 3;
-  /** Monster spawned by random encounters in this dungeon. */
-  encounterMonsterId: string;
-  /** Champion/boss monster spawned in the climax room. */
-  bossMonsterId?: string;
 }
 
 export interface DungeonLayout {
@@ -1011,8 +1023,6 @@ const DUNGEON_BASES: readonly Omit<
     tagline: "Old stone. Thin light. Hungry eyes.",
     objective: "Reach the vault and claim its campaign reward",
     danger: 2,
-    encounterMonsterId: "goblin",
-    bossMonsterId: "gloom-ogre",
     trapKinds: ["plate-gate", "counterweighted-lift", "rolling-stone", "collapsing-floor"],
     pools: {
       room1: [0, 3, 4],
@@ -1037,8 +1047,6 @@ const DUNGEON_BASES: readonly Omit<
     tagline: "The dead keep their fires burning.",
     objective: "Climb the reliquary and claim its reward",
     danger: 3,
-    encounterMonsterId: "skeleton",
-    bossMonsterId: "draugr",
     trapKinds: ["alternating-spikes", "dart-gallery", "undead-barrier"],
     pools: {
       room1: [1, 3, 4],
@@ -1063,8 +1071,6 @@ const DUNGEON_BASES: readonly Omit<
     tagline: "Everything down here is growing.",
     objective: "Cross the warrens and rob the fungal shrine",
     danger: 1,
-    encounterMonsterId: "giant-rat",
-    bossMonsterId: "cave-creeper",
     trapKinds: ["crusher-gallery", "light-runes", "flooded-chamber"],
     pools: {
       room1: [2, 3, 4],
@@ -1089,8 +1095,6 @@ const DUNGEON_BASES: readonly Omit<
     tagline: "The sea is above you. The stars are below.",
     objective: "Claim the reward in the impossible sanctum",
     danger: 1,
-    encounterMonsterId: "shadow",
-    bossMonsterId: "shadow",
     trapKinds: ["flooded-chamber", "light-runes", "undead-barrier", "counterweighted-lift"],
     pools: {
       room1: [3, 4],

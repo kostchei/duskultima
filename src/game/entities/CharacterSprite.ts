@@ -18,6 +18,7 @@ import type { LightSystem } from "../systems/light";
 import { DARK_SIGHT_TINT, SELF_GLOW_RADIUS } from "../systems/light";
 import { projectShadow } from "../systems/shadows";
 import { castShadowsEnabled } from "../systems/quality";
+import { groundYPx, type GroundProfileLike } from "../systems/groundFollow";
 import { ensureCharacterAppearance, TILE } from "../textures";
 import { appearanceForCharacter, characterAppearanceKey } from "./appearance";
 
@@ -70,6 +71,8 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
   /** Last real-time attack attempt, used by Evoke Rage's aggression clause. */
   lastOffensiveActionAt = 0;
 
+  /** Set by `settleOnGround`: resting on the exact height field, not on a tile. */
+  private standingOnSlope = false;
   private lastGroundedAt = 0;
   private lastJumpPressedAt = -Infinity;
   ledgeGrabState: { side: "left" | "right"; ledgeY: number } | null = null;
@@ -160,7 +163,33 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
 
   get grounded(): boolean {
     const body = this.body as Phaser.Physics.Arcade.Body;
-    return body.blocked.down || body.touching.down;
+    return body.blocked.down || body.touching.down || this.standingOnSlope;
+  }
+
+  /**
+   * Hold this character on the level's exact ground height. Terrain caps are not
+   * landable surfaces on a sloped level (see `systems/groundFollow.ts`), so this
+   * is what standing on the floor means there — and because the height is
+   * continuous, walking a fourteen-degree ramp is smooth rather than stepped.
+   *
+   * Tile collision still wins wherever it applies: resting on a one-way
+   * platform, a gate or a weak wall leaves this alone.
+   */
+  settleOnGround(profile: GroundProfileLike): void {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (!this.alive || this.climbing || body.allowGravity === false || body.blocked.down) {
+      this.standingOnSlope = false;
+      return;
+    }
+    const rising = body.velocity.y < 0;
+    const groundY = groundYPx(profile, { x: this.x, bottom: body.bottom, airborne: rising });
+    if (groundY === null) {
+      this.standingOnSlope = false;
+      return;
+    }
+    this.y += groundY - body.bottom;
+    if (body.velocity.y > 0) this.setVelocityY(0);
+    this.standingOnSlope = true;
   }
 
   moveHorizontal(dir: -1 | 0 | 1, delta: number): void {

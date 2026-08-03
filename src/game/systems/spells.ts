@@ -577,6 +577,69 @@ function resolveSpellEffect(
       ctx.say(`Divine flame smites the ${target.def.name} for ${dmg}.`, "#f0e090");
       return;
     }
+    case "mass-cure": {
+      const allies = deps.party().filter(
+        (member) => !member.character.dead && Phaser.Math.Distance.Between(caster.x, caster.y, member.x, member.y) <= NEAR_PX,
+      );
+      const healing = ctx.engine.dice.roll("2d6") * mult;
+      for (const ally of allies) {
+        const before = ally.character.hp;
+        ally.character.heal(healing);
+        const restored = ally.character.hp - before;
+        if (restored > 0) floatText(scene, ally.x, ally.y - 18, `+${restored}`, "#60e080");
+      }
+      ctx.say(`${caster.character.name}'s prayer restores ${healing} HP to ${allies.length} ally${allies.length === 1 ? "" : "ies"}.`, "#f0e090");
+      return;
+    }
+    case "rebuke-unholy": {
+      const targets = deps.monsters().filter((monster) =>
+        monster.aliveInFight &&
+        Phaser.Math.Distance.Between(caster.x, caster.y, monster.x, monster.y) <= NEAR_PX &&
+        (monster.def.undead || /(demon|devil|fiend)/i.test(monster.def.id)),
+      );
+      for (const target of targets) {
+        target.flee();
+        floatText(scene, target.x, target.y - 18, "REBUKED", "#f0e090");
+      }
+      ctx.say(targets.length > 0 ? `${targets.length} unholy foe${targets.length === 1 ? " flees" : "s flee"} from the rebuke.` : "No unholy foe hears the rebuke.", "#f0e090");
+      return;
+    }
+    case "flame-strike": {
+      const target = isValidSpellTarget(caster, preferredTarget, FAR_PX) ? preferredTarget : nearestMonster(deps, caster, FAR_PX);
+      if (!target) { ctx.say("No foe stands beneath the judgment.", "#d07070"); return; }
+      const damage = ctx.engine.dice.roll("2d6") * mult;
+      applyDamageToMonster(deps, target, damage);
+      floatText(scene, target.x, target.y - 18, `${damage} HOLY FIRE`, "#ffe06a");
+      return;
+    }
+    case "commune": {
+      const answers = ["danger", "secret", "reward"].map((kind) => deps.answerDivination?.(kind) ?? "No.");
+      ctx.say(`Commune answers - danger: ${answers[0]}; secret: ${answers[1]}; reward: ${answers[2]}`, "#f0e090");
+      return;
+    }
+    case "heal": {
+      const target = selection.ally ?? deps.party().find((member) =>
+        !member.character.dead && Phaser.Math.Distance.Between(caster.x, caster.y, member.x, member.y) <= CLOSE_PX,
+      );
+      if (!target) { ctx.say("No living ally is close enough to heal.", "#d07070"); return; }
+      target.character.heal(target.character.maxHp);
+      const known = caster.character.knownSpells.find((entry) => entry.spellId === def.id);
+      if (known) known.status = "lost";
+      floatText(scene, target.x, target.y - 20, "FULLY HEALED", "#60e080");
+      ctx.say(`${target.character.name} is restored to full health. Heal is lost until rest.`, "#f0e090");
+      return;
+    }
+    case "divine-vengeance": {
+      caster.character.removeEffect("spell:divine-vengeance");
+      caster.character.addEffect({
+        id: "spell:divine-vengeance",
+        name: "Divine Vengeance (+4 weapon attacks and damage; flying)",
+        hooks: [{ kind: "canFly" }, { kind: "checkBonus", applies: "attack", bonus: 4 }, { kind: "damageBonus", bonus: 4 }],
+        duration: { unit: "rounds", remaining: 10 * mult },
+      });
+      ctx.say(`${caster.character.name} becomes an avatar of divine vengeance.`, "#ffe06a");
+      return;
+    }
     case "cauldron": {
       const stored = caster.character.classState.cauldronItems;
       if (stored.length > 0) {
@@ -743,6 +806,39 @@ function resolveSpellEffect(
       ctx.say(`${caster.character.name} rises into controlled flight.`, "#c8a5e8");
       return;
     }
+    case "polymorph": {
+      const target = selection.ally ?? deps.party().find((member) =>
+        !member.character.dead && Phaser.Math.Distance.Between(caster.x, caster.y, member.x, member.y) <= CLOSE_PX,
+      );
+      if (!target) { ctx.say("No willing ally is close enough to polymorph.", "#d07070"); return; }
+      target.character.removeEffect("spell:polymorph");
+      target.character.addEffect({
+        id: "spell:polymorph",
+        name: "Polymorph: battle-beast",
+        hooks: [
+          { kind: "statMinimum", stat: "STR", value: 16 }, { kind: "statMinimum", stat: "DEX", value: 13 },
+          { kind: "statMinimum", stat: "CON", value: 15 }, { kind: "acMinimum", value: 13 },
+          { kind: "damageBonus", bonus: 2 }, { kind: "speedBonus", bonus: 25 },
+        ],
+        duration: { unit: "rounds", remaining: 10 * mult },
+      });
+      ctx.say(`${target.character.name} takes on the form of a battle-beast.`, "#c8a5e8");
+      return;
+    }
+    case "shapechange": {
+      caster.character.addEffect({
+        id: "focus:shapechange",
+        name: "Focus: Shapechange (great beast)",
+        hooks: [
+          { kind: "statMinimum", stat: "STR", value: 18 }, { kind: "statMinimum", stat: "DEX", value: 16 },
+          { kind: "statMinimum", stat: "CON", value: 16 }, { kind: "acMinimum", value: 16 },
+          { kind: "damageBonus", bonus: 6 }, { kind: "speedBonus", bonus: 60 }, { kind: "focusSpell", spellId: def.id, tier: def.tier },
+        ],
+        duration: { unit: "focus", remaining: 0 },
+      });
+      ctx.say(`${caster.character.name} becomes a great natural beast.`, "#c8a5e8");
+      return;
+    }
     case "wolfshape": {
       caster.character.addEffect({
         id: "focus:wolfshape",
@@ -759,6 +855,58 @@ function resolveSpellEffect(
         duration: { unit: "focus", remaining: 0 },
       });
       ctx.say(`${caster.character.name} folds into the shape of a hunting wolf.`, "#c8a5e8");
+      return;
+    }
+    case "odins-wisdom": {
+      const rounds = ctx.engine.dice.roll("1d6") * mult;
+      caster.character.removeEffect("spell:odins-wisdom");
+      caster.character.addEffect({
+        id: "spell:odins-wisdom",
+        name: `Odin's Wisdom (+${caster.character.level} WIS and spellcasting checks)`,
+        hooks: [
+          { kind: "checkBonus", applies: "stat", stat: "WIS", bonus: caster.character.level },
+          { kind: "checkBonus", applies: "spellcast", bonus: caster.character.level },
+        ],
+        duration: { unit: "rounds", remaining: rounds },
+      });
+      ctx.say(`${caster.character.name} receives Odin's wisdom for ${rounds} rounds.`, "#f0d98f");
+      return;
+    }
+    case "thors-thunder": {
+      const target = isValidSpellTarget(caster, preferredTarget, FAR_PX) ? preferredTarget : nearestMonster(deps, caster, FAR_PX);
+      if (!target) { ctx.say("No foe is in range for Thor's thunder.", "#d07070"); return; }
+      const damage = ctx.engine.dice.roll("3d6") * mult;
+      applyDamageToMonster(deps, target, damage);
+      floatText(scene, target.x, target.y - 18, `${damage} THUNDER`, "#86c8ff");
+      ctx.say(`Thor's thunder strikes ${target.def.name}.`, "#86c8ff");
+      return;
+    }
+    case "world-tree": {
+      const target = selection.ally ?? deps.party().find((member) =>
+        !member.character.dead && Phaser.Math.Distance.Between(caster.x, caster.y, member.x, member.y) <= CLOSE_PX,
+      );
+      if (!target) { ctx.say("No ally is close enough for World Tree.", "#d07070"); return; }
+      caster.character.addEffect({
+        id: "focus:world-tree",
+        name: `Focus: World Tree (${target.character.name} cannot fall below 1 HP)`,
+        hooks: [{ kind: "focusSpell", spellId: def.id, tier: def.tier }, { kind: "focusTarget", targetId: target.character.id }],
+        duration: { unit: "focus", remaining: 0 },
+      });
+      ctx.say(`World Tree roots hold ${target.character.name} above death.`, "#80bd6e");
+      return;
+    }
+    case "world-serpent": {
+      const target = selection.ally ?? deps.party().find((member) =>
+        !member.character.dead && Phaser.Math.Distance.Between(caster.x, caster.y, member.x, member.y) <= CLOSE_PX,
+      );
+      if (!target) { ctx.say("No ally is close enough for World Serpent.", "#6fba69"); return; }
+      caster.character.addEffect({
+        id: "focus:world-serpent",
+        name: `Focus: World Serpent (${target.character.name}'s melee damage x2)`,
+        hooks: [{ kind: "focusSpell", spellId: def.id, tier: def.tier }, { kind: "focusTarget", targetId: target.character.id }],
+        duration: { unit: "focus", remaining: 0 },
+      });
+      ctx.say(`World Serpent venom coats ${target.character.name}'s weapons.`, "#6fba69");
       return;
     }
     case "cast-out": {

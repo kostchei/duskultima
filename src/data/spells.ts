@@ -1,4 +1,4 @@
-import type { Character, SpellDef } from "../engine";
+import type { Character, SpellClass, SpellDef } from "../engine";
 
 const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
   {
@@ -105,6 +105,25 @@ const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
     description: "A near-sized poison cloud persists for 5 rounds, blinding and damaging creatures inside.",
   },
   {
+    id: "dimension-door",
+    name: "Dimension Door",
+    tier: 4,
+    class: ["wizard", "witch"],
+    range: "far",
+    focus: false,
+    target: "point",
+    description: "Step through a door of shadow and reappear at a point you can see.",
+  },
+  {
+    id: "scrying",
+    name: "Scrying",
+    tier: 5,
+    class: ["wizard", "witch"],
+    range: "self",
+    focus: true,
+    description: "Call up a distant vision that reveals an undiscovered route or chamber.",
+  },
+  {
     id: "prismatic-orb",
     name: "Prismatic Orb",
     tier: 5,
@@ -184,6 +203,64 @@ const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
     dice: "1d6",
     target: "enemy",
     description: "Punishing divine flame strikes one creature within near range.",
+  },
+  {
+    id: "mass-cure",
+    name: "Mass Cure",
+    tier: 3,
+    class: "priest",
+    range: "near",
+    focus: false,
+    dice: "2d6",
+    description: "All allies within near range regain 2d6 hit points.",
+  },
+  {
+    id: "rebuke-unholy",
+    name: "Rebuke Unholy",
+    tier: 3,
+    class: "priest",
+    range: "near",
+    focus: false,
+    description: "Unholy foes near you flee before your holy symbol.",
+  },
+  {
+    id: "flame-strike",
+    name: "Flame Strike",
+    tier: 4,
+    class: "priest",
+    range: "far",
+    focus: false,
+    dice: "2d6",
+    target: "enemy",
+    description: "A pillar of divine fire immolates one foe within far range.",
+  },
+  {
+    id: "commune",
+    name: "Commune",
+    tier: 4,
+    class: "priest",
+    range: "self",
+    focus: false,
+    description: "Seek your deity's counsel on danger, secrets, and your reward.",
+  },
+  {
+    id: "heal",
+    name: "Heal",
+    tier: 5,
+    class: "priest",
+    range: "close",
+    focus: false,
+    target: "ally",
+    description: "Restore one creature you touch to full hit points; it is then lost until rest.",
+  },
+  {
+    id: "divine-vengeance",
+    name: "Divine Vengeance",
+    tier: 5,
+    class: "priest",
+    range: "self",
+    focus: false,
+    description: "For 10 rounds, fly and gain +4 to weapon attacks and damage.",
   },
   {
     id: "cauldron",
@@ -270,6 +347,25 @@ const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
     description: "A nearby corpse truthfully answers up to three yes-or-no questions.",
   },
   {
+    id: "polymorph",
+    name: "Polymorph",
+    tier: 4,
+    class: "witch",
+    range: "close",
+    focus: false,
+    target: "ally",
+    description: "Transform a willing ally into a battle-beast for 10 rounds.",
+  },
+  {
+    id: "shapechange",
+    name: "Shapechange",
+    tier: 5,
+    class: "witch",
+    range: "self",
+    focus: true,
+    description: "Assume the form of a powerful natural creature while you focus.",
+  },
+  {
     id: "chant",
     name: "Chant",
     tier: 1,
@@ -348,6 +444,46 @@ const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
     focus: true,
     description: "Transform with your gear into a swift wolf while retaining your mind and spellcasting.",
   },
+  {
+    id: "odins-wisdom",
+    name: "Odin's Wisdom",
+    tier: 4,
+    class: "seer",
+    range: "self",
+    focus: false,
+    description: "For 1d6 rounds, add your level to Wisdom and spellcasting checks.",
+  },
+  {
+    id: "thors-thunder",
+    name: "Thor's Thunder",
+    tier: 4,
+    class: "seer",
+    range: "far",
+    focus: false,
+    dice: "3d6",
+    target: "enemy",
+    description: "A bolt of thunder strikes one foe within far range for 3d6 damage.",
+  },
+  {
+    id: "world-tree",
+    name: "World Tree",
+    tier: 5,
+    class: "seer",
+    range: "close",
+    focus: true,
+    target: "ally",
+    description: "World Tree roots keep one ally from falling below 1 HP while you focus.",
+  },
+  {
+    id: "world-serpent",
+    name: "World Serpent",
+    tier: 5,
+    class: "seer",
+    range: "close",
+    focus: true,
+    target: "ally",
+    description: "World Serpent venom doubles one ally's melee damage while you focus.",
+  },
 ];
 
 /** Exact d12 spell faces from the core Scrolls and Wands table (pp. 288-289). */
@@ -380,6 +516,56 @@ const SPELL_LIST: readonly SpellDef[] = [...IMPLEMENTED_SPELL_LIST, ...GENERATED
 const SPELLS = new Map(SPELL_LIST.map((s) => [s.id, s]));
 if (SPELLS.size !== SPELL_LIST.length) throw new Error("Duplicate spell ids in data");
 
+/** Two reliable, player-facing spells per tier for each full caster. */
+export const CLASS_SPELL_ROSTER: Readonly<Record<SpellClass, Readonly<Record<number, readonly string[]>>>> = {
+  wizard: {
+    1: ["magic-missile", "mage-armor"],
+    2: ["misty-step", "acid-arrow"],
+    3: ["fireball", "lightning-bolt"],
+    4: ["cloudkill", "dimension-door"],
+    5: ["prismatic-orb", "scrying"],
+  },
+  priest: {
+    1: ["cure-wounds", "turn-undead"],
+    2: ["bless", "smite"],
+    3: ["mass-cure", "rebuke-unholy"],
+    4: ["flame-strike", "commune"],
+    5: ["heal", "divine-vengeance"],
+  },
+  witch: {
+    1: ["cauldron", "witchlight"],
+    2: ["spidersilk", "bogboil"],
+    3: ["broomstick", "speak-with-dead"],
+    4: ["dimension-door", "polymorph"],
+    5: ["scrying", "shapechange"],
+  },
+  seer: {
+    1: ["chant", "evoke-rage"],
+    2: ["fate", "read-runes"],
+    3: ["cast-out", "wolfshape"],
+    4: ["odins-wisdom", "thors-thunder"],
+    5: ["world-tree", "world-serpent"],
+  },
+};
+
+const TIER_UNLOCK_LEVEL: Readonly<Record<number, number>> = { 1: 1, 2: 3, 3: 5, 4: 7, 5: 9 };
+
+/** Learn the two spells unlocked at this level; safe to call when loading an old save. */
+export function unlockClassSpellsForLevel(character: Character, level = character.level): string[] {
+  const roster = CLASS_SPELL_ROSTER[character.className as SpellClass];
+  if (!roster) return [];
+  const learned: string[] = [];
+  for (const [tierText, ids] of Object.entries(roster)) {
+    if (level < TIER_UNLOCK_LEVEL[Number(tierText)]!) continue;
+    for (const id of ids) {
+      if (character.knownSpells.some((known) => known.spellId === id)) continue;
+      character.learnSpell(id);
+      learned.push(id);
+    }
+  }
+  return learned;
+}
+
 export function spell(id: string): SpellDef {
   const def = SPELLS.get(id);
   if (!def) throw new Error(`Unknown spell "${id}"`);
@@ -407,8 +593,8 @@ export function magicItemSpell(tier: number, d12: number): SpellDef {
   return spell(ids[d12 - 1]!);
 }
 
-export function spellsForClass(cls: SpellDef["class"]): readonly SpellDef[] {
-  return SPELL_LIST.filter((s) => s.class === cls);
+export function spellsForClass(cls: SpellClass): readonly SpellDef[] {
+  return SPELL_LIST.filter((s) => (typeof s.class === "string" ? [s.class] : s.class).includes(cls));
 }
 
 /** Return the known-spell index of the highest-tier spell that can be cast. */

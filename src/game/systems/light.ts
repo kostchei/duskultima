@@ -24,6 +24,9 @@ export const TORCH_TINT = 0xd8caa0;
 /** Blue-grey "you can see, but it is definitely dark" cast. */
 export const DARK_SIGHT_TINT = 0x64748e;
 
+/** Darkness overlay strength under open daylight: a haze, not a veil. */
+export const DAYLIT_DARKNESS_ALPHA = 0.08;
+
 export type LightLevel = "lit" | "dim" | "dark";
 
 export interface LightSourceOptions {
@@ -64,6 +67,12 @@ export class LightSystem {
   private readonly updateStride: number;
   private readonly tintEnabled: boolean;
   private tickCount = 0;
+  /**
+   * Open-sky levels that rolled daylight are lit by the sky itself: every point
+   * reads as `lit` for check resolution and no torch is needed. The one enclosed
+   * room in such a level clears this as the party descends into it.
+   */
+  private ambientLit = false;
 
   constructor(scene: Phaser.Scene, ctx: GameContext, darknessColor = 0x000008, darknessAlpha = 0.84) {
     this.scene = scene;
@@ -112,6 +121,20 @@ export class LightSystem {
 
   removeSource(id: string): void {
     if (!this.sources.delete(id)) throw new Error(`Unknown light source "${id}"`);
+  }
+
+  /** True while the sky itself is lighting the scene, so torches are pointless. */
+  get lit(): boolean {
+    return this.ambientLit;
+  }
+
+  /**
+   * Daylight on an open-sky level. While set, `levelAt` reports `lit` anywhere,
+   * which is what removes the torch tax; the scene clears it inside the level's
+   * one enclosed room so the dark still has somewhere to live.
+   */
+  setAmbientLit(lit: boolean): void {
+    this.ambientLit = lit;
   }
 
   /** Changes ambient darkness without rebuilding the screen-space overlays. */
@@ -167,6 +190,7 @@ export class LightSystem {
   }
 
   levelAt(x: number, y: number): LightLevel {
+    if (this.ambientLit) return "lit";
     let best: LightLevel = "dark";
     for (const s of this.sources.values()) {
       const pos = s.position();

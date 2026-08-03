@@ -11,6 +11,26 @@ describe("stack slot presentation", () => {
     expect(stackSlots(ration, 3)).toBe(1);
     expect(stackSlots(ration, 4)).toBe(2);
   });
+
+  it("pools differently named gems and trinkets at ten pieces per slot", () => {
+    const emerald = item("core-treasure-0-3-024");
+    const pearl = item("core-treasure-0-3-044");
+    const inv = new Inventory(1);
+
+    inv.add(emerald, 6);
+    inv.add(pearl, 4);
+    expect(inv.all()).toHaveLength(2);
+    expect(inv.slotsUsed()).toBe(1);
+    expect(inv.canAdd(pearl)).toBe(false);
+  });
+
+  it("does not pool bulky treasure with pouch-sized valuables", () => {
+    const bowl = item("core-treasure-0-3-040");
+    const tankard = item("core-treasure-0-3-058");
+    const inv = new Inventory(1);
+    inv.add(bowl);
+    expect(inv.canAdd(tankard)).toBe(false);
+  });
 });
 
 describe("Inventory.canSwap", () => {

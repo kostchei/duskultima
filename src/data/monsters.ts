@@ -1,300 +1,41 @@
-import type { MonsterDef, MonsterBiome } from "../engine";
+/**
+ * The bestiary, assembled from per-zone rosters.
+ *
+ * Every monster belongs to exactly one zone and carries a Shadowdark level and
+ * a battlefield role. Dungeon grids place roles, not names — see
+ * `engine/monsterSelect.ts` — so the same climax tile fields a Quillboar
+ * Chopper for a level-1 party and a Daeodon for a level-8 one, and always
+ * something that belongs to the scroll the party descended under.
+ */
 
-const MONSTER_LIST: readonly MonsterDef[] = [
-  // --- DIABLERIE BIOME (Black Forests & Cursed Ruins) ---
-  {
-    id: "goblin",
-    name: "Goblin",
-    ac: 11,
-    hitDice: "2d4",
-    attackBonus: 2,
-    damage: "1d4",
-    wisMod: -1,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "diablerie",
-  },
-  {
-    id: "bittermold",
-    name: "Bittermold Scuttler",
-    ac: 12,
-    hitDice: "1d6",
-    attackBonus: 1,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "diablerie",
-    specialAbility: "split",
-  },
-  {
-    id: "bogthorn",
-    name: "Bogthorn",
-    ac: 13,
-    hitDice: "2d6",
-    attackBonus: 2,
-    damage: "1d4",
-    wisMod: 1,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "diablerie",
-  },
-  {
-    id: "gloom-ogre",
-    name: "Gloom Ogre",
-    ac: 14,
-    hitDice: "4d8",
-    attackBonus: 4,
-    damage: "1d10",
-    wisMod: 0,
-    darkvision: true,
-    undead: false,
-    leader: true,
-    xpTier: "major",
-    biome: "diablerie",
-  },
+import type { MonsterBiome, MonsterDef, MonsterRole } from "../engine";
+import { pickMonster } from "../engine";
+import type { Dice } from "../engine/dice";
+import { DIABLERIE_ROSTER } from "./rosters/diablerie";
+import {
+  CITY_OF_MASKS_ROSTER,
+  DEEP_ROSTER,
+  DIABLERIE_HOLDOVERS,
+  MIDNIGHT_SUN_ROSTER,
+  RED_SANDS_ROSTER,
+  RIVER_OF_NIGHT_ROSTER,
+} from "./rosters/legacy";
+import { assertRosterComplete } from "./rosters/build";
 
-  // --- RED SANDS BIOME (Desert Wastes & Iron Fortresses) ---
-  {
-    id: "bandit",
-    name: "Desert Bandit",
-    ac: 13,
-    hitDice: "1d8",
-    attackBonus: 1,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: false,
-    undead: false,
-    xpTier: "minor",
-    biome: "red-sands",
-  },
-  {
-    id: "ras-godai",
-    name: "Ras-Godai Assassin",
-    ac: 13,
-    hitDice: "3d8",
-    attackBonus: 4,
-    damage: "1d6",
-    wisMod: 1,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "red-sands",
-  },
-  {
-    id: "giant-scorpion",
-    name: "Giant Scorpion",
-    ac: 14,
-    hitDice: "3d8",
-    attackBonus: 3,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "red-sands",
-    specialAbility: "poison",
-  },
+const ROSTERS: Record<MonsterBiome, readonly MonsterDef[]> = {
+  "diablerie": [...DIABLERIE_HOLDOVERS, ...DIABLERIE_ROSTER],
+  "red-sands": RED_SANDS_ROSTER,
+  "midnight-sun": MIDNIGHT_SUN_ROSTER,
+  "river-of-night": RIVER_OF_NIGHT_ROSTER,
+  "dwellers-in-the-deep": DEEP_ROSTER,
+  "city-of-masks": CITY_OF_MASKS_ROSTER,
+};
 
-  // --- MIDNIGHT SUN BIOME (Rime Sea Caves & Frost Tombs) ---
-  {
-    id: "skeleton",
-    name: "Skeleton",
-    ac: 13,
-    hitDice: "2d6",
-    attackBonus: 2,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: true,
-    undead: true,
-    xpTier: "minor",
-    biome: "midnight-sun",
-  },
-  {
-    id: "draugr",
-    name: "Frost Draugr",
-    ac: 14,
-    hitDice: "3d8",
-    attackBonus: 3,
-    damage: "1d8",
-    wisMod: 0,
-    darkvision: true,
-    undead: true,
-    xpTier: "minor",
-    biome: "midnight-sun",
-  },
-  {
-    id: "sea-nymph",
-    name: "Sea Nymph",
-    ac: 13,
-    hitDice: "3d8",
-    attackBonus: 2,
-    damage: "1d6",
-    wisMod: 1,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "midnight-sun",
-  },
-  {
-    id: "dire-wolf",
-    name: "Dire Wolf",
-    ac: 12,
-    hitDice: "4d8",
-    attackBonus: 4,
-    damage: "1d8",
-    wisMod: 1,
-    darkvision: true,
-    undead: false,
-    leader: true,
-    xpTier: "minor",
-    biome: "midnight-sun",
-  },
+for (const [biome, roster] of Object.entries(ROSTERS) as [MonsterBiome, readonly MonsterDef[]][]) {
+  assertRosterComplete(biome, roster);
+}
 
-  // --- RIVER OF NIGHT BIOME (Jungle Ziggurats & Cenotes) ---
-  {
-    id: "giant-spider",
-    name: "Giant Spider",
-    ac: 13,
-    hitDice: "3d8",
-    attackBonus: 3,
-    damage: "1d6",
-    wisMod: 1,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "river-of-night",
-    specialAbility: "web",
-  },
-  {
-    id: "viperian",
-    name: "Viperian Warrior",
-    ac: 13,
-    hitDice: "2d8",
-    attackBonus: 2,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "river-of-night",
-    specialAbility: "poison",
-  },
-  {
-    id: "rot-flower",
-    name: "Rot Flower",
-    ac: 11,
-    hitDice: "2d8",
-    attackBonus: 2,
-    damage: "1d6",
-    wisMod: -2,
-    darkvision: false,
-    undead: false,
-    xpTier: "minor",
-    biome: "river-of-night",
-  },
-
-  // --- DWELLERS IN THE DEEP BIOME (Abyssal Grottos & Archives) ---
-  {
-    id: "giant-rat",
-    name: "Giant Rat",
-    ac: 12,
-    hitDice: "1d6",
-    attackBonus: 1,
-    damage: "1d4",
-    wisMod: -2,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "dwellers-in-the-deep",
-  },
-  {
-    id: "deep-one",
-    name: "Deep One",
-    ac: 13,
-    hitDice: "2d8",
-    attackBonus: 2,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "dwellers-in-the-deep",
-    specialAbility: "engulf",
-  },
-  {
-    id: "cave-creeper",
-    name: "Cave Creeper",
-    ac: 13,
-    hitDice: "3d8",
-    attackBonus: 3,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "dwellers-in-the-deep",
-  },
-  {
-    id: "shadow",
-    name: "Living Shadow",
-    ac: 12,
-    hitDice: "3d8",
-    attackBonus: 3,
-    damage: "1d6",
-    wisMod: 1,
-    darkvision: true,
-    undead: true,
-    xpTier: "minor",
-    biome: "dwellers-in-the-deep",
-    specialAbility: "shadow-extinct",
-  },
-
-  // --- CITY OF MASKS BIOME (Rooftops & Sunken Guilds) ---
-  {
-    id: "thug",
-    name: "Guild Thug",
-    ac: 12,
-    hitDice: "1d8",
-    attackBonus: 1,
-    damage: "1d6",
-    wisMod: 0,
-    darkvision: false,
-    undead: false,
-    xpTier: "minor",
-    biome: "city-of-masks",
-  },
-  {
-    id: "thief-rogue",
-    name: "Masked Rogue",
-    ac: 13,
-    hitDice: "3d8",
-    attackBonus: 3,
-    damage: "1d6",
-    wisMod: 1,
-    darkvision: false,
-    undead: false,
-    xpTier: "minor",
-    biome: "city-of-masks",
-  },
-  {
-    id: "animated-armor",
-    name: "Animated Armor",
-    ac: 15,
-    hitDice: "2d8",
-    attackBonus: 3,
-    damage: "1d8",
-    wisMod: 1,
-    darkvision: true,
-    undead: false,
-    xpTier: "minor",
-    biome: "city-of-masks",
-    specialAbility: "corrode",
-  },
-];
+const MONSTER_LIST: readonly MonsterDef[] = Object.values(ROSTERS).flat();
 
 const MONSTERS = new Map(MONSTER_LIST.map((m) => [m.id, m]));
 if (MONSTERS.size !== MONSTER_LIST.length) throw new Error("Duplicate monster ids in data");
@@ -306,9 +47,26 @@ export function monster(id: string): MonsterDef {
 }
 
 export function monstersForBiome(biome: MonsterBiome): readonly MonsterDef[] {
-  return MONSTER_LIST.filter((m) => m.biome === biome);
+  const roster = ROSTERS[biome];
+  if (!roster) throw new Error(`Unknown monster biome "${biome}"`);
+  return roster;
 }
 
 export function allMonsters(): readonly MonsterDef[] {
   return MONSTER_LIST;
+}
+
+/**
+ * Resolve a dungeon tile's role into an actual monster for this zone and this
+ * party level. Throws when the zone cannot staff the role, which
+ * `assertRosterComplete` already rules out at import — so a throw here means a
+ * caller invented a role.
+ */
+export function monsterForRole(
+  dice: Dice,
+  biome: MonsterBiome,
+  role: MonsterRole,
+  partyLevel: number,
+): MonsterDef {
+  return pickMonster(dice, monstersForBiome(biome), role, partyLevel);
 }

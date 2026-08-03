@@ -7,6 +7,7 @@ import {
   type PartyProgress,
 } from "../src/game/progression";
 import { isPlebName, item } from "../src/data";
+import { getBaseRole } from "../src/engine";
 import { skinsForZone } from "../src/game/visual/skins";
 
 const fighter: PartyProgress = { className: "fighter", level: 1, knownSpellIds: [] };
@@ -176,6 +177,24 @@ describe("campaign rewards", () => {
     expect(reward.kind).toBe("companion");
     if (reward.kind !== "companion") throw new Error("Expected a companion reward");
     expect(["priest", "wizard"]).toContain(reward.className);
+  });
+
+  it("counts pit-fighter as fighter and guarantees a missing-role companion within three vaults", () => {
+    const soloPitFighter: PartyProgress[] = [
+      { className: "pit-fighter", level: 1, knownSpellIds: [] },
+    ];
+
+    // Check every possible three-vault window across several guarantee cycles,
+    // rather than only the campaign's opening trio.
+    for (let start = 0; start < 12; start++) {
+      const rewards = [0, 1, 2].map((offset) =>
+        chooseDungeonReward(start + offset, soloPitFighter, "red-sands"));
+      const companion = rewards.find((reward) => reward.kind === "companion");
+      expect(companion, `no companion in vaults ${start}-${start + 2}`).toBeDefined();
+      if (companion?.kind === "companion") {
+        expect(getBaseRole(companion.className)).not.toBe("fighter");
+      }
+    }
   });
 
   it("scales the full-party escort reward to 10 gp times average party level", () => {

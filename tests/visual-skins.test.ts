@@ -43,6 +43,24 @@ describe("visual skin catalog", () => {
     expect([...zoneCounts.values()].sort()).toEqual([3, 3, 3, 3, 3, 3]);
   });
 
+  it("makes one subzone in three an open-sky level", async () => {
+    const { OPEN_SKY_SKIN_IDS } = await import("../src/game/visual/skins");
+    expect(OPEN_SKY_SKIN_IDS).toHaveLength(VISUAL_SKINS.length / 3);
+    for (const id of OPEN_SKY_SKIN_IDS) {
+      expect(VISUAL_SKINS.some((skin) => skin.id === id), id).toBe(true);
+    }
+    // Dwellers in the Deep is underground by definition and gets none; Midnight
+    // Sun gets two, an ice sheet being an outdoor place.
+    const byZone = new Map<string, number>();
+    for (const id of OPEN_SKY_SKIN_IDS) {
+      const zone = visualSkinById(id).zone;
+      byZone.set(zone, (byZone.get(zone) ?? 0) + 1);
+    }
+    expect(byZone.get("dwellers-in-the-deep")).toBeUndefined();
+    expect(byZone.get("midnight-sun")).toBe(2);
+    expect([...byZone.values()].sort()).toEqual([1, 1, 1, 1, 2]);
+  });
+
   it("keeps records visual-only and complete", () => {
     const forbidden = ["damage", "dc", "collision", "encounter", "reward", "danger", "movement"];
     for (const skin of VISUAL_SKINS) {
@@ -128,6 +146,7 @@ describe("ensureVisualSkinTextures", () => {
       "mugdulblub-keep",
       "djurum-approach",
       "rime-sea-caves",
+      "fell-glacier",
       "overgrown-basalt-ziggurat",
       "nuln-fungal-grottos",
       "rooftop-scamper",
@@ -164,7 +183,7 @@ describe("ensureVisualSkinTextures", () => {
       const skinRecord = visualSkinById(skinId);
       const keys = ensureVisualSkinTextures(mockScene, skinRecord, "backdrop-temple");
       const wallVariantCount = skinId === "rooftop-scamper" ? 2 : 3;
-      const openSky = ["djurum-approach", "rime-sea-caves", "rooftop-scamper"].includes(skinId);
+      const openSky = ["djurum-approach", "rime-sea-caves", "fell-glacier", "rooftop-scamper"].includes(skinId);
       expect(keys.wall(0)).toBe(`skin-${skinId}-wall-0`);
       expect(keys.wall(1)).toBe(`skin-${skinId}-wall-1`);
       expect(keys.wall(wallVariantCount)).toBe(`skin-${skinId}-wall-0`);

@@ -11,12 +11,14 @@ import type { Dice } from "./dice";
 import type { TableRegistry, TableRollResult } from "./tables";
 
 export type SpellClass = "wizard" | "priest" | "witch" | "seer";
+export type SpellClasses = SpellClass | readonly SpellClass[];
 
 export interface SpellDef {
   id: string;
   name: string;
   tier: number;
-  class: SpellClass;
+  /** A spell can appear on more than one class list. */
+  class: SpellClasses;
   /** "self" | "close" | "near" | "far" */
   range: string;
   /** Ends when the caster takes damage or drops focus. */
@@ -85,12 +87,16 @@ export function castingStat(spellClass: SpellClass): StatName {
   return CAST_STAT[spellClass];
 }
 
-function casterStat(caster: Character, spell: SpellDef): StatName {
-  return CAST_STAT[spell.class];
+function casterStat(caster: Character, _spell: SpellDef): StatName {
+  return CAST_STAT[caster.className as SpellClass];
 }
 
-function canCastSpellClass(caster: Character, spellClass: SpellClass): boolean {
-  return caster.className === spellClass;
+export function spellClasses(spell: SpellDef): readonly SpellClass[] {
+  return typeof spell.class === "string" ? [spell.class] : spell.class;
+}
+
+export function canCastSpellClass(caster: Character, spellClass: SpellClasses): boolean {
+  return (typeof spellClass === "string" ? [spellClass] : spellClass).includes(caster.className as SpellClass);
 }
 
 /** Beginning any new spell ends the caster's previous Focus effect. */
@@ -126,7 +132,7 @@ export function castSpell(
     throw new Error(`${spell.name} is lost until ${caster.name} rests`);
   }
   if (!canCastSpellClass(caster, spell.class)) {
-    throw new Error(`${caster.name} (${caster.className}) cannot cast ${spell.class} spells`);
+    throw new Error(`${caster.name} (${caster.className}) cannot cast ${spellClasses(spell).join("/")} spells`);
   }
   dropFocus(caster);
 
@@ -174,7 +180,7 @@ export function castSpellFromItem(
   opts: { advantage?: readonly string[]; disadvantage?: readonly string[] } = {},
 ): CastResult {
   if (!canCastSpellClass(caster, spell.class)) {
-    throw new Error(`${caster.name} (${caster.className}) cannot cast ${spell.class} spells`);
+    throw new Error(`${caster.name} (${caster.className}) cannot cast ${spellClasses(spell).join("/")} spells`);
   }
   dropFocus(caster);
 

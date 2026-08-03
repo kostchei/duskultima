@@ -1366,177 +1366,228 @@ function generateFrostJarlTomb(scene: Phaser.Scene): void {
   });
 }
 
-function generateDvergForges(scene: Phaser.Scene): void {
-  const p = "skin-dverg-forges";
+function generateFellGlacier(scene: Phaser.Scene): void {
+  const p = "skin-fell-glacier";
 
-  // Wall variants (0..2): riveted dark-iron forge-hall plate, each with its own
-  // vent/tool detail so the hall doesn't read as flat repeated brick.
+  // Wall variants (0..2): wind-scoured glacier ice. Where the Rime Sea Caves
+  // read as dark tidal blue, the Fell Glacier is a high, bright, exposed sheet —
+  // pale surface ice over the deep blue of compressed old snow, grit-streaked
+  // with the moraine the ice is dragging down the mountain.
   for (let variant = 0; variant < 3; variant++) {
     texture(scene, `${p}-wall-${variant}`, TILE, TILE, (g) => {
-      g.fillStyle(0x100b09, 1);
-      g.fillRect(0, 0, 32, 32);
-
-      const seed = 700 + variant * 17;
-      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.4, 0.08);
-      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.4, 0.08);
-      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.4, 0.08);
-      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.4, 0.08);
+      g.fillStyle(0x0d1a24, 1); g.fillRect(0, 0, TILE, TILE);
+      const seed = 810 + variant * 19;
+      const tL = domainWarp({ x: 1, y: 1 }, seed, 1.8, 0.1);
+      const tR = domainWarp({ x: 31, y: 1 }, seed + 1, 1.8, 0.1);
+      const bR = domainWarp({ x: 31, y: 31 }, seed + 2, 1.8, 0.1);
+      const bL = domainWarp({ x: 1, y: 31 }, seed + 3, 1.8, 0.1);
       const points = [tL, tR, bR, bL].map((pt) => new Phaser.Geom.Point(pt.x, pt.y));
-
-      const baseColor = variant === 0 ? 0x241d19 : variant === 1 ? 0x2b211b : 0x1e1815;
-      castPolygonShadow(g, points, 3.0, 0.6);
-      g.fillStyle(baseColor, 1);
+      const base = variant === 0 ? 0x38607d : variant === 1 ? 0x2c5170 : 0x436e8b;
+      castPolygonShadow(g, points, 2.6, 0.5);
+      g.fillStyle(base, 1);
       g.fillPoints(points, true);
-      sdfBevelField(g, 2, 2, 28, 28, 2.5, seed, baseColor);
-      g.lineStyle(1, 0x53433a, 0.85); g.strokePoints(points, true);
+      sdfBevelField(g, 2, 2, 28, 28, 4.0, seed, base);
 
-      // Rivet seams
-      g.fillStyle(0x6b5d50, 0.85);
-      g.fillCircle(6, 6, 1); g.fillCircle(26, 6, 1); g.fillCircle(6, 26, 1); g.fillCircle(26, 26, 1);
+      // Sun-struck upper lip: the glacier's top edge always catches the light.
+      // Only the top edge is lit — a rim on all four sides would outline every
+      // tile, and once terrain columns take sub-tile offsets to follow a slope
+      // those outlines read as a wall of stacked cubes rather than one sheet.
+      g.fillStyle(0xdff2fb, 0.4); g.fillRect(1, 1, 30, 2);
+      g.lineStyle(1, 0xa9dcf2, 0.5); g.lineBetween(1, 1, 31, 1);
+
+      // Compression banding — the annual layers ice records as it flows.
+      g.lineStyle(1, 0x1d3d57, 0.55);
+      for (let y = 8; y < 30; y += 7) {
+        const drift = latticeNoise(variant, y, seed) * 3;
+        g.lineBetween(1, y + drift, 31, y - drift);
+      }
 
       if (variant === 0) {
-        // Glowing vent slit
-        g.fillStyle(0x1a1210, 1); g.fillRect(9, 12, 14, 8);
-        g.fillStyle(0xe28b45, 0.9); for (let x = 11; x < 22; x += 3) g.fillRect(x, 14, 2, 4);
+        frostBloom(g, 22, 22, 6, seed);
       } else if (variant === 1) {
-        // Draped work-chain
-        g.lineStyle(2, 0x4a3f37, 1);
-        g.beginPath(); g.moveTo(8, 2); g.lineTo(11, 10); g.lineTo(7, 18); g.lineTo(12, 27); g.strokePath();
-        g.fillStyle(0x8a7a6a, 0.75);
-        for (const cy of [4, 9, 14, 20, 25]) g.fillCircle(cy % 8 < 4 ? 9 : 8, cy, 1.4);
+        // Moraine grit frozen into the sheet.
+        g.fillStyle(0x2a2621, 0.8);
+        for (let s = 0; s < 6; s++) {
+          g.fillCircle(5 + s * 5, 12 + (s % 3) * 8, 0.9 + (s % 2) * 0.6);
+        }
       } else {
-        // Anvil soot silhouette with faint hearth glow behind it
-        g.fillStyle(0xb04a15, 0.35); g.fillCircle(16, 20, 9);
-        g.fillStyle(0x0c0908, 0.85);
-        g.fillRect(11, 21, 10, 4); g.fillRect(14, 17, 4, 4); g.fillRect(9, 25, 14, 2);
+        // A hairline crevasse, glowing the deep blue of thick ice.
+        g.lineStyle(2.5, 0x0f2f4a, 0.9); g.lineBetween(20, 0, 13, 32);
+        g.lineStyle(1, 0x76c8ec, 0.5); g.lineBetween(21, 0, 14, 32);
       }
     });
   }
 
-  // Platform (32x12): riveted forge catwalk grating over a glowing duct
+  // Support (0..2): the body of the sheet below the walkable cap — deep,
+  // compressed, and much darker than the sunlit surface.
+  for (let variant = 0; variant < 3; variant++) {
+    texture(scene, `${p}-support-${variant}`, TILE, TILE, (g) => {
+      const seed = 870 + variant * 11;
+      g.fillStyle(variant === 1 ? 0x14304a : 0x102a42, 1); g.fillRect(0, 0, 32, 32);
+      // Vertical flow structure: old ice runs in columns, not courses.
+      for (let x = 1; x < 32; x += 7) {
+        const shift = latticeNoise(x, variant, seed) * 2;
+        g.fillStyle(x % 14 === 1 ? 0x1b3f5e : 0x16354f, 0.9);
+        g.fillRect(x, 0, 5 - Math.abs(shift) * 0.5, 32);
+      }
+      g.fillStyle(0x2a2621, 0.5);
+      for (let s = 0; s < 4; s++) g.fillCircle(6 + s * 8, 6 + ((s * 11) % 22), 1.1);
+      g.lineStyle(1, 0x0b2135, 0.7); g.lineBetween(0, 11, 32, 14); g.lineBetween(0, 25, 32, 22);
+    });
+  }
+
+  // Overhang (32x32): the underside lip of a serac, hung with icicles.
+  texture(scene, `${p}-overhang`, TILE, TILE, (g) => {
+    g.fillStyle(0x14304a, 0.95); g.fillRect(0, 23, 32, 7);
+    g.fillStyle(0xa9dcf2, 0.85); g.fillRect(0, 23, 32, 2);
+    g.fillStyle(0xe4f6ff, 0.9);
+    for (let x = 2; x < 31; x += 5) {
+      const drop = 3 + ((x * 7) % 4);
+      g.fillTriangle(x, 29, x + 3, 29, x + 1, 29 + drop);
+    }
+  });
+
+  // Platform (32x12): a snow-bridge plank over a crevasse.
   texture(scene, `${p}-platform`, TILE, 12, (g) => {
-    g.fillStyle(0x0c0908, 1); g.fillRect(0, 2, 32, 10);
-    g.fillStyle(0x2b211b, 1); g.fillRect(0, 0, 32, 4);
-    g.fillStyle(0x8a7a6a, 0.75); for (let x = 3; x < 32; x += 6) g.fillRect(x, 1, 1, 2);
-    // Cross-hatch grate
-    g.fillStyle(0x0a0706, 0.9);
-    for (let x = 2; x < 32; x += 5) g.fillRect(x, 4, 1, 6);
-    g.fillRect(0, 6, 32, 1);
-    g.fillStyle(0xe28b45, 0.85); g.fillRect(0, 9, 32, 2);
-    g.fillStyle(0xffb673, 0.6); for (let x = 1; x < 32; x += 7) g.fillRect(x, 10, 3, 1);
-    g.fillStyle(0x050302, lipShadowAlpha(1, 0.9, 2)); g.fillRect(0, 11, 32, 1);
+    g.fillStyle(0x16354f, 1); g.fillRect(0, 2, 32, 10);
+    g.fillStyle(0xeaf7ff, 1); g.fillRect(0, 0, 32, 3);
+    g.fillStyle(0x9fd6ee, 0.85); g.fillRect(0, 3, 32, 1);
+    g.fillStyle(0xcfeaf8, 0.85);
+    for (let x = 2; x < 30; x += 6) g.fillTriangle(x, 10, x + 3, 10, x + 1, 12);
+    g.fillStyle(0x081a2a, lipShadowAlpha(1, 0.85, 2)); g.fillRect(0, 11, 32, 1);
   });
 
-  // Weak Wall (32x32): rupturing riveted plate with a vent about to blow
+  // Weak wall (32x32): a wind-slab panel already fractured and ready to calve.
   texture(scene, `${p}-weak`, TILE, TILE, (g) => {
-    g.fillStyle(0x100b09, 1); g.fillRect(0, 0, 32, 32);
-    g.fillStyle(0x241d19, 1); g.fillRect(2, 2, 28, 28);
-    g.lineStyle(2, 0xe28b45, 0.95);
-    g.beginPath(); g.moveTo(5, 3); g.lineTo(15, 13); g.lineTo(9, 21); g.lineTo(25, 29); g.strokePath();
-    g.lineStyle(1, 0xffe0b0, 0.95);
-    g.beginPath(); g.moveTo(5, 3); g.lineTo(15, 13); g.lineTo(9, 21); g.lineTo(25, 29); g.strokePath();
-    g.fillStyle(0xffdca0, 0.9);
-    g.fillCircle(15, 13, 2); g.fillCircle(9, 21, 1.5);
+    g.fillStyle(0x0d1a24, 1); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x3f688a, 1); g.fillRect(2, 2, 28, 28);
+    g.fillStyle(0xdff2fb, 0.45); g.fillRect(2, 2, 28, 3);
+    g.lineStyle(2.5, 0x0f2f4a, 1);
+    g.beginPath(); g.moveTo(3, 5); g.lineTo(15, 14); g.lineTo(10, 23); g.lineTo(29, 27); g.strokePath();
+    g.lineStyle(1, 0xc8ecfb, 0.9);
+    g.beginPath(); g.moveTo(3, 5); g.lineTo(15, 14); g.lineTo(10, 23); g.lineTo(29, 27); g.strokePath();
   });
 
-  // Climb (32x32): chain ladder bolted to the shaft wall
+  // Climb (32x32): a fixed rope over cut ice steps.
   texture(scene, `${p}-climb`, TILE, TILE, (g) => {
-    g.fillStyle(0x100b09, 1); g.fillRect(0, 0, 32, 32);
-    g.lineStyle(3, 0x2b211b, 1); g.lineBetween(9, 0, 9, 32); g.lineBetween(23, 0, 23, 32);
-    g.lineStyle(1.5, 0x8a7a6a, 0.8); g.lineBetween(9, 0, 9, 32); g.lineBetween(23, 0, 23, 32);
-    for (let y = 3; y < 32; y += 8) {
-      g.fillStyle(0x3d3129, 1); g.fillRect(6, y, 20, 3);
-      g.fillStyle(0xe28b45, 0.85); g.fillRect(6, y, 20, 1);
+    g.fillStyle(0x122c44, 1); g.fillRect(0, 0, 32, 32);
+    g.fillStyle(0x1d4260, 1); g.fillRect(5, 0, 22, 32);
+    // Axe-cut foot steps.
+    g.fillStyle(0xbfe4f6, 0.9);
+    for (let y = 4; y < 32; y += 8) {
+      g.fillRect(7, y, 18, 3);
+      g.fillStyle(0x0c2439, 0.6); g.fillRect(7, y + 3, 18, 1);
+      g.fillStyle(0xbfe4f6, 0.9);
     }
+    g.lineStyle(2, 0xd8b26a, 1); g.lineBetween(16, 0, 16, 32);
+    g.lineStyle(1, 0xf0d79c, 0.8); g.lineBetween(15, 0, 15, 32);
   });
 
-  // Portcullis (32x32): slatted vent gate, glowing at its base
+  // Portcullis (32x32): a curtain of icicles barring the way.
   texture(scene, `${p}-portcullis`, TILE, TILE, (g) => {
-    g.fillStyle(0x0c0908, 0.95); g.fillRect(1, 1, 30, 6); g.fillRect(1, 25, 30, 5);
+    g.fillStyle(0x0b2135, 0.95); g.fillRect(1, 1, 30, 6); g.fillRect(1, 25, 30, 5);
     for (let x = 4; x < 30; x += 6) {
-      g.fillStyle(0x241d19, 1); g.fillRect(x, 2, 4, 27);
-      g.fillStyle(0x6b5d50, 0.8); g.fillRect(x + 1, 3, 1, 22);
-      g.fillStyle(0xe28b45, 0.85); g.fillTriangle(x, 29, x + 4, 29, x + 2, 32);
+      g.fillStyle(0x2f5a7b, 1); g.fillRect(x, 2, 4, 27);
+      g.fillStyle(0xdff2fb, 0.6); g.fillRect(x, 2, 1, 27);
+      g.fillStyle(0xa9dcf2, 0.9); g.fillTriangle(x, 29, x + 4, 29, x + 2, 32);
     }
   });
 
-  // Door (32x64): forge-hall gate, crossed hammers over an anvil
+  // Door (32x64): a cut ice gate under a keystone of blue serac.
   texture(scene, `${p}-door`, TILE, TILE * 2, (g) => {
-    g.fillStyle(0x0a0706, 1); g.fillRect(1, 5, 30, 59);
-    g.fillStyle(0x241d19, 1); g.fillRect(4, 8, 24, 56);
-    g.fillStyle(0x0c0908, 1); g.fillRect(4, 20, 24, 4); g.fillRect(4, 43, 24, 4);
-    g.fillStyle(0x4a3f37, 1); g.fillRect(13, 30, 6, 10);
-    g.fillStyle(0xe28b45, 0.9);
-    g.fillRect(8, 26, 3, 14); g.fillRect(21, 26, 3, 14);
-    g.fillTriangle(6, 26, 12, 26, 9, 21); g.fillTriangle(19, 26, 25, 26, 22, 21);
-    g.fillStyle(0xffdca0, 0.85); g.fillCircle(16, 35, 1.5);
+    g.fillStyle(0x0d1a24, 1); g.fillRect(1, 5, 30, 59);
+    g.fillStyle(0x2f5a7b, 1); g.fillRect(4, 8, 24, 56);
+    g.fillStyle(0xdff2fb, 0.4); g.fillRect(4, 8, 24, 3);
+    g.fillStyle(0x0f2f4a, 1); g.fillRect(4, 22, 24, 3); g.fillRect(4, 45, 24, 3);
+    g.fillStyle(0xa9dcf2, 0.95); g.fillTriangle(16, 26, 24, 40, 8, 40);
+    g.fillStyle(0xe4f6ff, 0.9); g.fillCircle(16, 36, 3);
   });
 
-  // Backdrop (320x180): deep forge-hall vault — vent shafts, chains, a slag channel
-  texture(scene, `${p}-backdrop`, 320, 180, (g) => {
-    g.fillStyle(0x050302, 1); g.fillRect(0, 0, 320, 180);
-    g.fillStyle(0x1a120e, 0.85); g.fillRect(0, 90, 320, 90);
-
-    // Vent-shaft roof silhouettes rising into darkness
-    g.fillStyle(0x140f0c, 1);
-    for (let x = 0; x < 320; x += 32) {
-      const h = 22 + Math.abs(latticeNoise(x, 7, 151)) * 45;
-      g.fillRect(x + 8, 0, 16, h);
+  // Backdrop, night (320x180): the glacier under a hard cold sky — serac towers
+  // and the black teeth of the ridge line above the ice fall.
+  texture(scene, `${p}-backdrop-night`, 320, 180, (g) => {
+    g.fillStyle(0x060d18, 1); g.fillRect(0, 0, 320, 180);
+    // Stars over the ridge.
+    g.fillStyle(0xdfeaff, 0.7);
+    for (let i = 0; i < 40; i++) {
+      g.fillRect((i * 53) % 320, (i * 29) % 70, 1, 1);
     }
-
-    // Distant anvil-hall silhouettes
-    g.fillStyle(0x1e1712, 1);
-    for (const hall of [{ x: 20, w: 70, h: 80 }, { x: 130, w: 60, h: 96 }, { x: 232, w: 68, h: 74 }]) {
-      const y = 152 - hall.h;
-      g.fillRect(hall.x, y, hall.w, hall.h);
+    // Ridge line.
+    g.fillStyle(0x101d2c, 1);
+    for (let x = 0; x < 320; x += 36) {
+      const h = 48 + Math.abs(latticeNoise(x, 5, 313)) * 46;
+      g.fillTriangle(x - 6, 96, x + 42, 96, x + 18, 96 - h);
     }
-
-    // Hanging chains from the vent roof
-    g.lineStyle(1.5, 0x4a3f37, 0.85);
-    for (const cx of [55, 118, 175, 250, 296]) {
-      g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx + 4, 40); g.lineTo(cx - 2, 78); g.strokePath();
+    // The ice fall itself, catching what light there is.
+    g.fillStyle(0x1b3956, 1); g.fillRect(0, 96, 320, 84);
+    g.fillStyle(0x2b5b81, 0.9);
+    for (let i = 0; i < 10; i++) {
+      const x = i * 34 - 6;
+      g.fillTriangle(x, 148, x + 30, 132 + (i % 3) * 6, x + 24, 152);
     }
+    g.fillStyle(0x9fd6ee, 0.5); g.fillRect(0, 96, 320, 2);
+    for (let i = 0; i < 6; i++) frostBloom(g, 30 + i * 55, 118 + (i % 3) * 22, 7 + (i % 2) * 3, 400 + i);
+  });
 
-    // Slag/lava channel across the floor with an ember-glow surface
-    g.fillStyle(0x7d2b0c, 1); g.fillRect(0, 156, 320, 24);
-    g.fillStyle(0xe28b45, 0.9);
-    for (let x = 0; x < 320; x += 12) {
-      const y = 157 + Math.abs(latticeNoise(x, 11, 191)) * 7;
-      g.fillRect(x, y, 9, 2);
+  // Backdrop, day (320x180): glare. Snow-blind white, a small hard sun, and the
+  // ridge reduced to pale silhouette by the haze coming off the ice.
+  texture(scene, `${p}-backdrop-day`, 320, 180, (g) => {
+    g.fillStyle(0x9dc9e4, 1); g.fillRect(0, 0, 320, 180);
+    g.fillStyle(0xc4e2f3, 1); g.fillRect(0, 52, 320, 44);
+    g.fillStyle(0xfaffff, 0.9); g.fillCircle(238, 30, 13);
+    g.fillStyle(0xfaffff, 0.28); g.fillCircle(238, 30, 26);
+    // Hazed ridge.
+    g.fillStyle(0x7ba6c4, 1);
+    for (let x = 0; x < 320; x += 36) {
+      const h = 44 + Math.abs(latticeNoise(x, 5, 313)) * 42;
+      g.fillTriangle(x - 6, 96, x + 42, 96, x + 18, 96 - h);
     }
-    g.fillStyle(0xffdca0, 0.7); for (let x = 5; x < 320; x += 29) g.fillRect(x, 160 + (x % 9), 12, 1);
+    // The ice sheet, bright enough to hurt.
+    g.fillStyle(0xdff1fb, 1); g.fillRect(0, 96, 320, 84);
+    g.fillStyle(0xf6fdff, 0.95);
+    for (let i = 0; i < 10; i++) {
+      const x = i * 34 - 6;
+      g.fillTriangle(x, 150, x + 30, 132 + (i % 3) * 6, x + 24, 154);
+    }
+    // Crevasse shadows raking across the sheet.
+    g.fillStyle(0x6ea5c6, 0.55);
+    for (let i = 0; i < 7; i++) {
+      const x = i * 47 + 10;
+      g.fillTriangle(x, 180, x + 12, 180, x + 22, 112);
+    }
+    g.fillStyle(0xffffff, 0.4); g.fillRect(0, 96, 320, 3);
   });
 
   // Decorations:
-  // gong (30x24): a lit anvil station — this scroll's signature "Anvil Hall" prop
+  // gong (30x24): a cairn of stacked moraine stone marking the safe line.
   texture(scene, `${p}-gong`, 30, 24, (g) => {
-    g.fillStyle(0x241d19, 1); g.fillRect(11, 14, 4, 8);
-    g.fillStyle(0x3d3129, 1); g.fillRect(4, 10, 22, 5); g.fillRect(8, 5, 8, 6);
-    g.fillStyle(0xe28b45, 0.85); g.fillRect(5, 11, 20, 1);
-    g.fillStyle(0xffdca0, 0.7); g.fillCircle(14, 11, 1.5);
+    g.fillStyle(0x3a352d, 1); g.fillRect(6, 17, 18, 6);
+    g.fillStyle(0x4a4338, 1); g.fillRect(9, 11, 12, 6);
+    g.fillStyle(0x5a5244, 1); g.fillRect(12, 5, 7, 6);
+    g.fillStyle(0xdff2fb, 0.55); g.fillRect(6, 17, 18, 1); g.fillRect(9, 11, 12, 1); g.fillRect(12, 5, 7, 1);
   });
 
-  // rack (30x18): tongs and hammers hung on wall hooks
+  // rack (30x18): crossed ice axes driven into the sheet.
   texture(scene, `${p}-rack`, 30, 18, (g) => {
-    g.fillStyle(0x241d19, 1); g.fillRect(2, 13, 26, 3);
-    g.lineStyle(2, 0x6b5d50, 1); g.lineBetween(8, 14, 8, 2); g.lineBetween(16, 14, 21, 3); g.lineBetween(23, 14, 18, 5);
-    g.fillStyle(0xe28b45, 0.6); g.fillCircle(8, 2, 1.5); g.fillCircle(21, 3, 1.5);
+    g.fillStyle(0x16354f, 1); g.fillRect(2, 13, 26, 4);
+    g.lineStyle(2, 0x3a352d, 1); g.lineBetween(7, 15, 17, 2); g.lineBetween(23, 15, 13, 2);
+    g.fillStyle(0xa9b4bd, 1); g.fillTriangle(17, 2, 22, 5, 15, 6); g.fillTriangle(13, 2, 8, 5, 15, 6);
   });
 
-  // banner (18x40): a stamped guild tag hung from a short length of chain
-  texture(scene, `${p}-banner`, 18, 40, (g) => {
-    g.lineStyle(1.5, 0x4a3f37, 1); g.lineBetween(9, 0, 9, 10);
-    g.fillStyle(0x2b211b, 1); g.fillRect(2, 10, 14, 22);
-    g.fillStyle(0xe28b45, 0.85); g.fillRect(5, 15, 8, 3); g.fillRect(5, 22, 8, 3);
-    g.fillStyle(0x100b09, 1); g.fillCircle(9, 34, 3);
+  // banner (28x38): a route marker wand, its flag stiff with rime.
+  texture(scene, `${p}-banner`, 28, 38, (g) => {
+    g.fillStyle(0x3a352d, 1); g.fillRect(12, 4, 2, 34);
+    g.fillStyle(0xc4453a, 1); g.fillRect(14, 5, 12, 10);
+    g.fillStyle(0xdff2fb, 0.7); g.fillRect(14, 5, 12, 2);
+    frostBloom(g, 20, 11, 4, 512);
   });
 
-  // crenel (30x35): stacked slag ingots venting a thin ember haze
+  // crenel (30x35): a pair of seracs — the glacier's own broken towers.
   texture(scene, `${p}-crenel`, 30, 35, (g) => {
-    g.fillStyle(0x1e1712, 1); g.fillRect(3, 20, 24, 15);
-    g.fillStyle(0x3d3129, 1); g.fillRect(6, 12, 18, 10); g.fillRect(9, 6, 12, 8);
-    g.fillStyle(0xe28b45, 0.55); g.fillRect(10, 8, 10, 2); g.fillRect(7, 14, 14, 2);
-    g.fillStyle(0xffdca0, 0.4); g.fillCircle(15, 5, 2); g.fillCircle(19, 2, 1.2);
+    g.fillStyle(0x1d4260, 1); g.fillRect(1, 24, 28, 11);
+    frozenTusk(g, 9, 24, -22, -3);
+    frozenTusk(g, 21, 24, -30, 4);
+    g.fillStyle(0xdff2fb, 0.4); g.fillRect(1, 24, 28, 2);
   });
 }
 
@@ -2729,9 +2780,10 @@ export function ensureVisualSkinTextures(
   } else if (skin.id === "frost-jarl-tomb") {
     prefix = "skin-frost-jarl-tomb";
     generateFrostJarlTomb(scene);
-  } else if (skin.id === "dverg-forges") {
-    prefix = "skin-dverg-forges";
-    generateDvergForges(scene);
+  } else if (skin.id === "fell-glacier") {
+    prefix = "skin-fell-glacier";
+    openSky = true;
+    generateFellGlacier(scene);
   } else if (skin.id === "overgrown-basalt-ziggurat") {
     prefix = "skin-overgrown-basalt-ziggurat";
     generateOvergrownZiggurat(scene);

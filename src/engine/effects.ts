@@ -18,7 +18,7 @@ export type CheckKind =
 
 export type EffectHook =
   /** `weaponId` restricts the bonus to attacks made with that weapon (Weapon Mastery). */
-  | { kind: "checkBonus"; applies: CheckKind; bonus: number; weaponId?: string }
+  | { kind: "checkBonus"; applies: CheckKind; bonus: number; weaponId?: string; stat?: StatName }
   | { kind: "checkBonusHalfLevel"; applies: CheckKind; weaponId?: string }
   | { kind: "advantageOn"; applies: CheckKind }
   | { kind: "advantageOnSpell"; spellId: string }
@@ -68,7 +68,8 @@ export type EffectHook =
   | { kind: "dualWieldAcBonus"; bonus: number }
   | { kind: "enemyMoraleDcMinimum"; value: number }
   | { kind: "oldGodDuality" }
-  | { kind: "damageImmune" };
+  | { kind: "damageImmune" }
+  | { kind: "hpFloor"; value: number };
 
 export type ClassResource =
   | "ignoreAttack"
@@ -110,11 +111,12 @@ export function sumCheckBonus(
   kind: CheckKind,
   level = 1,
   weaponId?: string,
+  stat?: StatName,
 ): number {
   let total = 0;
   for (const e of effects) {
     for (const h of e.hooks) {
-      if (h.kind === "checkBonus" && (h.applies === kind || h.applies === "any" || (kind === "meleeAttack" && h.applies === "attack"))) {
+      if (h.kind === "checkBonus" && (h.stat === undefined || h.stat === stat) && (h.applies === kind || h.applies === "any" || (kind === "meleeAttack" && h.applies === "attack"))) {
         if (hookAppliesToWeapon(h.weaponId, weaponId)) total += h.bonus;
       }
       if (h.kind === "checkBonusHalfLevel" && (h.applies === kind || h.applies === "any" || (kind === "meleeAttack" && h.applies === "attack"))) {

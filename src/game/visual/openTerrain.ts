@@ -43,6 +43,10 @@ export function safeZonePresentation(
         : { kind: "oasis", name: "THE PALM OASIS" };
     case "rime-sea-caves":
       return { kind: "rock-shelter", name: "THE FIRE OVERHANG" };
+    case "fell-glacier":
+      return (seed & 1) === 0
+        ? { kind: "rock-shelter", name: "THE LEE OF THE SERAC" }
+        : { kind: "cave-pool", name: "THE MELTWATER HOLLOW" };
     case "canopy-village":
       return (seed & 1) === 0
         ? { kind: "rock-shelter", name: "THE HIGH CANOPY SHUT" }
@@ -115,6 +119,25 @@ export function dangerRuleForSkin(
             casualty: "succumbs to the desert venom",
             failureTitle: "VENOM TAKES YOU",
             failureMessage: "The fourth dose of desert venom stops the expedition.",
+          };
+    case "fell-glacier":
+      return daytime
+        ? {
+            token: "sun",
+            icon: "☀",
+            saveStats: ["CON", "WIS"],
+            casualty: "is blinded by the glare and falls",
+            failureTitle: "THE GLARE TAKES YOUR EYES",
+            failureMessage: "Four stretches of unbroken snow-glare leave you blind on the ice.",
+          }
+        : {
+            token: "snowflake",
+            icon: "❄",
+            saveStats: ["CON", "DEX"],
+            encounter: "The wind rises off the ice fall and the sheet groans underfoot.",
+            casualty: "goes through a snow bridge",
+            failureTitle: "THE GLACIER SWALLOWS YOU",
+            failureMessage: "The fourth bridge gives way. The crevasse is deeper than your rope.",
           };
     case "rime-sea-caves":
       return {

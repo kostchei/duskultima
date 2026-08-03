@@ -13,14 +13,77 @@ export type MonsterBiome =
   | "dwellers-in-the-deep"
   | "city-of-masks";
 
+/**
+ * What a monster does in a fight. The dungeon grid places roles, not names —
+ * tile `r` is "something vermin lives here", and the active zone's roster
+ * decides whether that is a rotgrub swarm or a giant rat. Roles also set how
+ * far above or below the party's level a spawn is aimed (see `targetLevel`).
+ */
+export type MonsterRole =
+  | "vermin"
+  | "skirmisher"
+  | "soldier"
+  | "brute"
+  | "caster"
+  | "champion";
+
+/** Silhouette family the parametric sprite generator draws. */
+export type MonsterArchetype =
+  | "biped"
+  | "brute"
+  | "quadruped"
+  | "boar"
+  | "vermin"
+  | "spider"
+  | "swarm"
+  | "ooze"
+  | "skeletal"
+  | "flyer"
+  | "serpent"
+  | "elemental"
+  | "centaur"
+  | "plant"
+  | "avian";
+
+export type MonsterSize = "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
+
+/** Colours the parametric generator paints an archetype with. */
+export interface MonsterArt {
+  body: number;
+  shade: number;
+  accent: number;
+  eye: number;
+  /** Silhouette details the archetype honours where they make sense. */
+  features?: readonly MonsterFeature[];
+}
+
+export type MonsterFeature =
+  | "tusks"
+  | "horns"
+  | "quills"
+  | "mane"
+  | "weapon"
+  | "robe"
+  | "wings"
+  | "manyEyes"
+  | "tail";
+
 export interface MonsterDef {
   id: string;
   name: string;
+  /** Shadowdark monster level, 0-10. Drives party-level-appropriate spawning. */
+  level: number;
+  role: MonsterRole;
   ac: number;
   hitDice: string;
   attackBonus: number;
   damage: string;
   wisMod: number;
+  /** Horizontal movement in px/s. */
+  speed: number;
+  archetype: MonsterArchetype;
+  size: MonsterSize;
+  art: MonsterArt;
   /** Monsters see fine in the dark. */
   darkvision: boolean;
   undead: boolean;
@@ -28,7 +91,72 @@ export interface MonsterDef {
   leader?: boolean;
   xpTier: "minor" | "major" | "legendary";
   biome?: MonsterBiome;
-  specialAbility?: "web" | "poison" | "engulf" | "shadow-extinct" | "split" | "corrode";
+  specialAbility?:
+    | "web"
+    | "poison"
+    | "engulf"
+    | "shadow-extinct"
+    | "split"
+    | "corrode"
+    | "thorns";
+}
+
+/** Sprite footprint per size band, in pixels. */
+export const MONSTER_SIZE_PX: Record<MonsterSize, { w: number; h: number }> = {
+  tiny: { w: 18, h: 14 },
+  small: { w: 24, h: 24 },
+  medium: { w: 30, h: 32 },
+  large: { w: 42, h: 40 },
+  huge: { w: 58, h: 54 },
+  gargantuan: { w: 76, h: 68 },
+};
+
+const LEVEL_DAMAGE = [
+  "1d4", "1d6", "1d6", "1d8", "1d10", "2d6", "2d6", "2d8", "2d10", "3d8", "3d10",
+] as const;
+
+/** AC / to-hit / wisdom shifts that give each role a different feel at one level. */
+const ROLE_SHIFT: Record<MonsterRole, { ac: number; hit: number; wis: number; damageStep: number }> = {
+  vermin: { ac: -1, hit: 0, wis: -3, damageStep: -1 },
+  skirmisher: { ac: 0, hit: 1, wis: -1, damageStep: 0 },
+  soldier: { ac: 1, hit: 0, wis: 0, damageStep: 0 },
+  brute: { ac: 0, hit: 0, wis: -1, damageStep: 1 },
+  caster: { ac: -1, hit: 0, wis: 2, damageStep: 0 },
+  champion: { ac: 1, hit: 1, wis: 1, damageStep: 1 },
+};
+
+export interface DerivedMonsterStats {
+  ac: number;
+  hitDice: string;
+  attackBonus: number;
+  damage: string;
+  wisMod: number;
+  xpTier: "minor" | "major" | "legendary";
+}
+
+/**
+ * The stat spine every roster entry starts from, so a level-4 brute in one
+ * zone hits about as hard as a level-4 brute in another. Roster entries
+ * override individual fields where a monster earns an exception.
+ */
+export function monsterStatsForLevel(level: number, role: MonsterRole): DerivedMonsterStats {
+  if (!Number.isInteger(level) || level < 0 || level > 10) {
+    throw new Error(`Monster level must be an integer 0-10, got ${level}`);
+  }
+  const shift = ROLE_SHIFT[role];
+  if (!shift) throw new Error(`Unknown monster role "${role}"`);
+  const damageIndex = Math.min(
+    LEVEL_DAMAGE.length - 1,
+    Math.max(0, level + shift.damageStep),
+  );
+  return {
+    ac: Math.min(19, 10 + Math.ceil(level / 2) + shift.ac),
+    hitDice: level === 0 ? "1d4" : `${level}d8`,
+    attackBonus: 1 + Math.floor(level / 2) + shift.hit,
+    damage: LEVEL_DAMAGE[damageIndex]!,
+    wisMod: Math.min(4, Math.floor(level / 3) + shift.wis),
+    xpTier: level <= 3 ? "minor" : level <= 7 ? "major" : "legendary",
+  };
 }
 
 export interface MonsterAttackResult {

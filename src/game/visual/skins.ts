@@ -18,7 +18,7 @@ export const VISUAL_SKINS = [
   skin("burning-mines", "red-sands", "The Burning Mines", "burning-granite", { background: 0x0c0807, stoneTint: 0xa79a91, accent: 0xe38a37, haze: 0x32170d, darkness: 0x040202 }, ["FORGE HALL", "ORE CUT", "MAGMA WORKS"]),
   skin("rime-sea-caves", "midnight-sun", "The Rime-Caked Sea Caves", "glacial-rock", { background: 0x07101a, stoneTint: 0xb8d4df, accent: 0x75c7e8, haze: 0x173447, darkness: 0x020508 }, ["ICE BRIDGE", "FROZEN SURF", "SEA MOUTH"]),
   skin("frost-jarl-tomb", "midnight-sun", "The Frost Jarl's Tomb", "runestone-timber", { background: 0x0a0d14, stoneTint: 0xc0c8d0, accent: 0x8eb7d2, haze: 0x253242, darkness: 0x030407 }, ["RUNE HALL", "SHIP BURIAL", "JARL'S REST"]),
-  skin("dverg-forges", "midnight-sun", "The Dverg Forges", "forge-stone", { background: 0x100b09, stoneTint: 0xaaa39e, accent: 0xe28b45, haze: 0x392018, darkness: 0x050302 }, ["VENT SHAFT", "ANVIL HALL", "DEEP FORGE"]),
+  skin("fell-glacier", "midnight-sun", "The Fell Glacier", "fell-ice", { background: 0x0d1a24, stoneTint: 0xcfe6f2, accent: 0x8fd0ee, haze: 0x1b3956, darkness: 0x030609 }, ["ICE FALL", "SERAC MAZE", "CREVASSE RUN"]),
   skin("overgrown-basalt-ziggurat", "river-of-night", "The Overgrown Ziggurat", "jungle-basalt", { background: 0x06100b, stoneTint: 0x8da899, accent: 0x61b870, haze: 0x153421, darkness: 0x020703 }, ["BASALT STEP", "SERPENT COURT", "ROOTED TEMPLE"]),
   skin("drowned-star-cenote", "river-of-night", "The Drowned Star Cenote", "wet-limestone", { background: 0x04101a, stoneTint: 0x8eb5b5, accent: 0x63d7c6, haze: 0x123747, darkness: 0x010609 }, ["STAR POOL", "AIR POCKET", "DROWNED VAULT"]),
   skin("canopy-village", "river-of-night", "The Canopy Village", "woven-canopy", { background: 0x07120b, stoneTint: 0x9da77b, accent: 0x78c55a, haze: 0x1c3c20, darkness: 0x020803 }, ["ROPE WALK", "HIGH HUT", "CANOPY BRIDGE"]),
@@ -29,6 +29,27 @@ export const VISUAL_SKINS = [
   skin("sunken-thieves-guild", "city-of-masks", "The Sunken Guild", "sewer-brick", { background: 0x07100f, stoneTint: 0x8fa49b, accent: 0x6fc0a7, haze: 0x19332f, darkness: 0x020706 }, ["SMUGGLER'S COVE", "FLOODED RING", "AQUEDUCT"]),
   skin("hidden-face-temple", "city-of-masks", "The Temple of the Hidden Face", "opulent-estate", { background: 0x100b12, stoneTint: 0xc0aeb5, accent: 0xd4a45f, haze: 0x392334, darkness: 0x050304 }, ["MASKED HALL", "SECRET SALON", "RITUAL UNDERCROFT"]),
 ] as const satisfies readonly VisualSkin[];
+
+/**
+ * The roofless subzones: six of eighteen, so one subzone in three opens out —
+ * no ceiling, a real horizon, an exposure danger track, and a coin-flip chance
+ * of rolling daylight (see `Dungeon.daylitLevel`).
+ *
+ * The distribution is deliberately uneven. Dwellers in the Deep gets none, being
+ * underground by definition, and Midnight Sun gets two: an ice sheet is an
+ * outdoor place, and the scroll would read wrong buried.
+ *
+ * `materials.ts` is the authority on which skins draw an open sky; this list
+ * states the same set as data so the ratio can be asserted without a renderer.
+ */
+export const OPEN_SKY_SKIN_IDS = [
+  "rot-bramble",
+  "djurum-approach",
+  "rime-sea-caves",
+  "fell-glacier",
+  "canopy-village",
+  "rooftop-scamper",
+] as const satisfies readonly VisualSkinId[];
 
 const SKINS_BY_ID = new Map<VisualSkinId, VisualSkin>(VISUAL_SKINS.map((entry) => [entry.id, entry]));
 
@@ -63,7 +84,7 @@ export interface ZonePackInfo {
 export const ZONE_PACK_INFO: Record<ZonePackId, ZonePackInfo> = {
   "diablerie": { id: "diablerie", scrollName: "DIABLERIE", flavor: "Black forests, wet caves, dissolving keeps." },
   "red-sands": { id: "red-sands", scrollName: "RED SANDS", flavor: "Dunes, iron fortresses, and burning mines." },
-  "midnight-sun": { id: "midnight-sun", scrollName: "MIDNIGHT SUN", flavor: "Ice caves, frost tombs, and dverg forges." },
+  "midnight-sun": { id: "midnight-sun", scrollName: "MIDNIGHT SUN", flavor: "Ice caves, frost tombs, and open glaciers." },
   "river-of-night": { id: "river-of-night", scrollName: "RIVER OF NIGHT", flavor: "Jungle ziggurats, cenotes, canopy towns." },
   "dwellers-in-the-deep": { id: "dwellers-in-the-deep", scrollName: "DWELLERS IN THE DEEP", flavor: "Abyssal archives, fungal grottos, sea-forts." },
   "city-of-masks": { id: "city-of-masks", scrollName: "CITY OF MASKS", flavor: "Rooftops, sunken guilds, masked temples." },

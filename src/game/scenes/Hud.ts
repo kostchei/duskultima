@@ -107,6 +107,8 @@ export class HudScene extends Phaser.Scene {
   private mobileEquipmentToggle: Phaser.GameObjects.Text | null = null;
   private mobileEquipmentDropdown: Phaser.GameObjects.Container | null = null;
   private mobileEquipmentText: Phaser.GameObjects.Text | null = null;
+  /** Party-row hover supplies a compact spell readout without changing leader. */
+  private hoveredCasterId: string | null = null;
   private lastPartySize = -1;
 
   constructor() {
@@ -130,6 +132,7 @@ export class HudScene extends Phaser.Scene {
     this.mobileEquipmentToggle = null;
     this.mobileEquipmentDropdown = null;
     this.mobileEquipmentText = null;
+    this.hoveredCasterId = null;
     this.compactMobileHud = shouldShowTouchControls();
     this.lastPartySize = -1;
     this.partyNames = [];
@@ -153,9 +156,17 @@ export class HudScene extends Phaser.Scene {
 
     for (let i = 0; i < MAX_PARTY; i++) {
       const y = PARTY_BOX.y + PARTY_BOX.headerH + i * PARTY_BOX.rowH;
-      this.partyNames.push(
-        this.add.text(18, y, "", { ...UI_STYLE, fontSize: "11px" }).setDepth(1000).setVisible(false),
-      );
+      const partyName = this.add.text(18, y, "", { ...UI_STYLE, fontSize: "11px" })
+        .setDepth(1000)
+        .setVisible(false)
+        .setInteractive({ useHandCursor: true });
+      partyName
+        .on("pointerover", () => {
+          const member = this.dungeon.party.members[i];
+          this.hoveredCasterId = member?.character.knownSpells.length ? member.character.id : null;
+        })
+        .on("pointerout", () => { this.hoveredCasterId = null; });
+      this.partyNames.push(partyName);
       this.hpLabels.push(
         this.add
           .text(240, y + 6, "", {
@@ -860,11 +871,11 @@ export class HudScene extends Phaser.Scene {
     const bg = this.add.rectangle(w / 2, h / 2, w, h, 0x020205, 0.7).setInteractive();
     const box = this.add.graphics();
     box.fillStyle(0x05060a, 0.94);
-    box.fillRoundedRect(w / 2 - 220, h / 2 - 180, 440, 360, 8);
+    box.fillRoundedRect(w / 2 - 260, h / 2 - 230, 520, 460, 8);
     box.lineStyle(2, accent, 0.9);
-    box.strokeRoundedRect(w / 2 - 220, h / 2 - 180, 440, 360, 8);
+    box.strokeRoundedRect(w / 2 - 260, h / 2 - 230, 520, 460, 8);
 
-    const title = this.add.text(w / 2, h / 2 - 150, `${c.name.toUpperCase()} - STATS`, {
+    const title = this.add.text(w / 2, h / 2 - 200, `${c.name.toUpperCase()} - STATS`, {
       fontFamily: "Georgia, serif",
       fontSize: "24px",
       color: "#ffd45f",
@@ -873,7 +884,7 @@ export class HudScene extends Phaser.Scene {
       resolution: RENDER_SCALE,
     }).setOrigin(0.5);
 
-    const sub = this.add.text(w / 2, h / 2 - 120, `Level ${c.level} ${c.ancestry.toUpperCase()} ${c.className.toUpperCase()}`, {
+    const sub = this.add.text(w / 2, h / 2 - 170, `Level ${c.level} ${c.ancestry.toUpperCase()} ${c.className.toUpperCase()}`, {
       ...UI_STYLE,
       fontSize: "12px",
       color: "#a0a4b0"
@@ -891,13 +902,13 @@ export class HudScene extends Phaser.Scene {
     const col1 = statLabels.slice(0, 3).join("\n\n");
     const col2 = statLabels.slice(3, 6).join("\n\n");
 
-    const statText1 = this.add.text(w / 2 - 140, h / 2 - 80, col1, {
+    const statText1 = this.add.text(w / 2 - 205, h / 2 - 135, col1, {
       ...DATA_STYLE,
       fontSize: "14px",
       lineSpacing: 8
     });
 
-    const statText2 = this.add.text(w / 2 + 20, h / 2 - 80, col2, {
+    const statText2 = this.add.text(w / 2 - 55, h / 2 - 135, col2, {
       ...DATA_STYLE,
       fontSize: "14px",
       lineSpacing: 8
@@ -910,30 +921,55 @@ export class HudScene extends Phaser.Scene {
       `XP : ${xpVal}\n` +
       `VOICE : ${c.voiceRegister.toUpperCase()}`;
 
-    const secondaryText = this.add.text(w / 2 - 140, h / 2 + 40, secondaryDetails, {
+    const secondaryText = this.add.text(w / 2 - 205, h / 2 - 15, secondaryDetails, {
       ...DATA_STYLE,
       fontSize: "13px",
       lineSpacing: 4
     });
 
     const featuresList = c.effects.map((e: any) => `* ${e.name}`).join("\n");
-    const featuresTitle = this.add.text(w / 2 + 20, h / 2 + 35, "FEATURES & TALENTS", {
+    const featuresTitle = this.add.text(w / 2 + 30, h / 2 - 20, "FEATURES & TALENTS", {
       ...UI_STYLE,
       fontSize: "11px",
       color: titleColor,
       fontStyle: "bold"
     });
-    const featuresText = this.add.text(w / 2 + 20, h / 2 + 55, featuresList || "None", {
+    const featuresText = this.add.text(w / 2 + 30, h / 2, featuresList || "None", {
       ...DATA_STYLE,
       fontSize: "9px",
-      wordWrap: { width: 180 },
+      wordWrap: { width: 200 },
       lineSpacing: 3
     });
 
-    const close = this.actionButton(w / 2, h / 2 + 150, `[ CLOSE ]${this.keyHint("C")}`, "stats", "12px");
+    const spellsTitle = this.add.text(w / 2 - 205, h / 2 + 75, "SPELLS - CLICK TO PREPARE", {
+      ...UI_STYLE,
+      fontSize: "11px",
+      color: titleColor,
+      fontStyle: "bold",
+    });
+    const member = this.dungeon.party.members.find((candidate) => candidate.character.id === c.id);
+    const spellRows = c.knownSpells.map((known: any, index: number) => {
+      const def = spell(known.spellId);
+      const selected = member?.spellIndex === index;
+      const row = this.add.text(w / 2 - 205, h / 2 + 95 + index * 16, `${selected ? ">" : " "} ${def.name}  T${def.tier}${def.focus ? " FOCUS" : ""}${known.status === "lost" ? "  LOST" : ""}`, {
+        ...DATA_STYLE,
+        fontSize: "10px",
+        color: known.status === "lost" ? "#8d8088" : selected ? "#ffd45f" : "#c9cbd1",
+      });
+      if (member && !c.dead) {
+        row.setInteractive({ useHandCursor: true }).on("pointerover", () => row.setColor("#ffffff")).on("pointerout", () => row.setColor(known.status === "lost" ? "#8d8088" : selected ? "#ffd45f" : "#c9cbd1")).on("pointerdown", () => {
+          member.spellIndex = index;
+          this.hideStatsOverlay();
+          this.showStatsOverlay(c);
+        });
+      }
+      return row;
+    });
+
+    const close = this.actionButton(w / 2, h / 2 + 200, `[ CLOSE ]${this.keyHint("C")}`, "stats", "12px");
 
     this.statsOverlay = this.add.container(0, 0, [
-      bg, box as any, title, sub, statText1, statText2, secondaryText, featuresTitle, featuresText, close
+      bg, box as any, title, sub, statText1, statText2, secondaryText, featuresTitle, featuresText, spellsTitle, ...spellRows, close
     ]).setDepth(2000);
   }
 
@@ -1028,7 +1064,14 @@ export class HudScene extends Phaser.Scene {
     const rowsBelow = stacks.length - (windowStart + visibleStacks.length);
     const rows = visibleStacks.map((s) => {
       const occupiedSlots = stackSlots(s.def, s.qty);
-      const slots = occupiedSlots === 0 ? "free" : `${occupiedSlots} slot${occupiedSlots > 1 ? "s" : ""}`;
+      const pooledQty = s.def.slotGroup
+        ? stacks.filter((candidate) => candidate.def.slotGroup === s.def.slotGroup)
+            .reduce((total, candidate) => total + candidate.qty, 0)
+        : 0;
+      const pooledSlots = s.def.slotGroup ? stackSlots(s.def, pooledQty) : 0;
+      const slots = s.def.slotGroup
+        ? `${pooledQty} pooled, ${pooledSlots} slot${pooledSlots > 1 ? "s" : ""}`
+        : occupiedSlots === 0 ? "free" : `${occupiedSlots} slot${occupiedSlots > 1 ? "s" : ""}`;
       const equipped = c.wieldedWeapon?.id === s.def.id || c.wornArmor?.id === s.def.id ||
         (c.carriedShield?.id === s.def.id && !c.shieldStowed);
       const itemState = c.itemState.get(s.def.id);
@@ -1596,6 +1639,17 @@ export class HudScene extends Phaser.Scene {
     if (leader.character.knownSpells.length > 0 && !leader.character.dead) {
       const slot = leader.character.knownSpells[leader.spellIndex % leader.character.knownSpells.length]!;
       leaderDetails.push(`K CAST ${spell(slot.spellId).name}${slot.status === "lost" ? " [LOST]" : ""}`);
+    }
+    const hoveredCaster = this.hoveredCasterId
+      ? this.dungeon.party.members.find((member) => member.character.id === this.hoveredCasterId)
+      : undefined;
+    if (hoveredCaster && !hoveredCaster.character.dead) {
+      const known = hoveredCaster.character.knownSpells;
+      const selected = known[hoveredCaster.spellIndex % known.length];
+      if (selected) {
+        const def = spell(selected.spellId);
+        leaderDetails.push(`SPELL ${hoveredCaster.character.name}: ${def.name} (T${def.tier}, ${def.range}${def.focus ? ", focus" : ""})`);
+      }
     }
     if (leader.character.luckToken) leaderDetails.push("L LUCK READY");
     const focus = leader.character.effects.find((effect) => effect.duration?.unit === "focus");

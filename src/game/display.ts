@@ -55,5 +55,13 @@ export const RENDER_SCALE =
 /** Mobile gameplay shows 25% less world in each dimension; screen-space HUD cameras stay unchanged. */
 export const GAMEPLAY_ZOOM_MULTIPLIER = IS_MOBILE_DISPLAY ? 1.25 : 1;
 export const GAMEPLAY_CAMERA_ZOOM = RENDER_SCALE * GAMEPLAY_ZOOM_MULTIPLIER;
+/**
+ * How much further a lit, open-sky level sees. Halving the camera zoom doubles
+ * the world distance visible in each dimension — the payoff for a level that
+ * rolled daylight, and the reason it plays as an outdoor level rather than a
+ * roofless corridor.
+ */
+export const DAYLIT_VIEW_MULTIPLIER = 2;
+
 export const GAMEPLAY_VIEW_W = GAME_W / GAMEPLAY_ZOOM_MULTIPLIER;
 export const GAMEPLAY_VIEW_H = GAME_H / GAMEPLAY_ZOOM_MULTIPLIER;

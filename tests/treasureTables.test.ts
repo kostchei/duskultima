@@ -73,6 +73,34 @@ describe("core Shadowdark treasure tables", () => {
     expect(item(data.itemId).valueGp! * data.qty!).toBe(300);
   });
 
+  it("materializes forged and otherwise usable treasure as real equipment", () => {
+    const elfSwords = TREASURE_0_3.entries.find((entry) => entry.min === 38)!.data as {
+      itemId: string; qty: number;
+    };
+    expect(elfSwords.qty).toBe(2);
+    expect(item(elfSwords.itemId)).toMatchObject({
+      rulesId: "shortsword",
+      slotCost: 0,
+      magicBonus: 1,
+      damage: "1d6",
+      weaponVisual: "dagger",
+    });
+
+    const dwarfShields = TREASURE_0_3.entries.find((entry) => entry.min === 54)!.data as {
+      itemId: string; qty: number;
+    };
+    expect(dwarfShields.qty).toBe(2);
+    expect(item(dwarfShields.itemId)).toMatchObject({
+      rulesId: "shield",
+      slotCost: 0,
+      magicBonus: 1,
+      shield: true,
+    });
+
+    expect(rolledItem(TREASURE_4_6, 62)).toMatchObject({ rulesId: "crossbow", damage: "1d10" });
+    expect(rolledItem(TREASURE_10_PLUS, 26)).toMatchObject({ rulesId: "plate-mail", armorVisual: "plate" });
+  });
+
   it("preserves fractional gp values instead of promoting copper and silver to gold", () => {
     const fork = TREASURE_0_3.entries[0]!.data as { itemId: string; valueGp: number };
     const boots = TREASURE_7_9.entries.find((entry) => entry.min === 2)!.data as {

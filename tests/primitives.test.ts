@@ -23,7 +23,6 @@ const mockDungeon: DungeonDefinition = {
   traps: [],
   trapKinds: [],
   danger: 2,
-  encounterMonsterId: "goblin",
   winches: [
     { id: "winch-1", roomId: "room-1", tile: { x: 2, y: 1 }, targetGateId: "gate-1", state: "up" },
   ],

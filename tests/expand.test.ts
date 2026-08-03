@@ -3,6 +3,7 @@ import { CELL_H, CELL_W, expandDungeon } from "../src/game/level/expand";
 import { generateAbstractDungeon } from "../src/game/level/generate";
 import { roomAt } from "../src/game/level/geometry";
 import { validatePhysicalDungeon } from "../src/game/level/physical";
+import { buildRelief } from "../src/game/level/relief";
 import { ORIENTATIONS } from "../src/game/level/embedding";
 import { TOPOLOGIES } from "../src/game/level/topology";
 
@@ -49,6 +50,11 @@ function openConnected(grid: readonly string[], from: { x: number; y: number }):
   return seen;
 }
 
+/** Rows the relief field adds to a macro grid of this size, for the given seed. */
+function reliefExtraRows(seed: number, macroWidth: number, macroHeight: number): number {
+  return buildRelief({ seed, macroWidth, macroHeight, roomCells: new Set() }).extraRows;
+}
+
 describe("tile expansion", () => {
   it.each([
     { roomCount: 8 as const, width: 6, height: 5 },
@@ -57,7 +63,9 @@ describe("tile expansion", () => {
     for (let seed = 0; seed < 40; seed++) {
       const expanded = expandDungeon(generateAbstractDungeon(seed, { roomCount }));
       expect(expanded.width).toBe(width * CELL_W);
-      expect(expanded.height).toBe(height * CELL_H);
+      // A tilted vault is a parallelogram, so the grid is taller than the macro
+      // grid by the vault's total lean plus a basin's drop.
+      expect(expanded.height).toBe(height * CELL_H + reliefExtraRows(seed, width, height));
       expect(expanded.regions).toHaveLength(roomCount);
       expect(validatePhysicalDungeon(expanded).ok).toBe(true);
     }
@@ -66,7 +74,7 @@ describe("tile expansion", () => {
   it("produces a rectangular grid of the macro-grid size, legal tiles only", () => {
     const d = expandDungeon(generateAbstractDungeon(0));
     expect(d.width).toBe(5 * CELL_W);
-    expect(d.height).toBe(4 * CELL_H);
+    expect(d.height).toBe(4 * CELL_H + reliefExtraRows(0, 5, 4));
     expect(d.grid).toHaveLength(d.height);
     for (const row of d.grid) {
       expect(row.length).toBe(d.width);
@@ -110,6 +118,74 @@ describe("tile expansion", () => {
           const tag = `${form.id}/${orientation} seed ${seed}`;
           expect(reachable.has(`${reward.x},${reward.y}`), `reward unreachable ${tag}`).toBe(true);
           expect(reachable.has(`${door.x},${door.y}`), `exit unreachable ${tag}`).toBe(true);
+        }
+      }
+    }
+  });
+
+  it("leaves no roof over an open-sky level's top band", () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const abstract = generateAbstractDungeon(seed);
+      const open = expandDungeon(abstract, { openSky: true });
+      const topRow = Math.min(...abstract.rooms.map((room) => room.position.row));
+      for (const room of abstract.rooms.filter((r) => r.position.row === topRow)) {
+        // Sample the middle of the chamber, clear of its two wall columns.
+        const x = room.position.column * CELL_W + Math.floor(CELL_W / 2);
+        const floor = open.grid.findIndex((row) => row[x] === "#" || row[x] === "%");
+        const above = open.grid.slice(0, floor).map((row) => row[x]!);
+        expect(above.every((ch) => ch !== "#" && ch !== "%"), `seed ${seed} ${room.id} x ${x}`).toBe(true);
+      }
+    }
+  });
+
+  it("still roofs an enclosed level, and opens strictly more of an open-sky one", () => {
+    for (let seed = 0; seed < 20; seed++) {
+      const abstract = generateAbstractDungeon(seed);
+      const solid = (d: { grid: readonly string[] }): number =>
+        d.grid.reduce((n, row) => n + [...row].filter((ch) => ch === "#").length, 0);
+      const roofed = solid(expandDungeon(abstract));
+      const open = solid(expandDungeon(abstract, { openSky: true }));
+      expect(open, `seed ${seed}`).toBeLessThan(roofed);
+    }
+  });
+
+  it("keeps an open-sky level completable, for every form and orientation", () => {
+    for (const form of TOPOLOGIES) {
+      for (let seed = 0; seed < 20; seed++) {
+        const d = expandDungeon(
+          generateAbstractDungeon(seed, { topology: form.id }),
+          { openSky: true },
+        );
+        const spawn = firstTile(d.grid, "P")!;
+        const reachable = openConnected(d.grid, spawn);
+        const reward = firstTile(d.grid, "K")!;
+        const door = firstTile(d.grid, "D")!;
+        const tag = `${form.id} seed ${seed}`;
+        expect(reachable.has(`${reward.x},${reward.y}`), `reward unreachable ${tag}`).toBe(true);
+        expect(reachable.has(`${door.x},${door.y}`), `exit unreachable ${tag}`).toBe(true);
+      }
+    }
+  });
+
+  it("removes only what is overhead: floors, walls and contents are untouched", () => {
+    // Open sky must not silently rearrange the level. Every tile that is not
+    // plain rock has to land in exactly the same place either way, so the
+    // layout's floors, cell walls, locks and secrets all still hold.
+    for (let seed = 0; seed < 30; seed++) {
+      const abstract = generateAbstractDungeon(seed);
+      const roofed = expandDungeon(abstract);
+      const open = expandDungeon(abstract, { openSky: true });
+      expect(open.width).toBe(roofed.width);
+      expect(open.height).toBe(roofed.height);
+      expect(open.connectors).toEqual(roofed.connectors);
+      expect(open.regions).toEqual(roofed.regions);
+      for (let y = 0; y < roofed.height; y++) {
+        for (let x = 0; x < roofed.width; x++) {
+          const before = roofed.grid[y]![x]!;
+          const after = open.grid[y]![x]!;
+          if (before === after) continue;
+          // The only permitted difference is roof rock becoming open air.
+          expect(`${before}->${after}`, `seed ${seed} at ${x},${y}`).toBe("#->.");
         }
       }
     }

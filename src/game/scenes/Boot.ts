@@ -248,29 +248,10 @@ export class BootScene extends Phaser.Scene {
 
   }
 
-  private createAnimations(): void {
-    const monsters = ["goblin", "skeleton", "giant-rat", "gloom-ogre"];
-    for (const mon of monsters) {
-      this.anims.create({
-        key: `monster-${mon}-idle`,
-        frames: [
-          { key: `monster-${mon}-idle-0` },
-          { key: `monster-${mon}-idle-1` },
-        ],
-        frameRate: 3,
-        repeat: -1,
-      });
-      this.anims.create({
-        key: `monster-${mon}-walk`,
-        frames: [
-          { key: `monster-${mon}-walk-0` },
-          { key: `monster-${mon}-walk-1` },
-          { key: `monster-${mon}-walk-2` },
-          { key: `monster-${mon}-walk-3` },
-        ],
-        frameRate: 8,
-        repeat: -1,
-      });
-    }
-  }
+  /**
+   * Monster animations are created on first sighting alongside the monster's
+   * textures (`visual/monsterArt.ts`), so this only has to exist for whatever
+   * else the boot scene animates. Nothing does yet.
+   */
+  private createAnimations(): void {}
 }

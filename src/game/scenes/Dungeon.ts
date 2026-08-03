@@ -30,6 +30,7 @@ import {
   randomPlebName,
   spell,
   spellForMagicItem,
+  unlockClassSpellsForLevel,
 } from "../../data";
 import {
   DC,
@@ -80,6 +81,7 @@ import {
   type EncounterChoice,
   type EncounterDistance,
   type MonsterActivity,
+  type MonsterDef,
   type MonsterReaction,
   type CarouseTier,
   type DestinationRuleEvent,
@@ -109,6 +111,7 @@ import { noteTouchActivity } from "../input/inputFamily";
 import { ModeController, isInterruptMode, type GameMode, type ModeHost } from "../modes/GameModeController";
 import { isPortraitBlocked, onOrientationChange } from "../orientation";
 import {
+  DAYLIT_VIEW_MULTIPLIER,
   GAMEPLAY_CAMERA_ZOOM,
   GAMEPLAY_VIEW_H,
   GAMEPLAY_VIEW_W,
@@ -128,7 +131,7 @@ import {
   type MeleeDeps,
 } from "../systems/combat";
 import { EncounterSystem } from "../systems/encounters";
-import { CAMPFIRE_RADIUS, LightSystem } from "../systems/light";
+import { CAMPFIRE_RADIUS, DAYLIT_DARKNESS_ALPHA, LightSystem } from "../systems/light";
 import { ShadowSystem } from "../systems/shadows";
 import { PartyManager } from "../systems/party";
 import { chooseAutoLootCarrier } from "../systems/partyInventory";
@@ -185,10 +188,12 @@ import type { EnvironmentTextureKeys, VisualPalette, VisualSkin, VisualSkinId, Z
 import {
   parseVisualSkinId,
   visualSkinById,
+  OPEN_SKY_SKIN_IDS,
   zoneForRun,
   zonePackInfo,
 } from "../visual/skins";
 import { ensureVisualSkinTextures } from "../visual/textures/materials";
+import { encounterMonster, encounterWave, monsterForGlyph } from "../systems/monsterRoster";
 import {
   openSurfaceTileRole,
   dangerRuleForSkin,
@@ -198,7 +203,9 @@ import {
   safeZonePresentation,
   selectOpenTerrainRoomRoles,
 } from "../visual/openTerrain";
-import { roomAt, roomAtTolerant } from "../level/geometry";
+import { regionRowsAt, roomAt, roomAtTolerant, type RoomRegion } from "../level/geometry";
+import { isSurfaceTile } from "../visual/surfaceSteps";
+import { groundYPx } from "../systems/groundFollow";
 import { resolveTargetConnector } from "../level/connectorTargets";
 import { CameraFramingController, FEET_OFFSET_PX, isElevatedSupport } from "../systems/cameraFraming";
 import { exposedTerrainFaces } from "../visual/terrainVisibility";
@@ -337,6 +344,12 @@ export class DungeonScene extends Phaser.Scene {
   visualSkin?: VisualSkin;
   private environmentTextures!: EnvironmentTextureKeys;
   private openSkyDaytime = false;
+  /**
+   * The level rolled open sky *and* daylight, so it needs no torch and shows
+   * twice the sight line. Fixed for the whole level: the camera zoom is chosen
+   * once at create, and the light overlays are sized against it.
+   */
+  private daylitLevel = false;
   private undergroundRoomId?: string;
   private safeZoneId?: string;
   private terminalGameOverTitle = "THE DARK CLAIMS YOU";
@@ -399,6 +412,19 @@ export class DungeonScene extends Phaser.Scene {
   }
   /** The current Cursed Scroll destination zone pack. */
   activeZone: ZonePackId = "diablerie";
+
+  /**
+   * The level monster spawns are sized against: the strongest member the party
+   * has. Read from the save when consulted before the party sprites exist —
+   * `buildLevel` resolves monster tiles in grid order, which can reach a
+   * monster before it reaches the spawn tile.
+   */
+  get partyLevel(): number {
+    const live = this.party?.members.filter((m) => m.alive).map((m) => m.character.level) ?? [];
+    if (live.length > 0) return Math.max(1, ...live);
+    const saved = this.loadedState?.party?.map((p) => p.level) ?? [];
+    return saved.length > 0 ? Math.max(1, ...saved) : 1;
+  }
   /** Total number of vaults (1d6) in the current scroll destination. */
   vaultsInScroll = 1;
   /** Number of vaults completed so far in this scroll destination. */
@@ -598,8 +624,6 @@ export class DungeonScene extends Phaser.Scene {
     const storedSeed = this.registry.get("runSeed");
     const runSeed = typeof storedSeed === "number" ? storedSeed : 0;
     const layoutSeed = (runSeed + dungeonIndex) >>> 0;
-    this.activeDungeon = this.resolveActiveDungeon(layoutSeed);
-
     const requestedStartingZone = this.registry.get("startingZone") as ZonePackId | undefined;
     this.activeZone = this.loadedState?.zone ?? requestedStartingZone ?? zoneForRun(runSeed);
     const requestedStartingClass = this.registry.get("startingClass") as ClassName | undefined;
@@ -635,6 +659,15 @@ export class DungeonScene extends Phaser.Scene {
         this.skinHistoryInScroll.push(chosenSkin.id);
       }
     }
+
+    // The skin is chosen before the level is expanded, because a roofless
+    // subzone is carved differently: bands open upward to the terrace above
+    // instead of getting a ceiling. Geometry, not just paint.
+    this.activeDungeon = this.resolveActiveDungeon(
+      layoutSeed,
+      this.visualSkin !== undefined && (OPEN_SKY_SKIN_IDS as readonly string[]).includes(this.visualSkin.id),
+    );
+
     this.openSkyDaytime = (layoutSeed & 1) === 0;
     this.environmentTextures = ensureVisualSkinTextures(
       this,
@@ -642,6 +675,9 @@ export class DungeonScene extends Phaser.Scene {
       `bg-${this.activeDungeon.theme.backdrop}`,
       this.openSkyDaytime,
     );
+    // Half the open-sky levels come up in daylight. That is the 50/50 roll for a
+    // lit level: no torch needed, and double the visible distance.
+    this.daylitLevel = this.environmentTextures.openSky === true && this.openSkyDaytime;
     const openTerrainRooms = this.environmentTextures.openSky
       ? selectOpenTerrainRoomRoles(this.activeDungeon.regions, this.visualSkin?.id, layoutSeed)
       : {};
@@ -670,7 +706,9 @@ export class DungeonScene extends Phaser.Scene {
     const worldH = this.activeDungeon.height * TILE;
     this.physics.world.setBounds(0, 0, worldW, worldH);
     // Mobile gets an additional 25% world zoom; desktop retains the 960x540 view.
-    this.cameras.main.setZoom(GAMEPLAY_CAMERA_ZOOM);
+    this.cameras.main.setZoom(
+      this.daylitLevel ? GAMEPLAY_CAMERA_ZOOM / DAYLIT_VIEW_MULTIPLIER : GAMEPLAY_CAMERA_ZOOM,
+    );
     this.cameras.main.setBounds(0, 0, worldW, worldH);
     this.cameras.main.setBackgroundColor(this.presentationPalette.background);
     this.createAtmosphere(layoutSeed);
@@ -686,19 +724,17 @@ export class DungeonScene extends Phaser.Scene {
       this,
       this.ctx,
       this.presentationPalette.darkness,
-      this.environmentTextures.openSky
-        && this.openSkyDaytime
-        && this.lastRoomId !== this.undergroundRoomId
-        ? 0.28
-        : 0.84,
+      this.daylitLevel && this.lastRoomId !== this.undergroundRoomId ? DAYLIT_DARKNESS_ALPHA : 0.84,
     );
+    this.light.setAmbientLit(this.daylitLevel && this.lastRoomId !== this.undergroundRoomId);
     this.shadows = new ShadowSystem(this, this.light);
     this.buildLevel();
     if (this.loadedState?.rewindWorld) this.restoreRewindWorld(this.loadedState.rewindWorld);
     if (this.loadedState?.porter) this.restorePorter(this.loadedState.porter);
     this.createSafeZoneVignette(layoutSeed);
     this.createConnectorTelegraphs();
-    if (!this.loadedState?.rewindWorld) {
+    // Under daylight the opening torch is pure waste, so it is never struck.
+    if (!this.loadedState?.rewindWorld && !this.light.lit) {
       const torchbearer = this.party.aliveMembers().find((m) => getBaseRole(m.character.className) === "priest") || this.party.leader;
       this.lightTorch(torchbearer, `${torchbearer.character.name} lights a torch.`);
     }
@@ -784,8 +820,15 @@ export class DungeonScene extends Phaser.Scene {
       camera: () => this.cameras.main,
       partyInTotalDarkness: () =>
         this.party.aliveMembers().every((m) => this.light.levelAt(m.x, m.y) === "dark"),
-      spawnWave: (monsterId, count, x, activity, reaction, distance) =>
-        this.spawnEncounterWave(monsterId, count, x, activity, reaction, distance),
+      rollEncounterWave: () =>
+        encounterWave(
+          this.ctx.engine.dice,
+          this.activeZone,
+          this.partyLevel,
+          Math.max(1, this.party.members.filter((m) => m.alive).length),
+        ),
+      spawnWave: (defs, x, activity, reaction, distance) =>
+        this.spawnEncounterWave(defs, x, activity, reaction, distance),
     });
 
     this.ctx.say(
@@ -981,8 +1024,7 @@ export class DungeonScene extends Phaser.Scene {
    * already aggro'd.
    */
   private spawnEncounterWave(
-    monsterId: string,
-    count: number,
+    defs: readonly MonsterDef[],
     x: number,
     activity: MonsterActivity,
     reaction: MonsterReaction,
@@ -992,12 +1034,12 @@ export class DungeonScene extends Phaser.Scene {
     const clampedX = Phaser.Math.Clamp(x, TILE * 1.5, (this.activeDungeon.width - 2) * TILE);
     const groupId = `encounter-${this.encounterWaves++}`;
     const wave: MonsterSprite[] = [];
-    for (let i = 0; i < count; i++) {
+    for (const [i, def] of defs.entries()) {
       const m = new MonsterSprite(
         this,
         clampedX + i * 14,
         13 * TILE,
-        monster(monsterId),
+        def,
         groupId,
         this.ctx.engine.dice,
       );
@@ -1218,19 +1260,22 @@ export class DungeonScene extends Phaser.Scene {
     if (!region) return undefined;
     const centerX = (region.x1 + region.x2) / 2;
     const candidates: { x: number; y: number; score: number }[] = [];
-    for (let y = region.y1; y <= region.y2; y++) {
-      for (let x = region.x1; x <= region.x2; x++) {
+    for (let x = region.x1; x <= region.x2; x++) {
+      // Scan the region column by column: on a tilted vault its box slides down
+      // as x advances, so a single y range would miss the downhill end.
+      const { top, bottom } = regionRowsAt(region, x);
+      for (let y = top; y <= bottom; y++) {
         const cell = this.activeDungeon.grid[y]?.[x];
         const below = this.activeDungeon.grid[y + 1]?.[x];
         if ((cell === "." || cell === "P") && (below === "#" || below === "%" || below === "=")) {
-          candidates.push({ x, y, score: Math.abs(x - centerX) + Math.abs(y - region.y2) * 0.2 });
+          candidates.push({ x, y, score: Math.abs(x - centerX) + Math.abs(y - bottom) * 0.2 });
         }
       }
     }
     const tile = candidates.sort((a, b) => a.score - b.score)[0];
     return tile
       ? { x: tile.x * TILE + TILE / 2, y: tile.y * TILE + TILE / 2 }
-      : { x: region.labelX * TILE, y: region.y2 * TILE };
+      : { x: region.labelX * TILE, y: regionRowsAt(region, region.labelX).bottom * TILE };
   }
 
   private createSafeZoneVignette(seed: number): void {
@@ -1446,10 +1491,14 @@ export class DungeonScene extends Phaser.Scene {
       (region) => region.id === this.undergroundRoomId,
     );
     if (undergroundRegion) {
+      // Cover the whole sheared box: on a tilted vault the region slides down as
+      // x advances, so the cavern wash has to span both ends of the parallelogram.
+      const left = regionRowsAt(undergroundRegion, undergroundRegion.x1);
+      const right = regionRowsAt(undergroundRegion, undergroundRegion.x2);
       const x = undergroundRegion.x1 * TILE;
-      const y = undergroundRegion.y1 * TILE;
+      const y = Math.min(left.top, right.top) * TILE;
       const width = (undergroundRegion.x2 - undergroundRegion.x1 + 1) * TILE;
-      const height = (undergroundRegion.y2 - undergroundRegion.y1 + 1) * TILE;
+      const height = (Math.max(left.bottom, right.bottom) - Math.min(left.top, right.top) + 1) * TILE;
       this.add
         .tileSprite(x, y, width, height, "bg-cavern")
         .setOrigin(0)
@@ -1492,7 +1541,7 @@ export class DungeonScene extends Phaser.Scene {
     for (const region of this.activeDungeon.regions) {
       // Anchor near the top of the region (56px into the first row for the legacy
       // layout), so tall vertical rooms still read their label from above.
-      const labelY = region.y1 * TILE + 24;
+      const labelY = regionRowsAt(region, region.labelX).top * TILE + 24;
       const safeZone = region.id === this.safeZoneId;
       this.add
         .text(region.labelX * TILE, labelY, safeZone ? `${region.title}\nSAFE ZONE` : region.title, {
@@ -1509,6 +1558,30 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Place everything that falls onto the level's exact ground height, after AI
+   * and movement have run and before shadows and combat read positions.
+   *
+   * Terrain caps are not landable on a level with a height field, so this is the
+   * floor for every falling body: party, porter, monsters, and dropped loot.
+   * Legacy authored layouts carry no profile and keep plain tile collision.
+   */
+  private settleMoversOnGround(): void {
+    const profile = this.activeDungeon.groundProfile;
+    if (!profile) return;
+    for (const member of this.party.members) member.settleOnGround(profile);
+    this.porter?.settleOnGround(profile);
+    for (const monster of this.monsters) monster.settleOnGround(profile);
+    for (const pickup of this.pickups) {
+      const body = pickup.sprite.body as Phaser.Physics.Arcade.Body | null;
+      if (!body || body.blocked.down) continue;
+      const groundY = groundYPx(profile, { x: pickup.sprite.x, bottom: body.bottom, airborne: body.velocity.y < 0 });
+      if (groundY === null) continue;
+      pickup.sprite.y += groundY - body.bottom;
+      if (body.velocity.y > 0) pickup.sprite.setVelocityY(0);
+    }
+  }
+
   private buildLevel(): void {
     const theme = this.presentationPalette;
     const textures = this.environmentTextures;
@@ -1518,6 +1591,29 @@ export class DungeonScene extends Phaser.Scene {
     // seam-free fill so parallax scenery never shows through solid mass.
     const enclosedMass = this.add.graphics().setDepth(0);
     enclosedMass.fillStyle(theme.background, 1);
+    const groundProfile = this.activeDungeon.groundProfile;
+    /**
+     * Sub-tile shift for a terrain tile, so the art sits at the same continuous
+     * height the party stands on. The grid rounds each surface to a whole row;
+     * shifting the whole terrain column back by the rounding error turns a
+     * staircase of thirty-two-pixel steps into a straight fourteen-degree edge.
+     */
+    const terrainOffsetPx = (x: number, y: number): number => {
+      if (!groundProfile) return 0;
+      let offset = 0;
+      let deepestRock = -Infinity;
+      for (const band of groundProfile.bands) {
+        const exact = band[x];
+        if (exact === undefined) continue;
+        const rockRow = Math.round(exact) + 1;
+        // The tile belongs to the lowest band whose floor rock is at or above it.
+        if (rockRow <= y && rockRow > deepestRock) {
+          deepestRock = rockRow;
+          offset = (exact - Math.round(exact)) * TILE;
+        }
+      }
+      return offset;
+    };
     for (let y = 0; y < this.activeDungeon.height; y++) {
       const row = this.activeDungeon.grid[y]!;
       for (let x = 0; x < this.activeDungeon.width; x++) {
@@ -1549,8 +1645,17 @@ export class DungeonScene extends Phaser.Scene {
             } else {
               enclosed = exposedTerrainFaces(this.activeDungeon.grid, x, y).enclosed;
             }
-            const wall = this.walls.create(px, py, textureKey).setTint(foregroundTint).setDepth(1);
+            const wall = this.walls.create(px, py + terrainOffsetPx(x, y), textureKey)
+              .setTint(foregroundTint)
+              .setDepth(1);
             if (lipOnly) shrinkStaticBodyToLip(wall as Phaser.Physics.Arcade.Image, OVERHANG_LIP_PX);
+            // On a level with an exact height field, the rounded tile cap is the
+            // wrong surface — it would fight `settleOnGround` for half a tile and
+            // jitter. Walls still block laterally; only landing moved.
+            if (groundProfile && isSurfaceTile(this.activeDungeon.grid, x, y)) {
+              ((wall as Phaser.Physics.Arcade.Image).body as Phaser.Physics.Arcade.StaticBody)
+                .checkCollision.up = false;
+            }
             if (enclosed) {
               wall.setVisible(false);
               enclosedMass.fillRect(x * TILE, y * TILE, TILE, TILE);
@@ -1631,12 +1736,14 @@ export class DungeonScene extends Phaser.Scene {
           case "s":
           case "r":
           case "O": {
-            const bossId = this.activeDungeon.bossMonsterId ?? "gloom-ogre";
-            const defId = { g: "goblin", s: "skeleton", r: "giant-rat", O: bossId }[ch];
+            // The grid places a role, not a name: the active scroll's roster
+            // decides which of its creatures holds this tile, at the level the
+            // party has actually reached.
+            const def = monsterForGlyph(this.ctx.engine.dice, this.activeZone, ch, this.partyLevel);
             // One morale group per room: a leader in the room commands all of it.
             const region = roomAt(this.activeDungeon.regions, x, y);
             if (!region) throw new Error(`Monster at (${x},${y}) sits outside every room region`);
-            const m = new MonsterSprite(this, px, py, monster(defId), region.id, this.ctx.engine.dice);
+            const m = new MonsterSprite(this, px, py, def, region.id, this.ctx.engine.dice);
             this.morale.register(m);
             this.monsters.push(m);
             break;
@@ -2010,7 +2117,7 @@ export class DungeonScene extends Phaser.Scene {
       ? undefined
       : opts.findId ?? `authored:${Math.round(x)}:${Math.round(y)}:${itemId}`;
     if (findId && this.claimedTreasureFindIds.has(findId)) return;
-    const textureKey = this.textures.exists(`pickup-${itemId}`) ? `pickup-${itemId}` : "pickup-ration";
+    const textureKey = this.existingTextureOrFallback(`pickup-${itemId}`, "pickup-ration");
     const sprite = this.physics.add.image(x, y, textureKey).setDepth(6);
     sprite.setBounce(0.2);
     this.tweens.add({
@@ -2042,15 +2149,31 @@ export class DungeonScene extends Phaser.Scene {
     });
   }
 
+  /**
+   * Resolve a texture without ever handing Phaser an unknown key. The ordinary
+   * pickup art is generated during Boot, but a live asset refresh can leave a
+   * running scene with a newly requested item key and without its usual backup.
+   * `__WHITE` is Phaser's built-in texture, so it is the final safe fallback
+   * rather than its conspicuous black-and-green missing-texture marker.
+   */
+  private existingTextureOrFallback(requested: string, fallback: string): string {
+    if (this.textures.exists(requested)) return requested;
+    if (this.textures.exists(fallback)) return fallback;
+    return "__WHITE";
+  }
+
   private addRewardMarker(x: number, y: number): void {
     const reward = this.currentReward;
-    const texture = reward.kind === "companion"
+    const requestedTexture = reward.kind === "companion"
       ? `char-${reward.className}`
       : reward.kind === "gold"
         ? "pickup-coins"
         : reward.kind === "spells"
           ? "spell-bolt"
           : `pickup-${reward.itemId}`;
+    // Treasure tables include many one-off valuables. A missing bespoke glyph
+    // must still be visibly loot, never Phaser's opaque missing-texture box.
+    const texture = this.existingTextureOrFallback(requestedTexture, "pickup-gem");
     const sprite = this.add.image(x, y, texture).setDepth(8);
     if (reward.kind === "companion") sprite.setTint(0xa9a8bd);
     this.tweens.add({
@@ -2247,6 +2370,7 @@ export class DungeonScene extends Phaser.Scene {
     this.updateSpikes(time);
     this.updateDying();
     this.updateDangerMarkers();
+    this.settleMoversOnGround();
     this.updatePartyCombat(time);
     for (const m of this.party.members) m.tick(delta);
     this.porter?.tick(delta);
@@ -2255,13 +2379,11 @@ export class DungeonScene extends Phaser.Scene {
     this.porter?.updateShadow(this.light);
     for (const m of this.monsters) m.updateShadow(this.light);
     this.shadows.update();
-    this.light.setDarknessAlpha(
-      this.environmentTextures.openSky
-        && this.openSkyDaytime
-        && currentRoom !== this.undergroundRoomId
-        ? 0.28
-        : 0.84,
-    );
+    // Daylight ends at the mouth of the level's one enclosed room: step inside
+    // and the dark — and the need for a torch — comes back.
+    const underOpenSky = this.daylitLevel && currentRoom !== this.undergroundRoomId;
+    this.light.setDarknessAlpha(underOpenSky ? DAYLIT_DARKNESS_ALPHA : 0.84);
+    this.light.setAmbientLit(underOpenSky);
     this.light.update();
     const listener = this.party.leader;
     for (const e of this.fireEmitters) e.setListener({ x: listener.x, y: listener.y });
@@ -2330,7 +2452,7 @@ export class DungeonScene extends Phaser.Scene {
           return;
         } else {
           try {
-            if (def.weaponVisual) {
+            if (def.tags.includes("weapon")) {
               if (member.torchLit && def.twoHanded) {
                 throw new Error(`${member.character.name} cannot wield ${def.name} while carrying a torch`);
               }
@@ -2532,8 +2654,9 @@ export class DungeonScene extends Phaser.Scene {
       this.ctx.say(legal.message, "#d07070");
       return;
     }
-    if (caster.character.className !== suppliedSpell.class) {
-      this.ctx.say(`${caster.character.name} cannot decipher ${suppliedSpell.class} magic.`, "#d07070");
+    const spellClasses = Array.isArray(suppliedSpell.class) ? suppliedSpell.class : [suppliedSpell.class];
+    if (!spellClasses.includes(caster.character.className as typeof spellClasses[number])) {
+      this.ctx.say(`${caster.character.name} cannot decipher ${spellClasses.join("/")} magic.`, "#d07070");
       return;
     }
 
@@ -3349,15 +3472,20 @@ export class DungeonScene extends Phaser.Scene {
     };
   }
 
-  private breakWeakWalls(leader: CharacterSprite): void {
-    const hits = this.weakWalls.getChildren().filter((w) => {
+  /** Weak walls directly beside the leader; a melee swing must also face them. */
+  private weakWallsInReach(leader: CharacterSprite, requireFacing = false): Phaser.GameObjects.GameObject[] {
+    const reach = requireFacing ? leader.weaponReachPx : CLOSE_PX;
+    return this.weakWalls.getChildren().filter((w) => {
       const img = w as Phaser.Physics.Arcade.Image;
       return (
-        Math.abs(img.y - leader.y) < TILE * 1.2 &&
-        (img.x - leader.x) * leader.facing > 0 &&
-        Math.abs(img.x - leader.x) < TILE * 1.4
+        Phaser.Math.Distance.Between(leader.x, leader.y, img.x, img.y) <= reach &&
+        (!requireFacing || (img.x - leader.x) * leader.facing > -12)
       );
     });
+  }
+
+  private breakWeakWalls(leader: CharacterSprite, requireFacing = true): void {
+    const hits = this.weakWallsInReach(leader, requireFacing);
     for (const w of hits) {
       const img = w as Phaser.Physics.Arcade.Image;
       floatText(this, img.x, img.y, "CRUNCH", "#d0a060");
@@ -3368,13 +3496,19 @@ export class DungeonScene extends Phaser.Scene {
     if (hits.length > 0) {
       sfx.crunch();
       this.cameras.main.shake(120, 0.006);
-      this.ctx.say("Brakka smashes through the crumbling wall!", "#d0a060");
+      this.ctx.say(`${leader.character.name} breaks through the crumbling wall!`, "#d0a060");
       this.emitNoiseAt(leader.x, leader.y);
       this.saveToSlot(0);
     }
   }
 
   private lightTorch(leader: CharacterSprite, message?: string): void {
+    // Refuse rather than snuff: a torch already burning keeps its remaining time,
+    // but none is ever spent on ground the sky is already lighting.
+    if (this.light.lit) {
+      this.ctx.say("There is light enough here. Save the torch.", "#e0c060");
+      return;
+    }
     if (leader.torchLit) {
       this.ctx.say(`${leader.character.name} already carries a lit torch.`);
       return;
@@ -3674,6 +3808,16 @@ export class DungeonScene extends Phaser.Scene {
       });
     }
 
+    // Every party can open a weak wall deliberately. Fighters retain the
+    // faster option of breaking one with a melee swing (see updateGameplay).
+    if (this.weakWallsInReach(leader).length > 0) {
+      candidates.push({
+        label: "break through the crumbling wall",
+        immediate: true,
+        run: () => this.breakWeakWalls(leader, false),
+      });
+    }
+
     if (isHidden(leader.character)) {
       candidates.push({
         label: "leave hiding",
@@ -3866,11 +4010,11 @@ export class DungeonScene extends Phaser.Scene {
       });
     }
 
-    // Safe-zone shop: available anywhere inside the shelter room.
+    // Safe-zone shop: available anywhere inside the shelter room. This is not
+    // immediate: a nearby reward (or any other E action) must remain selectable.
     if (this.safeZoneId && this.currentRoomId === this.safeZoneId) {
       candidates.push({
         label: `shop${this.safeZoneName ? ` (${this.safeZoneName})` : ""}`,
-        immediate: true,
         run: () => this.openShop(),
       });
       if (!this.downtimeUsed) {
@@ -4203,7 +4347,7 @@ export class DungeonScene extends Phaser.Scene {
    * immediately, while reload-time spawns rely on buildLevel's post-pass.
    */
   private createBetrayalFoe(x: number, y: number, spec: TalkableNpcSpec, kind: BetrayalFoeKind): MonsterSprite {
-    const base = monster(this.activeDungeon.encounterMonsterId);
+    const base = encounterMonster(this.ctx.engine.dice, this.activeZone, this.partyLevel);
     const def = kind === "npc" ? { ...base, name: spec.name, leader: true } : base;
     const foe = new MonsterSprite(
       this,
@@ -4225,7 +4369,7 @@ export class DungeonScene extends Phaser.Scene {
     try {
       definition = monster(monsterId);
     } catch {
-      definition = monster(this.activeDungeon.encounterMonsterId);
+      definition = encounterMonster(this.ctx.engine.dice, this.activeZone, this.partyLevel);
       this.ctx.say("The portal rejects its intended shape and summons a local horror instead.", "#ff8a60");
     }
     const bounds = this.physics.world.bounds;
@@ -5050,7 +5194,7 @@ export class DungeonScene extends Phaser.Scene {
     m.updateAi(delta, target);
     const body = m.body as Phaser.Physics.Arcade.Body;
     const dir = Math.sign(body.velocity.x);
-    if (dir === 0 || !body.blocked.down) return;
+    if (dir === 0 || !m.grounded) return;
     if (this.groundContinues(m, dir as -1 | 1)) return;
     if (m.aiState === "aggro") {
       m.setVelocityX(0);
@@ -5791,11 +5935,13 @@ export class DungeonScene extends Phaser.Scene {
       const c = m.character;
       while (!c.dead && this.ctx.engine.canLevelUp(c)) {
         const result = this.ctx.engine.levelUp(c, m.cls.hitDie, m.cls.talentTableId);
+        const learned = unlockClassSpellsForLevel(c, result.newLevel);
         this.ctx.events.emit("levelup", { name: c.name, result });
         this.ctx.say(
           `LEVEL UP! ${c.name} → level ${result.newLevel}. +${result.hpGained} HP. Talent (${result.talent.roll}): ${result.talent.entry.text}`,
           "#ffd040",
         );
+        if (learned.length > 0) this.ctx.say(`${c.name} learns ${learned.map((id) => spell(id).name).join(" and ")}.`, "#9da7ec");
         sfx.levelUp();
         floatText(this, m.x, m.y - 40, `LEVEL ${result.newLevel}!`, "#ffd040", 18);
       }
@@ -5814,10 +5960,12 @@ export class DungeonScene extends Phaser.Scene {
       const needed = xpToReachNextLevel(c);
       if (needed > 0) this.ctx.engine.awardXp(c, needed);
       const result = this.ctx.engine.levelUp(c, m.cls.hitDie, m.cls.talentTableId);
+      const learned = unlockClassSpellsForLevel(c, result.newLevel);
       this.ctx.say(
         `The descent tempers ${c.name} → level ${result.newLevel}. +${result.hpGained} HP. Talent (${result.talent.roll}): ${result.talent.entry.text}`,
         "#ffd040",
       );
+      if (learned.length > 0) this.ctx.say(`${c.name} learns ${learned.map((id) => spell(id).name).join(" and ")}.`, "#9da7ec");
     }
   }
 
@@ -5842,15 +5990,23 @@ export class DungeonScene extends Phaser.Scene {
 
   /** Dimension-aware discovered-room map; connectors stay hidden to preserve secrets. */
   get compactMap(): string {
-    const columns = Math.max(1, Math.round(this.activeDungeon.width / CELL_W));
-    const rows = Math.max(1, Math.round(this.activeDungeon.height / CELL_H));
+    // Bucket by macro coordinates where the generator supplied them: a tilted
+    // vault's grid is taller than its macro grid, so dividing tile bounds by the
+    // cell size would invent phantom rows and stack rooms into the wrong ones.
+    const macroOf = (region: RoomRegion): { column: number; row: number } =>
+      region.macro ?? {
+        column: Math.floor(((region.x1 + region.x2) / 2) / CELL_W),
+        row: Math.floor(((region.y1 + region.y2) / 2) / CELL_H),
+      };
+    const macros = this.activeDungeon.regions.map(macroOf);
+    const columns = Math.max(1, ...macros.map((m) => m.column + 1));
+    const rows = Math.max(1, ...macros.map((m) => m.row + 1));
     const cells = Array.from({ length: rows }, () => Array<string>(columns).fill("·"));
     for (const region of this.activeDungeon.regions) {
       if (!this.discoveredRoomIds.has(region.id) && region.id !== this.currentRoomId) continue;
-      const centerX = (region.x1 + region.x2) / 2;
-      const centerY = (region.y1 + region.y2) / 2;
-      const column = Math.min(columns - 1, Math.floor(centerX / (this.activeDungeon.width / columns)));
-      const row = Math.min(rows - 1, Math.floor(centerY / (this.activeDungeon.height / rows)));
+      const macro = macroOf(region);
+      const column = Math.min(columns - 1, macro.column);
+      const row = Math.min(rows - 1, macro.row);
       const marker = region.id === this.currentRoomId
         ? "@"
         : region.id === this.safeZoneId
@@ -5877,7 +6033,7 @@ export class DungeonScene extends Phaser.Scene {
    * force a specific form/orientation for demonstration. New seeded runs use the
    * generated layout; old saves without a room id retain their authored layout.
    */
-  private resolveActiveDungeon(layoutSeed: number): DungeonDefinition {
+  private resolveActiveDungeon(layoutSeed: number, openSky: boolean): DungeonDefinition {
     const params = new URLSearchParams(window.location.search);
     if (this.loadedState && !this.loadedState.roomId) return dungeonAt(layoutSeed);
     const parsed = parseInt(params.get("nl") ?? String(layoutSeed), 10);
@@ -5893,7 +6049,7 @@ export class DungeonScene extends Phaser.Scene {
     } else if (!topo) {
       opts.roomCount = roomCountForSeed(nlSeed);
     }
-    return expandDungeon(generateAbstractDungeon(nlSeed, opts));
+    return expandDungeon(generateAbstractDungeon(nlSeed, opts), { openSky });
   }
 
   /** Keys are collected and switches activated on entering their source room. */
@@ -5933,8 +6089,9 @@ export class DungeonScene extends Phaser.Scene {
     const region = this.activeDungeon.regions.find((r) => r.id === roomId) ?? this.activeDungeon.regions[0];
     if (!region) return { x: TILE * 1.5, y: TILE * 12.5 };
     const startX = region.x1 + 1;
+    const { top, bottom } = regionRowsAt(region, startX);
     // Prefer a floor landing: an open cell sitting on solid ground.
-    for (let y = region.y1; y <= region.y2; y++) {
+    for (let y = top; y <= bottom; y++) {
       const cell = this.activeDungeon.grid[y]?.[startX];
       const cellUnder = this.activeDungeon.grid[y + 1]?.[startX];
       if (cell === "." && cellUnder === "#") {
@@ -5942,7 +6099,7 @@ export class DungeonScene extends Phaser.Scene {
       }
     }
     // Otherwise the lowest open cell in the region.
-    for (let y = region.y2; y >= region.y1; y--) {
+    for (let y = bottom; y >= top; y--) {
       const cell = this.activeDungeon.grid[y]?.[startX];
       if (cell === ".") {
         return { x: startX * TILE + TILE / 2, y: y * TILE + TILE / 2 };

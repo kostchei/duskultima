@@ -1,36 +1,24 @@
 /** A monster: Arcade sprite carrying its stat block, rolled HP, and simple AI state. */
 
 import Phaser from "phaser";
-import type { Dice, MonsterActivity, MonsterDef, MonsterReaction } from "../../engine";
+import type { Dice, MonsterActivity, MonsterDef, MonsterReaction, MonsterSize } from "../../engine";
 import type { CharacterSprite } from "./CharacterSprite";
 import type { LightSystem } from "../systems/light";
 import { projectShadow } from "../systems/shadows";
 import { castShadowsEnabled } from "../systems/quality";
+import { groundYPx, type GroundProfileLike } from "../systems/groundFollow";
+import { ensureMonsterAssets } from "../visual/monsterArt";
 
 export type MonsterAiState = "patrol" | "aggro" | "fleeing";
 
-const MONSTER_SPEED: Record<string, number> = {
-  goblin: 90,
-  skeleton: 70,
-  "giant-rat": 110,
-  "gloom-ogre": 60,
-  "cave-creeper": 85,
-  "giant-spider": 100,
-  "thief-rogue": 95,
-  "giant-scorpion": 90,
-  "sea-nymph": 80,
-  bittermold: 85,
-  bogthorn: 80,
-  bandit: 90,
-  "ras-godai": 115,
-  draugr: 75,
-  "dire-wolf": 105,
-  viperian: 90,
-  "rot-flower": 50,
-  "deep-one": 80,
-  shadow: 95,
-  thug: 85,
-  "animated-armor": 65,
+/** Ground-shadow width by size band, so a Daeodon throws a Daeodon's shadow. */
+const SHADOW_SCALE: Record<MonsterSize, number> = {
+  tiny: 0.5,
+  small: 0.68,
+  medium: 0.8,
+  large: 1.2,
+  huge: 1.6,
+  gargantuan: 2.1,
 };
 
 export const MONSTER_ATTACK_COOLDOWN_MS = 1500;
@@ -62,9 +50,39 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
   nextPerceptionCheckAt = 0;
   /** Seer id whose active Cast Out boundary repels this monster. */
   spellCastOutCasterId: string | null = null;
+  /** Set by `settleOnGround`: resting on the exact height field, not on a tile. */
+  standingOnSlope = false;
   private patrolOriginX: number;
   private shadow: Phaser.GameObjects.Image;
   private readonly customTexture: boolean;
+
+  /** True when the monster has footing, whether from a tile or the height field. */
+  get grounded(): boolean {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    return body.blocked.down || body.touching.down || this.standingOnSlope;
+  }
+
+  /**
+   * Hold the monster on the level's exact ground height, exactly as party
+   * members are held (see `systems/groundFollow.ts`). Without it a monster on a
+   * sloped level sinks through the floor, because terrain caps there are not
+   * landable surfaces.
+   */
+  settleOnGround(profile: GroundProfileLike): void {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (body.allowGravity === false || body.blocked.down) {
+      this.standingOnSlope = false;
+      return;
+    }
+    const groundY = groundYPx(profile, { x: this.x, bottom: body.bottom, airborne: body.velocity.y < 0 });
+    if (groundY === null) {
+      this.standingOnSlope = false;
+      return;
+    }
+    this.y += groundY - body.bottom;
+    if (body.velocity.y > 0) this.setVelocityY(0);
+    this.standingOnSlope = true;
+  }
 
   constructor(
     scene: Phaser.Scene,
@@ -75,7 +93,9 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
     dice: Dice,
     textureKey?: string,
   ) {
-    super(scene, x, y, textureKey ?? `monster-${def.id}`);
+    // Argument expressions run before `super`, so a monster met for the first
+    // time has its textures and animations built before the sprite needs them.
+    super(scene, x, y, textureKey ?? ensureMonsterAssets(scene, def));
     this.def = def;
     this.groupId = groupId;
     this.hp = Math.max(1, dice.roll(def.hitDice));
@@ -90,7 +110,7 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
   }
 
   get speed(): number {
-    return (MONSTER_SPEED[this.def.id] ?? 80) * (this.phase === 2 ? 1.25 : 1);
+    return this.def.speed * (this.phase === 2 ? 1.25 : 1);
   }
 
   get aliveInFight(): boolean {
@@ -106,7 +126,7 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
     if (!this.active) return;
     const nearest = castShadowsEnabled() ? light.nearestLight(this.x, this.y) : null;
     projectShadow(this.shadow, this.x, this.y + this.displayHeight * 0.42, nearest, {
-      baseScaleX: this.def.id === "gloom-ogre" ? 1.45 : 0.8,
+      baseScaleX: SHADOW_SCALE[this.def.size],
       baseAlpha: 0.62,
     });
   }
@@ -153,7 +173,7 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
       this.setVelocityX(dir * this.speed);
       if (dir !== 0) this.setFlipX(dir === -1);
       // Hop over obstacles.
-      if (dir !== 0 && (body.blocked.left || body.blocked.right) && body.blocked.down) {
+      if (dir !== 0 && (body.blocked.left || body.blocked.right) && this.grounded) {
         this.setVelocityY(-320);
       }
     } else {

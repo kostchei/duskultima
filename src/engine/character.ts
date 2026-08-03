@@ -1,6 +1,6 @@
 /** Character model: six stats, class, effects (talents + conditions), HP/AC/XP, spells. */
 
-import { critThreshold, effectiveStatScore, hookAppliesToWeapon, sumHook, type Effect } from "./effects";
+import { critThreshold, effectiveStatScore, hookAppliesToWeapon, sumHook, type Effect, type EffectHook } from "./effects";
 import type { Dice } from "./dice";
 import { Inventory, ItemStateTracker, type ItemDef } from "./inventory";
 
@@ -416,7 +416,7 @@ export class Character {
   }
 
   addEffect(effect: Effect): void {
-    const resolvedHooks = effect.hooks.flatMap((h) => {
+    const resolvedHooks: EffectHook[] = effect.hooks.flatMap((h): EffectHook | EffectHook[] => {
       if (h.kind === "weaponMasteryChoice") {
         const weaponId = this.unmasteredWeaponId();
         return [
@@ -479,7 +479,11 @@ export class Character {
 
   takeDamage(amount: number): void {
     if (amount < 0) throw new Error(`Damage must be >= 0, got ${amount}`);
-    this.hp = Math.max(0, this.hp - amount);
+    const floor = this.effects.flatMap((effect) => effect.hooks).reduce(
+      (highest, hook) => hook.kind === "hpFloor" ? Math.max(highest, hook.value) : highest,
+      0,
+    );
+    this.hp = Math.max(floor, this.hp - amount);
   }
 
   heal(amount: number): void {

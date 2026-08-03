@@ -14,7 +14,7 @@ import type {
   VoiceRegister,
 } from "../engine";
 import { Character as EngineCharacter, applySessionItemEffects, initializeClassState, parseAncestry } from "../engine";
-import { item } from "../data";
+import { item, unlockClassSpellsForLevel } from "../data";
 import type { VisualSkinId, ZonePackId } from "./visual/model";
 
 interface SavedInventoryItem {
@@ -209,6 +209,7 @@ export function deserializeCharacter(state: SavedCharacter, _engine: Engine): Ch
   c.dead = state.dead;
   c.dying = state.dying ? { ...state.dying } : null;
   c.knownSpells = state.knownSpells.map((s) => ({ ...s }));
+  unlockClassSpellsForLevel(c);
   // Focus is an active scene relationship (targets, areas, light positions),
   // so it ends cleanly rather than reviving stale references after load/transition.
   c.effects = state.effects.filter((effect) => effect.duration?.unit !== "focus").map((e) => ({ ...e }));

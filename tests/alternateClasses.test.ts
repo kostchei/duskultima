@@ -39,12 +39,12 @@ describe("alternate class mechanics", () => {
     expect(classDef("pit-fighter").talentTableId).toBe("pit-fighter-talents");
     expect(classDef("sea-wolf").talentTableId).toBe("sea-wolf-talents");
     expect(classDef("ras-godai").talentTableId).toBe("ras-godai-talents");
-    expect(classDef("witch").startingSpellIds).toEqual(["cauldron", "witchlight", "fog"]);
-    expect(classDef("seer").startingSpellIds).toEqual(["chant"]);
-    expect(spellsForClass("witch").every((candidate) => candidate.class === "witch")).toBe(true);
-    expect(spellsForClass("seer").every((candidate) => candidate.class === "seer")).toBe(true);
-    expect(spellsForClass("witch").length).toBeGreaterThanOrEqual(6);
-    expect(spellsForClass("seer").length).toBeGreaterThanOrEqual(6);
+    expect(classDef("witch").startingSpellIds).toEqual(["cauldron", "witchlight"]);
+    expect(classDef("seer").startingSpellIds).toEqual(["chant", "evoke-rage"]);
+    expect(spellsForClass("witch").every((candidate) => (typeof candidate.class === "string" ? [candidate.class] : candidate.class).includes("witch"))).toBe(true);
+    expect(spellsForClass("seer").every((candidate) => (typeof candidate.class === "string" ? [candidate.class] : candidate.class).includes("seer"))).toBe(true);
+    expect(spellsForClass("witch").length).toBeGreaterThanOrEqual(10);
+    expect(spellsForClass("seer").length).toBeGreaterThanOrEqual(10);
 
     const engine = makeEngine();
     const witch = createCharacter(engine, "w", "Witch", "witch");

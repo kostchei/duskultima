@@ -12,7 +12,7 @@ import {
   DESERT_PLUNDER,
   SEAWOLF_PLUNDER,
 } from "../data/tables/treasure";
-import { resolveClassForZone } from "./systems/companion";
+import { PARTY_CAP, resolveClassForZone } from "./systems/companion";
 
 export type RewardKind = "companion" | "treasure" | "gold" | "spells";
 
@@ -206,10 +206,23 @@ export function chooseDungeonReward(
 ): DungeonReward {
   if (!Number.isInteger(dungeonIndex)) throw new Error("Dungeon index must be an integer");
   const companion = missingCompanion(party, dungeonIndex, zone);
+  const living = party.filter((member) => !member.dead);
+  const livingRoles = new Set(
+    living.map((member) => getBaseRole(member.className as ClassName)),
+  );
+  const hasOpenMissingRole = living.length < PARTY_CAP
+    && COMPANION_CLASSES.some((baseRole) => !livingRoles.has(baseRole));
   const partySalt = party.reduce((acc, member, index) =>
     acc + member.className.charCodeAt(0) * (index + 1) + member.level * 17, 0);
   const rescue = stableIndex(dungeonIndex * 4099 + partySalt + 211, 2) === 0;
-  return rescue ? companion : rollVaultTreasure(0, dungeonIndex, party, zone);
+  // Bad-luck protection: every third campaign vault fills a missing base role
+  // while a party slot remains. Thus no incomplete party can see more than two
+  // consecutive vaults without a companion offer, while intervening vaults
+  // retain the ordinary deterministic 50/50 split.
+  const guaranteedCompanion = hasOpenMissingRole && dungeonIndex % 3 === 2;
+  return rescue || guaranteedCompanion
+    ? companion
+    : rollVaultTreasure(0, dungeonIndex, party, zone);
 }
 
 export function progressFromSavedParty(party: readonly SavedCharacter[]): PartyProgress[] {

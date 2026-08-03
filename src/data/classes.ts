@@ -66,7 +66,7 @@ const CLASS_LIST: readonly ClassDef[] = [
     startsWithShield: true,
     talentTableId: "priest-talents",
     castStat: "WIS",
-    startingSpellIds: ["cure-wounds", "light", "turn-undead"],
+    startingSpellIds: ["cure-wounds", "turn-undead"],
     features: [],
   },
   {
@@ -78,7 +78,7 @@ const CLASS_LIST: readonly ClassDef[] = [
     startsWithShield: false,
     talentTableId: "wizard-talents",
     castStat: "INT",
-    startingSpellIds: ["magic-missile", "burning-hands", "mage-armor"],
+    startingSpellIds: ["magic-missile", "mage-armor"],
     features: [],
   },
   {
@@ -155,7 +155,7 @@ const CLASS_LIST: readonly ClassDef[] = [
     startsWithShield: false,
     talentTableId: "witch-talents",
     castStat: "CHA",
-    startingSpellIds: ["cauldron", "witchlight", "fog"],
+    startingSpellIds: ["cauldron", "witchlight"],
     features: [
       {
         id: "feat-witch-familiar",
@@ -173,7 +173,7 @@ const CLASS_LIST: readonly ClassDef[] = [
     startsWithShield: false,
     talentTableId: "seer-talents",
     castStat: "WIS",
-    startingSpellIds: ["chant"],
+    startingSpellIds: ["chant", "evoke-rage"],
     features: [
       {
         id: "feat-seer-destined",

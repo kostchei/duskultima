@@ -16,7 +16,7 @@ export const TILE = 32;
  */
 export const OVERHANG_LIP_PX = 12;
 
-function texture(
+export function texture(
   scene: Phaser.Scene,
   key: string,
   w: number,
@@ -591,38 +591,17 @@ function drawMonsterFrame(g: Phaser.GameObjects.Graphics, id: string, type: "idl
     g.fillRect(10, y(9), 1, 2);
     g.fillRect(13, y(9), 1, 2);
   } else {
-    g.fillStyle(0x5a4d6e, 1);
-    g.fillRect(4, y(6), 16, 18);
-    g.fillStyle(0xdeda6b, 1);
-    g.fillRect(7, y(9), 3, 3);
-    g.fillRect(14, y(9), 3, 3);
+    throw new Error(`No hand-drawn frames for "${id}" — it belongs to the parametric generator`);
   }
 }
 
+/**
+ * The monsters with hand-drawn frames in {@link drawMonsterFrame}. Everything
+ * else — including the rest of the original bestiary, which only ever reached
+ * the generic fallback shape — is drawn by the parametric generator in
+ * `visual/monsterArt.ts` from its stat block's archetype and palette.
+ */
 function monsterTextures(scene: Phaser.Scene): void {
-  const monsters = [
-    "goblin",
-    "skeleton",
-    "giant-rat",
-    "gloom-ogre",
-    "cave-creeper",
-    "giant-spider",
-    "thief-rogue",
-    "giant-scorpion",
-    "sea-nymph",
-    "bittermold",
-    "bogthorn",
-    "bandit",
-    "ras-godai",
-    "draugr",
-    "dire-wolf",
-    "viperian",
-    "rot-flower",
-    "deep-one",
-    "shadow",
-    "thug",
-    "animated-armor",
-  ];
   const dimensions: Record<string, { w: number; h: number }> = {
     goblin: { w: 22, h: 24 },
     skeleton: { w: 24, h: 30 },
@@ -633,21 +612,8 @@ function monsterTextures(scene: Phaser.Scene): void {
     "thief-rogue": { w: 24, h: 30 },
     "giant-scorpion": { w: 34, h: 28 },
     "sea-nymph": { w: 24, h: 30 },
-    bittermold: { w: 22, h: 24 },
-    bogthorn: { w: 24, h: 26 },
-    bandit: { w: 24, h: 30 },
-    "ras-godai": { w: 24, h: 30 },
-    draugr: { w: 26, h: 32 },
-    "dire-wolf": { w: 34, h: 24 },
-    viperian: { w: 24, h: 30 },
-    "rot-flower": { w: 28, h: 28 },
-    "deep-one": { w: 26, h: 30 },
-    shadow: { w: 24, h: 30 },
-    thug: { w: 26, h: 30 },
-    "animated-armor": { w: 26, h: 32 },
   };
-  for (const mon of monsters) {
-    const dim = dimensions[mon]!;
+  for (const [mon, dim] of Object.entries(dimensions)) {
     texture(scene, `monster-${mon}`, dim.w, dim.h, (g) => drawMonsterFrame(g, mon, "idle", 0));
     for (let f = 0; f < 2; f++) {
       texture(scene, `monster-${mon}-idle-${f}`, dim.w, dim.h, (g) => drawMonsterFrame(g, mon, "idle", f));
@@ -1285,6 +1251,18 @@ function propAndPickupTextures(scene: Phaser.Scene): void {
         g.fillRect(4, 7, 12, 12);
         g.fillStyle(0x5be26d, 1);
         g.fillCircle(10, 10, 4);
+      });
+    } else {
+      // Core treasure tables intentionally contain many unique mundane finds.
+      // Give every one a recognizable value-token instead of leaving a missing
+      // texture that Phaser renders as a black box.
+      pickup(`pickup-${def.id}`, (g) => {
+        g.fillStyle(0x4a2c1c, 1);
+        g.fillRect(4, 7, 12, 10);
+        g.fillStyle(0xb87831, 1);
+        g.fillRect(5, 5, 10, 10);
+        g.fillStyle(0xf0d05e, 1);
+        g.fillCircle(10, 10, 3);
       });
     }
   }
