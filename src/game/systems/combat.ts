@@ -191,9 +191,11 @@ export interface SwingOutcome {
 }
 
 /** One melee swing from a character. */
-export function meleeSwing(deps: MeleeDeps, attacker: CharacterSprite): SwingOutcome {
-  if (!attacker.canSwing()) return { swung: false };
-  attacker.startSwingCooldown();
+export function meleeSwing(deps: MeleeDeps, attacker: CharacterSprite, isExtraSwing = false): SwingOutcome {
+  if (!isExtraSwing) {
+    if (!attacker.canSwing()) return { swung: false };
+    attacker.startSwingCooldown();
+  }
 
   const { scene, ctx, light } = deps;
   const reach = attacker.weaponReachPx;
@@ -265,6 +267,20 @@ export function meleeSwing(deps: MeleeDeps, attacker: CharacterSprite): SwingOut
   if (wasHidden && assassinDice > 0) {
     floatText(scene, attacker.x, attacker.y - 46, "ASSASSIN!", "#d9b3ff", 12);
   }
+
+  // Scimitar of Speed (+1): Every 2nd attack strikes twice in rapid succession
+  if (!isExtraSwing && attacker.character.wieldedWeapon?.id === "scimitar-of-speed") {
+    attacker.scimitarSwingCount++;
+    if (attacker.scimitarSwingCount % 2 === 0) {
+      floatText(deps.scene, attacker.x, attacker.y - 42, "DOUBLE STRIKE!", "#70e0ff", 13);
+      scene.time.delayedCall(120, () => {
+        if (attacker.alive) {
+          meleeSwing(deps, attacker, true);
+        }
+      });
+    }
+  }
+
   return { swung: true, check: result.check, damage: result.check.success ? totalDamage : undefined };
 }
 

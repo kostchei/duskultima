@@ -52,6 +52,7 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
 
   facing: 1 | -1 = 1;
   swingCooldown = 0;
+  scimitarSwingCount = 0;
   mode: FollowerMode = "follow";
   climbing = false;
   bracing = false;

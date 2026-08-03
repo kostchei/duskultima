@@ -5048,6 +5048,17 @@ export class DungeonScene extends Phaser.Scene {
           continue;
         }
         if (tell === "wait") continue;
+
+        // Scimitar of Speed (+1): First Strike preemptive counter-attack in melee
+        if (target.character.wieldedWeapon?.id === "scimitar-of-speed" && target.canSwing()) {
+          floatText(this, target.x, target.y - 30, "FIRST STRIKE!", "#70e0ff", 13);
+          this.ctx.say(`${target.character.name}'s Scimitar of Speed strikes first!`, "#70e0ff");
+          meleeSwing(this.meleeDeps, target);
+          if (!m.aliveInFight) {
+            continue;
+          }
+        }
+
         m.attackCooldown = MONSTER_ATTACK_COOLDOWN_MS;
         monsterSwing(this, this.ctx, this.light, m, target);
         if (target === this.porter && target.character.dying) {
