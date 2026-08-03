@@ -95,6 +95,7 @@ import {
   TRAINING_STAT,
   Inventory,
   type ItemDef,
+  type ItemStack,
   type StatName,
   parseAncestry,
 } from "../../engine";
@@ -165,6 +166,7 @@ import {
   stockItems,
   type ShopRow,
   type ShopView,
+  type BuyBlock,
 } from "../systems/shop";
 import {
   dungeonAt,
@@ -5078,7 +5080,7 @@ export class DungeonScene extends Phaser.Scene {
         if (target.character.wieldedWeapon?.id === "scimitar-of-speed" && target.canSwing()) {
           floatText(this, target.x, target.y - 30, "FIRST STRIKE!", "#70e0ff", 13);
           this.ctx.say(`${target.character.name}'s Scimitar of Speed strikes first!`, "#70e0ff");
-          meleeSwing(this.meleeDeps, target);
+          meleeSwing(this.meleeDeps(), target);
           if (!m.aliveInFight) {
             continue;
           }
@@ -5878,6 +5880,7 @@ export class DungeonScene extends Phaser.Scene {
         const partySize = this.party.aliveMembers().length + (this.porter?.alive ? 1 : 0);
         const currentCoinSlots = partyCoinSlots(this.ctx.totalCoins, partySize);
         const newCoinSlots = partyCoinSlots(this.ctx.totalCoins + p.qty, partySize);
+        const extraSlotsNeeded = newCoinSlots - currentCoinSlots;
         const carriers = [...this.party.aliveMembers(), ...(this.porter?.alive ? [this.porter] : [])];
         const coinCarrier = carriers.find((m) => m.character.inventory.slotsFree() >= extraSlotsNeeded);
 

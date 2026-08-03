@@ -120,18 +120,24 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "armor-saint-terragnis", name: "Armor of Saint Terragnis (+3)", slotCost: 3, bundleSize: 1, tags: ["armor", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Hostile spells targeting the wearer are DC 18 to cast.", "Once per month, summons an avatar of Saint Terragnis for 10 rounds."], curses: ["Only a lawful worshipper of Saint Terragnis can wear it."], requiredAlignment: "law", hostileSpellDc: 18, namedEffect: { kind: "summon", monsterId: "archangel", rounds: 10 }, use: { actions: ["activate", "inspect"], target: "none", charges: 1, rechargeAfterRests: 30 }, armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest"], stealthDisadvantage: true }, armorVisual: "plate" },
   { id: "staff-of-ord", name: "Staff of Ord (+3)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Functions as wands of dimension door, fireball, sending, and telekinesis without breaking on a natural 1.", "Hostile spells targeting the wielder are DC 18 to cast."], curses: ["Only a wizard can wield it."], requiredClass: "wizard", hostileSpellDc: 18, boundSpellIds: ["dimension-door", "fireball", "sending", "telekinesis"], use: { actions: ["cast", "inspect"], target: "none", inertOnFail: true }, damage: "1d4", twoHanded: true, reachTiles: 2.2, weaponVisual: "staff" },
 
-  // Cursed Scrolls (1-3) Relics & Drops
-  { id: "carved-flame-bone", name: "Carved Flame Bone", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "normal", benefits: ["Ignites in flame once per day for 1d4 rounds."] },
-  { id: "eyeball-charm", name: "Eyeball Charm", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "normal", benefits: ["Repels insects and spiders."] },
-  { id: "floating-wolf-idol", name: "Floating Wolf Idol", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "normal", benefits: ["Floats under its own magic."] },
-  { id: "compass-rose", name: "Compass Rose", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "normal", benefits: ["Points due north while untouched."] },
-  { id: "pickled-imp-jar", name: "Pickled Imp Jar", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "normal", curses: ["Attracts demonic creatures."] },
-  { id: "vial-demon-blood", name: "Vial of Demon Blood", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], treasureQuality: "normal", benefits: ["Grants fire resistance for one hour."] },
-  { id: "cursed-eye-token", name: "Cursed Eye Token", slotCost: 0, bundleSize: 1, tags: ["relic", "magic"], treasureQuality: "poor", curses: ["Imposes disadvantage on the bearer's next check."] },
-  { id: "cobra-bag", name: "Burlap Cobra Bag", slotCost: 1, bundleSize: 1, tags: ["utility"] },
-  { id: "treasure-map-half", name: "Treasure Map Half", slotCost: 0, bundleSize: 1, tags: ["relic"] },
-  { id: "scarab-jar", name: "Sealed Scarab Jar", slotCost: 0, bundleSize: 1, tags: ["relic"] },
-  { id: "poison-wine-cup", name: "Poison Reservoir Cup", slotCost: 0, bundleSize: 1, tags: ["relic"] },
+  // Cursed Scrolls (1-3) Relics & Drops.
+  //
+  // These carried nothing but flavour text: no valueGp (so a shop refused them),
+  // no `use`, and slotCost 0, which made them free to hoard and worth nothing on
+  // either side of the trade. They are trinkets, so they pack ten to a slot
+  // through the shared pouch group, and each carries the coin value its own
+  // treasure-table row already advertised.
+  { id: "carved-flame-bone", name: "Carved Flame Bone", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic", "magic"], valueGp: 30, treasureQuality: "normal", benefits: ["Ignites in flame once per day for 1d4 rounds."] },
+  { id: "eyeball-charm", name: "Eyeball Charm", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic", "magic"], valueGp: 40, treasureQuality: "normal", benefits: ["Repels insects and spiders."] },
+  { id: "floating-wolf-idol", name: "Floating Wolf Idol", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic", "magic"], valueGp: 50, treasureQuality: "normal", benefits: ["Floats under its own magic."] },
+  { id: "compass-rose", name: "Compass Rose", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic", "magic"], valueGp: 25, treasureQuality: "normal", benefits: ["Points due north while untouched."] },
+  { id: "pickled-imp-jar", name: "Pickled Imp Jar", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic", "magic"], valueGp: 60, treasureQuality: "normal", curses: ["Attracts demonic creatures."] },
+  { id: "vial-demon-blood", name: "Vial of Demon Blood", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], valueGp: 75, treasureQuality: "normal", benefits: ["Grants fire resistance for one hour."], description: "Drink to resist fire for one hour.", use: { actions: ["consume", "inspect"], target: "self" } },
+  { id: "cursed-eye-token", name: "Cursed Eye Token", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic", "magic"], valueGp: 10, treasureQuality: "poor", curses: ["Imposes disadvantage on the bearer's next check."] },
+  { id: "cobra-bag", name: "Burlap Cobra Bag", slotCost: 1, bundleSize: 1, tags: ["utility"], valueGp: 15 },
+  { id: "treasure-map-half", name: "Treasure Map Half", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic"], valueGp: 35 },
+  { id: "scarab-jar", name: "Sealed Scarab Jar", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic"], valueGp: 20 },
+  { id: "poison-wine-cup", name: "Poison Reservoir Cup", slotCost: 1, bundleSize: 10, slotGroup: "small-treasure", tags: ["relic"], valueGp: 45 },
 ];
 
 const BASE_ITEMS = new Map(BASE_ITEM_LIST.map((entry) => [entry.id, entry]));
