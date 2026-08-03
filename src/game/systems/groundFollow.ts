@@ -50,6 +50,17 @@ export interface GroundQuery {
   airborne: boolean;
 }
 
+export interface ScrambleQuery {
+  /** The current horizontal centre of the mover. */
+  fromX: number;
+  /** A point just beyond the terrain face the mover is trying to cross. */
+  toX: number;
+  /** The mover's current floor height, normally its body bottom. */
+  bottom: number;
+  /** The largest upward change that should be treated as a walkable scramble. */
+  maxRisePx: number;
+}
+
 /**
  * Exact ground height in pixels at world x for one band, interpolating between
  * the two columns the mover straddles. The interpolation is what removes the
@@ -93,5 +104,34 @@ export function groundYPx(profile: GroundProfileLike, query: GroundQuery): numbe
   if (best === null) return null;
   // While deliberately airborne, only catch a mover on the way down.
   if (query.airborne && best > query.bottom) return null;
+  return best;
+}
+
+/**
+ * Finds the top of a small terrain lip immediately beside a mover.
+ *
+ * This is deliberately profile-only: ordinary wall and gate collision is still
+ * authoritative. Callers use it only after Arcade Physics reports a lateral
+ * terrain collision, so a character can scramble over a short rough patch but
+ * cannot phase through a flat wall or bypass a climb route.
+ */
+export function scrambleGroundYPx(profile: GroundProfileLike, query: ScrambleQuery): number | null {
+  const currentGround = groundYPx(profile, {
+    x: query.fromX,
+    bottom: query.bottom,
+    airborne: false,
+  });
+  if (currentGround === null) return null;
+
+  let best: number | null = null;
+  for (const band of profile.bands) {
+    const nextGround = bandGroundYPx(band, query.toX);
+    if (nextGround === null) continue;
+    const rise = currentGround - nextGround;
+    if (rise <= 0.5 || rise > query.maxRisePx) continue;
+    // On stacked terraces, the nearest eligible lip is always the one the
+    // mover meets first. Do not use a small obstruction to skip higher ground.
+    if (best === null || nextGround > best) best = nextGround;
+  }
   return best;
 }

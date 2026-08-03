@@ -69,6 +69,13 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
    * landable surfaces.
    */
   settleOnGround(profile: GroundProfileLike): void {
+    // Death tweens destroy the Arcade body before Dungeon prunes the sprite
+    // from its monster list. Ground following still runs in that intervening
+    // frame, so an inactive corpse is not a mover and has no floor to settle.
+    if (!this.active || !this.body) {
+      this.standingOnSlope = false;
+      return;
+    }
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (body.allowGravity === false || body.blocked.down) {
       this.standingOnSlope = false;

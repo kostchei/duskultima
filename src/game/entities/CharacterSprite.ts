@@ -18,7 +18,7 @@ import type { LightSystem } from "../systems/light";
 import { DARK_SIGHT_TINT, SELF_GLOW_RADIUS } from "../systems/light";
 import { projectShadow } from "../systems/shadows";
 import { castShadowsEnabled } from "../systems/quality";
-import { groundYPx, type GroundProfileLike } from "../systems/groundFollow";
+import { groundYPx, scrambleGroundYPx, type GroundProfileLike } from "../systems/groundFollow";
 import { ensureCharacterAppearance, TILE } from "../textures";
 import { appearanceForCharacter, characterAppearanceKey } from "./appearance";
 
@@ -176,6 +176,10 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
    * platform, a gate or a weak wall leaves this alone.
    */
   settleOnGround(profile: GroundProfileLike): void {
+    if (!this.active || !this.body) {
+      this.standingOnSlope = false;
+      return;
+    }
     const body = this.body as Phaser.Physics.Arcade.Body;
     if (!this.alive || this.climbing || body.allowGravity === false || body.blocked.down) {
       this.standingOnSlope = false;
@@ -202,6 +206,7 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
     if (dir !== 0) {
       this.facing = dir;
       this.setFlipX(dir === -1);
+      this.tryScrambleUp(dir);
     } else if (this.grounded) {
       // Sticky edges: if standing still, prevent slipping off platform edges
       const dungeon = this.scene as any;
@@ -240,6 +245,36 @@ export class CharacterSprite extends Phaser.Physics.Arcade.Sprite {
         }
       }
     }
+  }
+
+  /**
+   * Turn a short, rough terrain lip into a single automatic scramble. The
+   * tile collision that caught us is retained for everything larger than the
+   * character's body, so authored walls and vertical traversal remain real.
+   */
+  private tryScrambleUp(dir: -1 | 1): void {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    if (!this.grounded || !(dir === 1 ? body.blocked.right : body.blocked.left)) return;
+
+    const profile = (this.scene as any).activeDungeon?.groundProfile as GroundProfileLike | undefined;
+    if (!profile) return;
+
+    // Probe just through the face that stopped us. Its far side becomes our
+    // new centre, so the following physics step starts cleanly on top of it.
+    const probeX = dir === 1 ? body.right + 4 : body.left - 4;
+    const nextGround = scrambleGroundYPx(profile, {
+      fromX: this.x,
+      toX: probeX,
+      bottom: body.bottom,
+      maxRisePx: Math.max(1, body.height - 1),
+    });
+    if (nextGround === null) return;
+
+    const nextX = probeX - dir * body.width / 2;
+    const nextY = this.y + nextGround - body.bottom;
+    body.reset(nextX, nextY);
+    this.setVelocityX(dir * this.speed);
+    this.standingOnSlope = true;
   }
 
   tryJump(now: number): boolean {

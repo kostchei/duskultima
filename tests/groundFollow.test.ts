@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bandGroundYPx, groundYPx } from "../src/game/systems/groundFollow";
+import { bandGroundYPx, groundYPx, scrambleGroundYPx } from "../src/game/systems/groundFollow";
 import { buildRelief } from "../src/game/level/relief";
 import { CELL_W } from "../src/game/level/cellSize";
 
@@ -75,6 +75,38 @@ describe("ground follow", () => {
 
   it("reports nothing over a shaft, where the profile does not reach", () => {
     expect(groundYPx({ bands: [] }, { x: 0, bottom: 0, airborne: false })).toBeNull();
+  });
+});
+
+describe("terrain scrambles", () => {
+  it("accepts a lip shorter than the character", () => {
+    const profile = { bands: [Array.from({ length: 40 }, (_, x) => x < 10 ? 10 : 9.25)] };
+    expect(scrambleGroundYPx(profile, {
+      fromX: 9 * TILE,
+      toX: 11 * TILE,
+      bottom: 11 * TILE,
+      maxRisePx: 30,
+    })).toBeCloseTo(10.25 * TILE, 5);
+  });
+
+  it("does not turn a character-height-plus ledge into a walkable slope", () => {
+    const profile = { bands: [Array.from({ length: 40 }, (_, x) => x < 10 ? 10 : 9)] };
+    expect(scrambleGroundYPx(profile, {
+      fromX: 9 * TILE,
+      toX: 11 * TILE,
+      bottom: 11 * TILE,
+      maxRisePx: 30,
+    })).toBeNull();
+  });
+
+  it("does not scramble down or across level ground", () => {
+    const level = { bands: [flat(10)] };
+    expect(scrambleGroundYPx(level, {
+      fromX: 9 * TILE,
+      toX: 11 * TILE,
+      bottom: 11 * TILE,
+      maxRisePx: 30,
+    })).toBeNull();
   });
 });
 
