@@ -820,6 +820,7 @@ export class DungeonScene extends Phaser.Scene {
       camera: () => this.cameras.main,
       partyInTotalDarkness: () =>
         this.party.aliveMembers().every((m) => this.light.levelAt(m.x, m.y) === "dark"),
+      partyInSafeZone: () => this.isInSafeZone(this.party.leader.x, this.party.leader.y),
       rollEncounterWave: () =>
         encounterWave(
           this.ctx.engine.dice,
@@ -1032,6 +1033,10 @@ export class DungeonScene extends Phaser.Scene {
   ): void {
     if (this.gameOver || this.won) return;
     const clampedX = Phaser.Math.Clamp(x, TILE * 1.5, (this.activeDungeon.width - 2) * TILE);
+    // The encounter clock should already suppress this while the party rests
+    // in shelter. Keep this guard as well because a camera edge can otherwise
+    // place a wave directly in a safe room while the party is nearby.
+    if (this.isInSafeZone(clampedX, 13 * TILE)) return;
     const groupId = `encounter-${this.encounterWaves++}`;
     const wave: MonsterSprite[] = [];
     for (const [i, def] of defs.entries()) {
@@ -1253,6 +1258,17 @@ export class DungeonScene extends Phaser.Scene {
 
   get safeZoneRoomId(): string | undefined {
     return this.safeZoneId;
+  }
+
+  /** Whether a world position is inside the current level's protected shelter. */
+  private isInSafeZone(x: number, y: number): boolean {
+    if (!this.safeZoneId) return false;
+    const region = roomAtTolerant(
+      this.activeDungeon.regions,
+      Math.floor(x / TILE),
+      Math.floor(y / TILE),
+    );
+    return region?.id === this.safeZoneId;
   }
 
   private safeZoneAnchor(): { x: number; y: number } | undefined {
@@ -1736,13 +1752,16 @@ export class DungeonScene extends Phaser.Scene {
           case "s":
           case "r":
           case "O": {
+            // One morale group per room: a leader in the room commands all of it.
+            const region = roomAt(this.activeDungeon.regions, x, y);
+            if (!region) throw new Error(`Monster at (${x},${y}) sits outside every room region`);
+            // A safe-zone dressing is not merely a shop marker: no authored
+            // hostile may be placed in the room that is meant to be refuge.
+            if (region.id === this.safeZoneId) break;
             // The grid places a role, not a name: the active scroll's roster
             // decides which of its creatures holds this tile, at the level the
             // party has actually reached.
             const def = monsterForGlyph(this.ctx.engine.dice, this.activeZone, ch, this.partyLevel);
-            // One morale group per room: a leader in the room commands all of it.
-            const region = roomAt(this.activeDungeon.regions, x, y);
-            if (!region) throw new Error(`Monster at (${x},${y}) sits outside every room region`);
             const m = new MonsterSprite(this, px, py, def, region.id, this.ctx.engine.dice);
             this.morale.register(m);
             this.monsters.push(m);
@@ -4916,6 +4935,13 @@ export class DungeonScene extends Phaser.Scene {
     }
     for (const m of this.monsters) {
       if (!m.active) continue;
+      // Existing saves and wandering monsters can still put a creature in a
+      // sanctuary. The ward drives it out before it can take another action.
+      if (this.isInSafeZone(m.x, m.y)) {
+        m.flee();
+        this.stepMonsterAi(m, delta, this.party.leader);
+        continue;
+      }
       if (m.aiState === "fleeing") {
         this.stepMonsterAi(m, delta, this.party.leader);
         if (m.x < TILE || m.x > (this.activeDungeon.width - 2) * TILE) m.destroy();
@@ -4967,6 +4993,12 @@ export class DungeonScene extends Phaser.Scene {
         porterTarget,
         (candidate) => Phaser.Math.Distance.Between(m.x, m.y, candidate.x, candidate.y),
       );
+      // A monster can see a character standing in the shelter, but it cannot
+      // pursue or strike across the sanctuary ward.
+      if (target && this.isInSafeZone(target.x, target.y)) {
+        this.stepMonsterAi(m, delta, null);
+        continue;
+      }
       this.stepMonsterAi(m, delta, target ?? null);
       if (
         target &&

@@ -29,6 +29,8 @@ export interface EncounterDeps {
   dungeon: DungeonDefinition;
   camera: () => Phaser.Cameras.Scene2D.Camera;
   partyInTotalDarkness: () => boolean;
+  /** Sanctuaries are genuine refuge: crawling rounds cannot introduce a new encounter there. */
+  partyInSafeZone: () => boolean;
   /**
    * The wave itself: which zone monster, and how many of it the party's level
    * budget allows. Chaff swarms, brutes come alone.
@@ -56,6 +58,7 @@ export class EncounterSystem {
   private onCrawlingRound(): void {
     this.crawlCount++;
     const { ctx, dungeon } = this.deps;
+    if (this.deps.partyInSafeZone()) return;
     const dark = this.deps.partyInTotalDarkness();
     // Danger cadence: deadly(1) checks every round, risky(2) every 2nd, unsafe(3) every 3rd.
     // Total darkness checks every round — the dark is hungry.
