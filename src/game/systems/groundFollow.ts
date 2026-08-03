@@ -41,6 +41,27 @@ export interface GroundProfileLike {
   readonly bands: readonly (readonly number[])[];
 }
 
+/**
+ * Whether a grid surface row is the rasterised version of one of the exact
+ * terrain bands. Relief contours can move the exact line by half a row while
+ * the grid retains a whole-row floor, hence the one-row match.
+ *
+ * This is intentionally separate from `groundYPx`: a profile spans a vault,
+ * but only a real open-over-rock grid cap is safe to make non-colliding. A wall
+ * top may look like a cap to the grid but must retain its side collision.
+ */
+export function isProfileSurfaceRow(
+  profile: GroundProfileLike,
+  x: number,
+  surfaceRow: number,
+): boolean {
+  const column = Math.floor(x / TILE);
+  return profile.bands.some((band) => {
+    const exact = band[column];
+    return exact !== undefined && Math.abs(exact - surfaceRow) <= 1;
+  });
+}
+
 export interface GroundQuery {
   /** Mover centre x, in pixels. */
   x: number;

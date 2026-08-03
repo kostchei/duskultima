@@ -205,7 +205,7 @@ import {
 } from "../visual/openTerrain";
 import { regionRowsAt, roomAt, roomAtTolerant, type RoomRegion } from "../level/geometry";
 import { isSurfaceTile } from "../visual/surfaceSteps";
-import { groundYPx } from "../systems/groundFollow";
+import { groundYPx, isProfileSurfaceRow } from "../systems/groundFollow";
 import { resolveTargetConnector } from "../level/connectorTargets";
 import { CameraFramingController, FEET_OFFSET_PX, isElevatedSupport } from "../systems/cameraFraming";
 import { exposedTerrainFaces } from "../visual/terrainVisibility";
@@ -1667,10 +1667,18 @@ export class DungeonScene extends Phaser.Scene {
             if (lipOnly) shrinkStaticBodyToLip(wall as Phaser.Physics.Arcade.Image, OVERHANG_LIP_PX);
             // On a level with an exact height field, the rounded tile cap is the
             // wrong surface — it would fight `settleOnGround` for half a tile and
-            // jitter. Walls still block laterally; only landing moved.
-            if (groundProfile && isSurfaceTile(this.activeDungeon.grid, x, y)) {
-              ((wall as Phaser.Physics.Arcade.Image).body as Phaser.Physics.Arcade.StaticBody)
-                .checkCollision.up = false;
+            // jitter. Only generated terrain caps yield to the height field;
+            // real walls continue to block laterally.
+            if (
+              groundProfile
+              && isSurfaceTile(this.activeDungeon.grid, x, y)
+              && isProfileSurfaceRow(groundProfile, x * TILE, y - 1)
+            ) {
+              // The exact height field owns these terrain caps. Leaving their
+              // side faces active turns the rounded ramp into a row of tiny walls.
+              // Wall tops do not match a terrain band and retain collision.
+              const body = (wall as Phaser.Physics.Arcade.Image).body as Phaser.Physics.Arcade.StaticBody;
+              body.checkCollision.none = true;
             }
             if (enclosed) {
               wall.setVisible(false);
@@ -5472,6 +5480,35 @@ export class DungeonScene extends Phaser.Scene {
     return s;
   }
 
+  /**
+   * True when this follower currently has a monster it would attack. Keep this
+   * in step with `updatePartyCombat`: adjacent foes, a recent aggressor still in
+   * reach, and an aggro target for a carried ranged weapon all count as fighting.
+   */
+  private followerIsFightingMonster(m: CharacterSprite, time: number): boolean {
+    const reach = m.weaponReachPx;
+    if (this.monsters.some(
+      (mon) => mon.aliveInFight && Phaser.Math.Distance.Between(m.x, m.y, mon.x, mon.y) <= reach,
+    )) return true;
+
+    const aggressor = m.lastAttackedBy;
+    if (
+      aggressor
+      && aggressor.active
+      && aggressor.aliveInFight
+      && time - m.lastAttackedAt <= RETALIATE_WINDOW_MS
+      && Phaser.Math.Distance.Between(m.x, m.y, aggressor.x, aggressor.y) <= reach
+    ) return true;
+
+    if (!carriedRangedWeapon(m)) return false;
+    return this.monsters.some(
+      (mon) =>
+        mon.aliveInFight
+        && mon.aiState === "aggro"
+        && Phaser.Math.Distance.Between(m.x, m.y, mon.x, mon.y) <= FAR_PX,
+    );
+  }
+
   /** Point a follower at their highest-tier ready spell; false if none remain. */
   private selectHighestSpell(m: CharacterSprite): boolean {
     const idx = highestAvailableSpellIndex(m.character);
@@ -5560,9 +5597,10 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   /**
-   * Support AI for followers: rally (morale check) to stabilize the dying,
-   * priests cast for wounded allies, wizards cast at an aggro'd boss. Caster
-   * followers always lead with their highest-tier available spell.
+   * Support AI for followers: nearby free companions stabilize immediately;
+   * distant free companions rally before running in. Priests cast for wounded
+   * allies and wizards cast at an aggro'd boss. Caster followers always lead
+   * with their highest-tier available spell.
    */
   private updateFollowerSupport(time: number): void {
     const leader = this.party.leader;
@@ -5571,11 +5609,27 @@ export class DungeonScene extends Phaser.Scene {
       if (m === leader || !m.alive) continue;
       const c = m.character;
       const state = this.followerAiState(c.id);
-      // Re-evaluate for every follower: a prior follower can stabilize in this same update.
-      const dying = this.party.members.find((p) => p.character.dying && !p.character.dead);
+      // Re-evaluate for every follower: a prior follower can stabilize in this
+      // same update. Prefer the casualty this follower can reach most quickly.
+      const dying = this.party.members
+        .filter((p) => p !== m && p.character.dying && !p.character.dead)
+        .sort(
+          (a, b) =>
+            Phaser.Math.Distance.Between(m.x, m.y, a.x, a.y)
+            - Phaser.Math.Distance.Between(m.x, m.y, b.x, b.y),
+        )[0];
+      const fightingMonster = this.followerIsFightingMonster(m, time);
 
-      // 1. Rescue the dying. Courage first: a WIS morale check to run in.
-      if (dying && dying !== m) {
+      // 1. Stabilize a nearby ally automatically when free. Reaching a distant
+      // casualty still requires courage; active combat keeps the follower on
+      // their monster instead of allowing a rescue to interrupt the fight.
+      if (dying && !fightingMonster) {
+        if (zoneBetween(m, dying) === "close") {
+          state.rescueTargetId = dying.character.id;
+          m.aiMoveTarget = null;
+          this.followerStabilize(m, dying);
+          continue;
+        }
         if (state.rescueTargetId !== dying.character.id && time >= state.nextMoraleAt) {
           state.nextMoraleAt = time + 3000;
           if (hasHook(c.effects, "moraleImmune")) {
@@ -5597,12 +5651,7 @@ export class DungeonScene extends Phaser.Scene {
           }
         }
         if (state.rescueTargetId === dying.character.id) {
-          if (zoneBetween(m, dying) === "close") {
-            m.aiMoveTarget = null;
-            this.followerStabilize(m, dying);
-          } else {
-            m.aiMoveTarget = { x: dying.x, y: dying.y };
-          }
+          m.aiMoveTarget = { x: dying.x, y: dying.y };
           continue; // A rescue outranks spellcasting.
         }
       } else {

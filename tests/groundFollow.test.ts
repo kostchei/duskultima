@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bandGroundYPx, groundYPx, scrambleGroundYPx } from "../src/game/systems/groundFollow";
+import { bandGroundYPx, groundYPx, isProfileSurfaceRow, scrambleGroundYPx } from "../src/game/systems/groundFollow";
 import { buildRelief } from "../src/game/level/relief";
 import { CELL_W } from "../src/game/level/cellSize";
 
@@ -75,6 +75,18 @@ describe("ground follow", () => {
 
   it("reports nothing over a shaft, where the profile does not reach", () => {
     expect(groundYPx({ bands: [] }, { x: 0, bottom: 0, airborne: false })).toBeNull();
+  });
+});
+
+describe("terrain cap detection", () => {
+  it("recognises the rounded grid cap of an exact terrain band", () => {
+    const profile = { bands: [sloped(9, 0.25)] };
+    expect(isProfileSurfaceRow(profile, 4 * TILE, 10)).toBe(true);
+  });
+
+  it("does not mistake a chamber wall top for the terrain floor", () => {
+    const profile = { bands: [flat(14)] };
+    expect(isProfileSurfaceRow(profile, 5 * TILE, 4)).toBe(false);
   });
 });
 
