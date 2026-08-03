@@ -1187,12 +1187,13 @@ export class DungeonScene extends Phaser.Scene {
         return;
       }
       case "trade": {
-        if (this.ctx.spendableGold < 5 || !leader.character.inventory.canAdd(item("ration"))) {
+        const rationCarrier = chooseAutoLootCarrier(leader, this.party.aliveMembers(), item("ration"), 1);
+        if (this.ctx.spendableGold < 5 || !rationCarrier) {
           this.ctx.say("They will trade, but the party needs 5 gold and room for one ration.", "#d07070");
           return;
         }
         this.ctx.spendGold(5);
-        leader.character.inventory.add(item("ration"), 1);
+        rationCarrier.character.inventory.add(item("ration"), 1);
         for (const m of live) m.flee();
         this.ctx.say(`${leader.character.name} trades 5 gold for a ration and a warning about the road ahead.`, "#60e080");
         return;
@@ -2859,19 +2860,33 @@ export class DungeonScene extends Phaser.Scene {
     this.modes.set("playing");
   }
 
-  private sellableStacks(member: CharacterSprite) {
-    return member.character.inventory.all().filter((s) => isSellable(s.def));
+  private partySellableItems(): { member: CharacterSprite; stack: ItemStack }[] {
+    const result: { member: CharacterSprite; stack: ItemStack }[] = [];
+    for (const member of this.shopMembers()) {
+      for (const stack of member.character.inventory.all()) {
+        if (isSellable(stack.def)) {
+          result.push({ member, stack });
+        }
+      }
+    }
+    return result;
   }
 
   private buildShopView(): ShopView {
-    const member = this.activeShopMember();
-    const inv = member.character.inventory;
-    const buy: ShopRow[] = stockItems().map((def) => ({
-      id: def.id,
-      name: def.name,
-      price: buyPrice(def),
-      block: buyBlocker(this.ctx, inv, def),
-    }));
+    const carriers = this.shopMembers();
+    const buy: ShopRow[] = stockItems().map((def) => {
+      const affordable = this.ctx.spendableGold >= buyPrice(def);
+      const canAddAnywhere = carriers.some((m) => m.character.inventory.canAdd(def));
+      let block: BuyBlock = null;
+      if (!affordable) block = "gold";
+      else if (!canAddAnywhere) block = "room";
+      return {
+        id: def.id,
+        name: def.name,
+        price: buyPrice(def),
+        block,
+      };
+    });
     const hireBlock = porterHireBlock(this.ctx.spendableGold, this.porter ? 1 : 0, this.porterHireAttempted);
     buy.push({
       id: "hire-porter",
@@ -2880,18 +2895,22 @@ export class DungeonScene extends Phaser.Scene {
       price: PORTER_HIRE_PRICE,
       block: hireBlock === "already-hired" ? "hired" : hireBlock,
     });
-    const sell: ShopRow[] = this.sellableStacks(member).map((s) => ({
-      id: s.def.id,
-      name: s.def.name,
-      price: sellPrice(s.def),
-      qty: s.qty,
+
+    const partySells = this.partySellableItems();
+    const isMultiMember = carriers.length > 1;
+    const sell: ShopRow[] = partySells.map(({ member, stack }) => ({
+      id: stack.def.id,
+      name: isMultiMember ? `${stack.def.name} (${member.character.name})` : stack.def.name,
+      price: sellPrice(stack.def),
+      qty: stack.qty,
     }));
+
     const list = this.shopMode === "buy" ? buy : sell;
     this.shopCursor = list.length > 0 ? Phaser.Math.Wrap(this.shopCursor, 0, list.length) : 0;
     return {
       zoneName: this.safeZoneName ?? "SHOP",
       gold: this.ctx.spendableGold,
-      memberName: member.character.name,
+      memberName: "Whole Party",
       mode: this.shopMode,
       buy,
       sell,
@@ -2922,7 +2941,7 @@ export class DungeonScene extends Phaser.Scene {
       this.refreshShopOverlay();
       return;
     }
-    const length = this.shopMode === "buy" ? this.buildShopView().buy.length : this.sellableStacks(this.activeShopMember()).length;
+    const length = this.shopMode === "buy" ? this.buildShopView().buy.length : this.partySellableItems().length;
     if (length > 0 && this.actions.pressed("menuUp")) {
       this.shopCursor = Phaser.Math.Wrap(this.shopCursor - 1, 0, length);
       this.refreshShopOverlay();
@@ -2940,18 +2959,24 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private attemptBuy(): void {
-    const member = this.activeShopMember();
     if (this.shopCursor === stockItems().length) {
-      this.attemptHirePorter(member);
+      this.attemptHirePorter(this.party.leader);
       return;
     }
     const def = stockItems()[this.shopCursor];
     if (!def) return;
+    const carriers = this.shopMembers();
+    const carrier = carriers.find((m) => m.character.inventory.canAdd(def, 1));
+    if (!carrier) {
+      this.ctx.say("The entire party's gear slots are full! Sell or make room first.", "#d07070");
+      this.refreshShopOverlay();
+      return;
+    }
     try {
-      shopBuy(this.ctx, member.character.inventory, def);
-      sfx.pickupChime(false, this.spatial({ x: member.x, y: member.y }));
+      shopBuy(this.ctx, carrier.character.inventory, def);
+      sfx.pickupChime(false, this.spatial({ x: carrier.x, y: carrier.y }));
       this.ctx.say(
-        `${member.character.name} buys ${def.name} for ${buyPrice(def)}g — ${this.ctx.spendableGold}g left.`,
+        `${carrier.character.name} buys ${def.name} for ${buyPrice(def)}g — ${this.ctx.spendableGold}g left.`,
         "#e8c840",
       );
     } catch (err) {
@@ -2997,13 +3022,13 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   private attemptSell(): void {
-    const member = this.activeShopMember();
-    const stack = this.sellableStacks(member)[this.shopCursor];
-    if (!stack) return;
+    const partySells = this.partySellableItems();
+    const target = partySells[this.shopCursor];
+    if (!target) return;
+    const { member, stack } = target;
     const def = stack.def;
     try {
       const paid = shopSell(this.ctx, member.character.inventory, def);
-      // Drop any equipment references to a sold item once the last one is gone.
       const c = member.character;
       if (!c.inventory.has(def.id)) {
         if (c.wieldedWeapon?.id === def.id) c.wieldedWeapon = null;
@@ -5853,10 +5878,10 @@ export class DungeonScene extends Phaser.Scene {
         const partySize = this.party.aliveMembers().length + (this.porter?.alive ? 1 : 0);
         const currentCoinSlots = partyCoinSlots(this.ctx.totalCoins, partySize);
         const newCoinSlots = partyCoinSlots(this.ctx.totalCoins + p.qty, partySize);
-        const extraSlotsNeeded = newCoinSlots - currentCoinSlots;
-        const leader = this.party.leader;
+        const carriers = [...this.party.aliveMembers(), ...(this.porter?.alive ? [this.porter] : [])];
+        const coinCarrier = carriers.find((m) => m.character.inventory.slotsFree() >= extraSlotsNeeded);
 
-        if (extraSlotsNeeded > 0 && leader && leader.character.inventory.slotsFree() < extraSlotsNeeded) {
+        if (extraSlotsNeeded > 0 && !coinCarrier) {
           this.ctx.say(`Party gear slots are full! (Coins left behind)`, "#d07070");
           continue;
         }

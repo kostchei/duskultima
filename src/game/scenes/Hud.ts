@@ -1166,7 +1166,7 @@ export class HudScene extends Phaser.Scene {
     const header = this.add.text(
       w / 2,
       h / 2 - 122,
-      `Gold: ${view.gold}g     Shopping for: ${view.memberName}`,
+      `Gold: ${view.gold}g     Party Treasury & Equipment`,
       { ...UI_STYLE, fontSize: "13px", color: gold },
     ).setOrigin(0.5);
 
