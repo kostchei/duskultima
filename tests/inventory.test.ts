@@ -25,11 +25,17 @@ describe("stack slot presentation", () => {
   });
 
   it("does not pool bulky treasure with pouch-sized valuables", () => {
-    const bowl = item("core-treasure-0-3-040");
-    const tankard = item("core-treasure-0-3-058");
+    // A life-sized gold python and a large marble angel are each an armful; a
+    // bowl or a tankard is not, and now rides in the pouch with everything else.
+    const python = item("core-treasure-7-9-050");
+    const angel = item("core-treasure-7-9-036");
     const inv = new Inventory(1);
-    inv.add(bowl);
-    expect(inv.canAdd(tankard)).toBe(false);
+    inv.add(python);
+    expect(inv.canAdd(angel)).toBe(false);
+
+    const pouched = new Inventory(1);
+    pouched.add(item("core-treasure-0-3-040"), 6); // Golden bowl
+    expect(pouched.canAdd(item("core-treasure-0-3-058"), 4)).toBe(true); // Mead tankard
   });
 });
 

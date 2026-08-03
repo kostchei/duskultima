@@ -9,14 +9,12 @@
  */
 
 /**
- * Mirrors GAME_W/GAME_H from ../display and TILE from ../textures. Kept as
- * local constants (rather than importing those modules) so this module has
- * no `window`/DOM/Phaser dependency and stays unit-testable without booting
- * a browser environment.
+ * Mirrors GAME_W/GAME_H from ../display. Kept as local constants (rather than
+ * importing that module) so this module has no `window`/DOM/Phaser dependency
+ * and stays unit-testable without booting a browser environment.
  */
 const GAME_W = 960;
 const GAME_H = 540;
-const TILE = 32;
 
 export type VerticalMode = "floor" | "elevated";
 

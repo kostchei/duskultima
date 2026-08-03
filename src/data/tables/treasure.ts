@@ -55,7 +55,7 @@ function row(
 const CORE_ROWS = {
   "0-3": [
     row(1, 1, "Bent tin fork (1 cp)", 0.01),
-    row(2, 3, "Muddy torch (2 cp)", 0.02),
+    row(2, 3, "Muddy torch (2 cp)", 0.02, "torch"),
     row(4, 5, "Bag of smooth pebbles (2 cp)", 0.02),
     row(6, 7, "10 cp in a greasy pouch", 0.1),
     row(8, 9, "Rusty lantern with shattered glass (1 gp)", 1),
@@ -63,7 +63,7 @@ const CORE_ROWS = {
     row(12, 13, "Dull dagger (1 gp)", 1, "dagger"),
     row(14, 15, "Two empty glass vials (6 gp)", 6),
     row(16, 17, "60 sp in a rotten boot", 6),
-    row(18, 19, "Cracked, handheld mirror (8 gp)", 8),
+    row(18, 19, "Cracked, handheld mirror (8 gp)", 8, "mirror"),
     row(20, 21, "Chipped greataxe (9 gp)", 9, "greataxe"),
     row(22, 23, "10 gp in a moldy, wood box", 10),
     row(24, 25, "Chip of an emerald (10 gp)", 10),
@@ -82,7 +82,7 @@ const CORE_ROWS = {
     row(42, 43, "Obsidian statuette of Shune the Vile (15 gp)", 15),
     row(44, 45, "Undersized pearl (20 gp)", 20),
     row(46, 47, "Jade-and-gold scarab pin (20 gp)", 20),
-    row(48, 49, "Bag of 10 silver spikes (2 gp each)", 20),
+    row(48, 49, "Bag of 10 silver spikes (2 gp each)", 20, "iron-spikes", 10),
     row(50, 53, "Mithral locket with a painting of a halfling (20 gp)", 20),
     row(54, 55, "Two finely forged dwarven shields (20 gp)", 20, "shield", 2, {
       slotCost: 0,

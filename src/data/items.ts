@@ -142,10 +142,30 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
 
 const BASE_ITEMS = new Map(BASE_ITEM_LIST.map((entry) => [entry.id, entry]));
 
-/** Small valuables share a pouch even when their exact names remain separate. */
+/**
+ * Bulk markers that keep a treasure find out of the shared pouch.
+ *
+ * Anything a party would have to carry in both arms, prop on a shoulder, or
+ * roll out of the room: furniture, statuary, framed art, instruments, and
+ * anything the table itself calls giant or life-sized.
+ */
+const BULKY_TREASURE = new RegExp(
+  "\\b(?:giant|large|life-sized|full-length|adult|marble|throne|sarcophagus|chest|tapestry"
+  + "|taxidermied|lute|board|pane|statue|suit|carpet|conch|censer|python|horn mug|cask"
+  + "|painting|bestiary|mirror|lantern|robes?|cloak|surcoat|slippers|boots|helm|tusk|shell)\\b",
+  "i",
+);
+
+/**
+ * Small valuables share a pouch even when their exact names remain separate.
+ *
+ * Only asked about finds with no base item behind them — a found greatsword is
+ * a greatsword and packs like one. Everything else is loot, and loot goes ten to
+ * a slot; the previous allowlist of a dozen nouns meant most of the d100 tables
+ * charged a full slot for a single scarab pin or a pouch of spices.
+ */
 function isPouchSizedTreasure(name: string): boolean {
-  if (/\b(?:giant|large|life-sized|full-length)\b/i.test(name)) return false;
-  return /\b(?:pebbles?|tooth|gem|emerald|pearl|sapphire|diamond|locket|pin|ring|necklace|pendant|circlet|torc|charm|token|scarab|statuette|game pieces|dice)\b/i.test(name);
+  return !BULKY_TREASURE.test(name);
 }
 
 const CORE_TREASURE_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.map((spec) => {
