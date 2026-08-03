@@ -7,6 +7,7 @@
 import Phaser from "phaser";
 import { HudScene } from "./Hud";
 import { crackleBed, themeAmbience } from "../audio/ambience";
+import { DynamicAmbienceController } from "../audio/dynamicAmbience";
 import { isMuted, setMuted, suspendAudio, resumeAudioContext } from "../audio/context";
 import {
   keyBindingPrefs,
@@ -387,6 +388,7 @@ export class DungeonScene extends Phaser.Scene {
   private trapSystem!: TrapSystem;
   private primitivesManager!: DungeonPrimitivesManager;
   private fireEmitters: SpatialEmitter[] = [];
+  private dynamicAmbience: DynamicAmbienceController | null = null;
   private pickups: Pickup[] = [];
   private claimedTreasureFindIds = new Set<string>();
   private talkableNpcs: TalkableNpc[] = [];
@@ -696,9 +698,10 @@ export class DungeonScene extends Phaser.Scene {
     // The soundscape follows the backdrop; SHUTDOWN fires on restart too, so
     // beds never stack across runs.
     const ambience = themeAmbience(this.activeDungeon.theme.backdrop);
+    this.dynamicAmbience = new DynamicAmbienceController(ambience, { baseVolume: 0.35 });
     this.fireEmitters = [];
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      for (const bed of ambience) bed.destroy();
+      this.dynamicAmbience?.destroy();
       for (const e of this.fireEmitters) e.destroy();
     });
 
@@ -2384,8 +2387,12 @@ export class DungeonScene extends Phaser.Scene {
     this.updateOpenTerrainDanger(currentRoom);
     if (this.gameOver) return;
     if (currentRoom !== this.lastRoomId) {
+      const isNewRoom = !this.discoveredRoomIds.has(currentRoom);
       this.lastRoomId = currentRoom;
       this.discoveredRoomIds.add(currentRoom);
+      if (isNewRoom) {
+        this.dynamicAmbience?.onEnterVault();
+      }
       this.activateRoomRequirements(currentRoom, true);
       this.saveToSlot(0);
     }
@@ -2415,6 +2422,12 @@ export class DungeonScene extends Phaser.Scene {
     this.porter?.updateShadow(this.light);
     for (const m of this.monsters) m.updateShadow(this.light);
     this.shadows.update();
+    const leader = this.party.leader;
+    if (leader && this.door && this.dynamicAmbience) {
+      const distToExit = Phaser.Math.Distance.Between(leader.x, leader.y, this.door.x, this.door.y);
+      this.dynamicAmbience.updateExitProximity(distToExit);
+    }
+    this.dynamicAmbience?.tick(delta);
     // Daylight ends at the mouth of the level's one enclosed room: step inside
     // and the dark — and the need for a torch — comes back.
     const underOpenSky = this.daylitLevel && currentRoom !== this.undergroundRoomId;
@@ -4440,6 +4453,7 @@ export class DungeonScene extends Phaser.Scene {
 
   private claimDungeonReward(): void {
     if (this.rewardClaimed || !this.rewardMarker) return;
+    this.dynamicAmbience?.onDiscoverObjective();
     const reward = this.currentReward;
     let message = "";
 
