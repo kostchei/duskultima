@@ -1,8 +1,8 @@
-# Shadowdark Rules Engine — As Built
+# Rules Engine — As Built
 
 This document describes the rules engine as implemented in `src/engine/` (pure
-TypeScript, no game-framework imports). The full RAW reference lives in
-[shadowdark_pseudocode.md](shadowdark_pseudocode.md); deviations from it are
+TypeScript, no game-framework imports). The full reference lives in
+[rules-pseudocode.md](rules-pseudocode.md); deviations from it are
 listed at the end.
 
 ## 1. Core Resolution Service — `check.ts`

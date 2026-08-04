@@ -85,10 +85,10 @@ variant 3 "pillar hall" is combat into combat) and nothing checks.
 
 ---
 
-## Part 2 — Shadowdark rules-fidelity audit
+## Part 2 — rules-fidelity audit
 
 Compared `src/engine/` + `src/game/systems/` against
-`shadowdark_pseudocode.md`. The engine's documented deviations table is
+`rules-pseudocode.md`. The engine's documented deviations table is
 accurate; these are the *undocumented* gaps.
 
 ### Character creation & equipment — the largest fidelity gap

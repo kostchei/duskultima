@@ -1,6 +1,6 @@
-# Shadowdark Algorithmic Pseudocode
+# Algorithmic Pseudocode
 
-This document provides a comprehensive, unified algorithmic pseudocode implementation of the Shadowdark rules for game-engine integration.
+This document provides a comprehensive, unified algorithmic pseudocode implementation of the rules for game-engine integration.
 
 ---
 
