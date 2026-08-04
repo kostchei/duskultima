@@ -8,6 +8,8 @@ import { projectShadow } from "../systems/shadows";
 import { castShadowsEnabled } from "../systems/quality";
 import { groundYPx, type GroundProfileLike } from "../systems/groundFollow";
 import { ensureMonsterAssets } from "../visual/monsterArt";
+import { playMonsterVoice, preloadMonsterVoices } from "../audio/monsterVoice";
+import { spatialOptsFromListener } from "../audio/spatial";
 
 export type MonsterAiState = "patrol" | "aggro" | "fleeing";
 
@@ -110,6 +112,11 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
     this.customTexture = textureKey !== undefined;
     this.patrolOriginX = x;
     this.shadow = scene.add.image(x, y + 14, "entity-shadow").setDepth(7).setAlpha(0.62);
+    // Warm the voice clips at spawn, not at first aggro: aggro fires when the
+    // party is already five tiles out, far too late to begin a fetch. Doing it
+    // here rather than in the scene covers every spawn path — authored rooms,
+    // wandering waves, ooze splits — with one call. Deduped by URL, ~5 KB each.
+    void preloadMonsterVoices([def]);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(9);
@@ -165,7 +172,7 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
 
     if (target) {
       const dist = Phaser.Math.Distance.Between(this.x, this.y, target.x, target.y);
-      if (this.aiState === "patrol" && dist <= AGGRO_RANGE) this.aiState = "aggro";
+      if (this.aiState === "patrol" && dist <= AGGRO_RANGE) this.noticeTarget();
       if (
         this.aiState === "aggro" &&
         dist > AGGRO_RANGE * 2 &&
@@ -201,6 +208,18 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
     }
   }
 
+  /**
+   * Go hostile because the monster spotted or heard the party, and say so.
+   *
+   * Only the *noticing* transition is voiced. Waking because something hit you
+   * is not a noticing — that beat already speaks through the wounded clip, and
+   * voicing both would only make the two shout over each other.
+   */
+  private noticeTarget(): void {
+    this.aiState = "aggro";
+    playMonsterVoice(this.def, "aggro", spatialOptsFromListener({ x: this.x, y: this.y }));
+  }
+
   flee(): void {
     this.aiState = "fleeing";
     this.setTint(0x9999cc);
@@ -222,7 +241,7 @@ export class MonsterSprite extends Phaser.Physics.Arcade.Sprite {
   alert(durationMs = 6000): void {
     if (this.aiState === "fleeing") return;
     this.alertedUntil = Math.max(this.alertedUntil, this.scene.time.now + durationMs);
-    this.aiState = "aggro";
+    if (this.aiState !== "aggro") this.noticeTarget();
   }
 
   /**

@@ -49,6 +49,29 @@ export function cutoffFor(taper: number): number {
   return CUTOFF_NEAR * Math.pow(CUTOFF_FAR / CUTOFF_NEAR, taper);
 }
 
+/**
+ * The ears: the party leader, whom the camera follows. Sounds fired deep in a
+ * system that has no business knowing about the party (a monster noticing you,
+ * a monster taking a hit from anyone) spatialize against this rather than
+ * threading a listener down through every call. Set once per frame by Dungeon.
+ */
+let listenerPos: Vec2 | null = null;
+
+export function setAudioListener(v: Vec2): void {
+  listenerPos = { x: v.x, y: v.y };
+}
+
+/** Throws when unset: a sound placed against nothing is a wiring bug. */
+export function audioListener(): Vec2 {
+  if (!listenerPos) throw new Error("audio listener position not set");
+  return listenerPos;
+}
+
+/** SfxOpts for a one-shot heard from wherever the listener currently stands. */
+export function spatialOptsFromListener(source: Vec2): SfxOpts {
+  return spatialOpts(source, audioListener());
+}
+
 /** SfxOpts for a one-shot at `source` heard from `listener` (sampled at fire time). */
 export function spatialOpts(source: Vec2, listener: Vec2): SfxOpts {
   const dx = source.x - listener.x;

@@ -19,7 +19,7 @@ import {
   type TorchDurationSetting,
 } from "../MobilePrefs";
 import * as sfx from "../audio/sfx";
-import { SpatialEmitter, spatialOpts, type Vec2 } from "../audio/spatial";
+import { SpatialEmitter, setAudioListener, spatialOpts, type Vec2 } from "../audio/spatial";
 import { DungeonPrimitivesManager } from "../systems/primitives";
 import {
   createCharacter,
@@ -2418,6 +2418,10 @@ export class DungeonScene extends Phaser.Scene {
       this.activateRoomRequirements(currentRoom, true);
       this.saveToSlot(0);
     }
+    // Before anything that can make a sound: systems deep in the AI and combat
+    // paths place their one-shots against this rather than being handed a
+    // listener through half a dozen signatures.
+    setAudioListener(this.party.leader);
     this.updateLeaderInput(time, delta);
     this.updateCameraFraming(time, delta);
     this.party.updateFollowers(

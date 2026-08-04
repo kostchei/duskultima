@@ -27,6 +27,8 @@ import { RENDER_SCALE } from "../display";
 import type { CharacterSprite } from "../entities/CharacterSprite";
 import type { MonsterSprite } from "../entities/MonsterSprite";
 import { bowShot, swordClang, swordCrit, thud, whoosh } from "../audio/sfx";
+import { playMonsterVoice } from "../audio/monsterVoice";
+import { spatialOptsFromListener } from "../audio/spatial";
 import { hitBurst } from "../fx/vfx";
 import type { LightSystem } from "./light";
 
@@ -315,6 +317,11 @@ export function applyThorns(
 export function applyDamageToMonster(deps: MeleeDeps, target: MonsterSprite, damage: number, attacker?: CharacterSprite): void {
   target.wake();
   target.hp -= damage;
+  // Voiced before the kill check: a monster that dies on this blow gets its
+  // death knell from `onMonsterKilled`, not a wounded cry it never finishes.
+  if (target.hp > 0) {
+    playMonsterVoice(target.def, "wounded", spatialOptsFromListener({ x: target.x, y: target.y }));
+  }
   target.setTintFill(0xffffff);
   deps.scene.time.delayedCall(80, () => target.clearTint());
   hitBurst(deps.scene, target.x, target.y, target.def.undead);
@@ -443,6 +450,9 @@ export function monsterSwing(
   target: CharacterSprite,
 ): void {
   monster.attackCooldown = 1500;
+  // The swing is voiced on the wind-up, win or lose — the cry is the monster
+  // committing to the blow, not the blow landing.
+  playMonsterVoice(monster.def, "attack", spatialOptsFromListener({ x: monster.x, y: monster.y }));
   // Being attacked marks the aggressor so the character swings back.
   target.lastAttackedBy = monster;
   target.lastAttackedAt = scene.time.now;

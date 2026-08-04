@@ -43,8 +43,12 @@ function rand(min: number, max: number): number {
 /**
  * Per-shot scaffolding: builds the output chain (lowpass? → panner? → master),
  * tracks every node, and tears the whole graph down when the anchor source ends.
+ *
+ * Exported for `samples.ts`, which plays decoded .ogg clips: a recorded voice
+ * has to sit in the same room, at the same distance, under the same mute and
+ * master volume as the synthesized foley, which means the same chain.
  */
-class Shot {
+export class Shot {
   readonly c: AudioContext;
   readonly t0: number;
   readonly dest: AudioNode;
