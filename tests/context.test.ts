@@ -3,7 +3,7 @@ import { encounterTreasureTableId, treasureItemXp, treasureQualityXp } from "../
 import { item } from "../src/data";
 
 describe("treasure-find XP", () => {
-  it("uses Shadowdark's four treasure qualities", () => {
+  it("uses the four treasure qualities", () => {
     expect(treasureQualityXp("poor")).toBe(0);
     expect(treasureQualityXp("normal")).toBe(1);
     expect(treasureQualityXp("fabulous")).toBe(3);

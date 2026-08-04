@@ -71,7 +71,7 @@ export type MonsterFeature =
 export interface MonsterDef {
   id: string;
   name: string;
-  /** Shadowdark monster level, 0-10. Drives party-level-appropriate spawning. */
+  /** Monster level, 0-10. Drives party-level-appropriate spawning. */
   level: number;
   role: MonsterRole;
   ac: number;

@@ -89,7 +89,7 @@ const TITLES: Record<BaseClassName, Record<Alignment, readonly string[]>> = {
   },
 };
 
-/** Shadowdark random-character alignment table: 1-3 law, 4-5 neutral, 6 chaos. */
+/** Random-character alignment table: 1-3 law, 4-5 neutral, 6 chaos. */
 export function rollAlignment(dice: Dice): Alignment {
   const roll = dice.die(6);
   return roll <= 3 ? "law" : roll <= 5 ? "neutral" : "chaos";
@@ -213,7 +213,7 @@ export class Character {
   /** Shield slung on the back (e.g. to carry a torch): hand free, no AC bonus. */
   shieldStowed = false;
 
-  /** One reroll, Shadowdark luck. Spent through the game layer. */
+  /** One reroll per run. Spent through the game layer. */
   luckToken = true;
   classState: ClassState = { ...DEFAULT_CLASS_STATE, resourceUses: {}, oldGods: [], cauldronItems: [] };
 

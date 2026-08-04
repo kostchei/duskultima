@@ -1,7 +1,9 @@
 /**
- * Shadowdark RPG & Cursed Scrolls (1-3) Loot & Treasure Tables.
- * Rollable d100 tables for level brackets (0-3, 4-6, 7-9, 10+)
- * plus Cursed Scrolls setting-specific drop tables.
+ * Loot & treasure tables. Rollable d100 tables for the level brackets
+ * (0-3, 4-6, 7-9, 10+) plus per-setting drop tables for each destination.
+ *
+ * Original text written for this project. This file is the licensing
+ * boundary: no published rules text belongs here.
  */
 
 import type { MagicItemPersonality, RollableTable, TreasureQuality } from "../../engine";

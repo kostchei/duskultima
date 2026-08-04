@@ -1,8 +1,8 @@
 /**
  * The bestiary, assembled from per-zone rosters.
  *
- * Every monster belongs to exactly one zone and carries a Shadowdark level and
- * a battlefield role. Dungeon grids place roles, not names — see
+ * Every monster belongs to exactly one zone and carries a level and a
+ * battlefield role. Dungeon grids place roles, not names — see
  * `engine/monsterSelect.ts` — so the same climax tile fields a Quillboar
  * Chopper for a level-1 party and a Daeodon for a level-8 one, and always
  * something that belongs to the scroll the party descended under.

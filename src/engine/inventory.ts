@@ -163,7 +163,7 @@ export interface ItemDef {
   /** Units carried free before slots are charged (coins: first 100 free). */
   freeQty?: number;
   tags: readonly string[];
-  /** Shadowdark treasure XP category. */
+  /** Treasure XP category. */
   treasureQuality?: TreasureQuality;
   /** Magic armor adds this to AC; magic weapons add it to attack and damage. */
   magicBonus?: number;

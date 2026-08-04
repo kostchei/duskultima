@@ -104,7 +104,7 @@ describe("character generation rules", () => {
     }
   });
 
-  it("derives Shadowdark titles from class, alignment, and two-level bands", () => {
+  it("derives titles from class, alignment, and two-level bands", () => {
     const examples: [ClassName, Alignment, number, string][] = [
       ["fighter", "law", 1, "Squire"],
       ["fighter", "chaos", 7, "Reaver"],

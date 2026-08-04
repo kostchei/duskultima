@@ -1,6 +1,6 @@
 /**
- * Random encounters on the crawling clock — the Shadowdark pillar that makes
- * time itself dangerous. Each crawling round the danger cadence may trigger a
+ * Random encounters on the crawling clock — the pillar that makes time itself
+ * dangerous. Each crawling round the danger cadence may trigger a
  * 1-in-6 check; in TOTAL darkness (no party member in light) the check runs
  * every crawling round regardless. A wave gets a starting distance, an
  * activity, and a reaction (assuming the party isn't surprised — that's a

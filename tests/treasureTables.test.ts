@@ -14,7 +14,7 @@ function rolledItem(table: (typeof CORE_TABLES)[number], min: number) {
   return item((entry.data as { itemId: string }).itemId);
 }
 
-describe("core Shadowdark treasure tables", () => {
+describe("core treasure tables", () => {
   it("covers every d100 result exactly once in every level band", () => {
     for (const table of CORE_TABLES) {
       for (let roll = 1; roll <= 100; roll++) {

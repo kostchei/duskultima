@@ -120,7 +120,7 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "armor-saint-terragnis", name: "Armor of Saint Terragnis (+3)", slotCost: 3, bundleSize: 1, tags: ["armor", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Hostile spells targeting the wearer are DC 18 to cast.", "Once per month, summons an avatar of Saint Terragnis for 10 rounds."], curses: ["Only a lawful worshipper of Saint Terragnis can wear it."], requiredAlignment: "law", hostileSpellDc: 18, namedEffect: { kind: "summon", monsterId: "archangel", rounds: 10 }, use: { actions: ["activate", "inspect"], target: "none", charges: 1, rechargeAfterRests: 30 }, armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest"], stealthDisadvantage: true }, armorVisual: "plate" },
   { id: "staff-of-ord", name: "Staff of Ord (+3)", slotCost: 1, bundleSize: 1, tags: ["weapon", "magic", "artifact"], treasureQuality: "legendary", magicBonus: 3, benefits: ["Functions as wands of dimension door, fireball, sending, and telekinesis without breaking on a natural 1.", "Hostile spells targeting the wielder are DC 18 to cast."], curses: ["Only a wizard can wield it."], requiredClass: "wizard", hostileSpellDc: 18, boundSpellIds: ["dimension-door", "fireball", "sending", "telekinesis"], use: { actions: ["cast", "inspect"], target: "none", inertOnFail: true }, damage: "1d4", twoHanded: true, reachTiles: 2.2, weaponVisual: "staff" },
 
-  // Cursed Scrolls (1-3) Relics & Drops.
+  // Per-setting relics & drops.
   //
   // These carried nothing but flavour text: no valueGp (so a shop refused them),
   // no `use`, and slotCost 0, which made them free to hoard and worth nothing on

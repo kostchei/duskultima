@@ -1,8 +1,8 @@
 /**
  * Party-level-appropriate monster selection.
  *
- * Shadowdark gives monsters levels, so a fight is sized by comparing monster
- * levels to the party's. The dungeon grid never names a monster: it places a
+ * Monsters carry levels, so a fight is sized by comparing monster levels to
+ * the party's. The dungeon grid never names a monster: it places a
  * role ("something vermin lives here", "a champion holds this dais"), and this
  * module resolves that role against the active zone's roster at the level the
  * party has actually reached. The same climax tile is a Quillboar Chopper at
@@ -156,8 +156,8 @@ function rollPackSize(dice: Dice, role: MonsterRole): number {
 
 /**
  * Total monster levels a party of this size and level can be expected to beat
- * in one encounter. Shadowdark's rule of thumb is parity, so the budget is the
- * party's summed levels; level-0 chaff counts as a half so swarms stay legal.
+ * in one encounter. The rule of thumb is parity, so the budget is the party's
+ * summed levels; level-0 chaff counts as a half so swarms stay legal.
  */
 function encounterBudget(partySize: number, partyLevel: number): number {
   if (!Number.isInteger(partySize) || partySize < 1) {

@@ -68,7 +68,7 @@ export type DungeonReward = CompanionReward | TreasureReward | GoldReward | Spel
 
 const COMPANION_CLASSES = ["fighter", "thief", "priest", "wizard"] as const;
 
-/** Shadowdark unlock bands: tiers 1-5 arrive at levels 1, 3, 5, 7, and 9. */
+/** Spell unlock bands: tiers 1-5 arrive at levels 1, 3, 5, 7, and 9. */
 export function maximumSpellTier(level: number): number {
   if (!Number.isInteger(level) || level < 1) throw new Error("Caster level must be a positive integer");
   return Math.min(5, Math.ceil(level / 2));
@@ -82,7 +82,7 @@ function stableIndex(seed: number, size: number): number {
   return ((value ^ (value >>> 15)) >>> 0) % size;
 }
 
-/** Shadowdark's own tier bands: 0-3, 4-6, 7-9, 10 (the level cap). */
+/** Treasure tier bands: 0-3, 4-6, 7-9, 10 (the level cap). */
 function levelBandTable(maxLevel: number): RollableTable {
   if (maxLevel <= 3) return TREASURE_0_3;
   if (maxLevel <= 6) return TREASURE_4_6;

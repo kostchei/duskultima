@@ -147,7 +147,7 @@ export const DIABLERIE_ROSTER: readonly MonsterDef[] = [
   // --- The barrow dead ----------------------------------------------------------
   d("ghoul", "Ghoul", { level: 2, role: "skirmisher", archetype: "biped", size: "medium", art: GHOUL, undead: true }),
   d("barrow-ghast", "Barrow Ghast", { level: 6, role: "vermin", archetype: "biped", size: "medium", art: GHOUL, undead: true }),
-  // --- Cursed Scroll 1: Diablerie Bestiary & Core Gloaming -------------------
+  // --- Diablerie bestiary & core gloaming ------------------------------------
   d("skrell", "Skrell Raptor", { level: 1, role: "skirmisher", archetype: "biped", size: "small", art: CRAWLER }),
   d("tar-bat", "Tar Bat", { level: 1, role: "vermin", archetype: "flyer", size: "small", art: BAT }),
   d("howler", "Howler Halfling", { level: 1, role: "vermin", archetype: "biped", size: "small", art: MADMAN, darkvision: false }),

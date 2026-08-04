@@ -91,7 +91,7 @@ describe("level and role stat spine", () => {
     expect(monsterStatsForLevel(9, "champion").xpTier).toBe("legendary");
   });
 
-  it("rejects levels outside the Shadowdark ladder", () => {
+  it("rejects levels outside the monster level ladder", () => {
     expect(() => monsterStatsForLevel(31, "soldier")).toThrow();
     expect(() => monsterStatsForLevel(-1, "soldier")).toThrow();
   });

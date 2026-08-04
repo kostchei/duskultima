@@ -1,5 +1,5 @@
 /**
- * Zone-based distance, mapped to pixels. Shadowdark zones, not a grid:
+ * Zone-based distance, mapped to pixels. Abstract zones, not a grid:
  * close ~5ft, near ~30ft, far = line of sight.
  */
 
