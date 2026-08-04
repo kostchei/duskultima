@@ -65,7 +65,7 @@ export class BootScene extends Phaser.Scene {
       resolution: RENDER_SCALE,
     }).setOrigin(0.5);
 
-    this.add.text(w / 2, h / 2 - 80, "A side-scrolling Shadowdark dungeon crawler", {
+    this.add.text(w / 2, h / 2 - 80, "Explore the depths as your torch dwindles", {
       fontFamily: 'Consolas, monospace',
       fontSize: "12px",
       color: "#808490",
