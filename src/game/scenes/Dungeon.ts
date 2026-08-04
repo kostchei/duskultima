@@ -65,6 +65,10 @@ import {
   revealCharacter,
   isShieldWallActive,
   resolveCarouse,
+  studyableScrolls,
+  SCROLL_LEARNING_DC,
+  type ScrollCandidate,
+  type ScrollStudyOption,
   advanceOath,
   advancePatron,
   midnightSunOathOptions,
@@ -94,6 +98,7 @@ import {
   type TreasureQuality,
   TRAINING_STAT,
   Inventory,
+  type Character,
   type ItemDef,
   type ItemStack,
   type StatName,
@@ -155,6 +160,7 @@ import {
   type SpellSelection,
 } from "../systems/spells";
 import { TrapSystem } from "../systems/traps";
+import type { RespiteHost } from "../ui/RespiteScreen";
 import { RewindBuffer } from "../systems/rewind";
 import {
   buy as shopBuy,
@@ -206,7 +212,7 @@ import {
   safeZonePresentation,
   selectOpenTerrainRoomRoles,
 } from "../visual/openTerrain";
-import { regionRowsAt, roomAt, roomAtTolerant, type RoomRegion } from "../level/geometry";
+import { drawnBandY, regionRowsAt, roomAt, roomAtTolerant, type RoomRegion } from "../level/geometry";
 import { isSurfaceTile } from "../visual/surfaceSteps";
 import { groundYPx, isProfileSurfaceRow } from "../systems/groundFollow";
 import { resolveTargetConnector } from "../level/connectorTargets";
@@ -230,6 +236,7 @@ import {
   chooseDungeonReward,
   nextDungeonSave,
   progressFromSavedParty,
+  maximumSpellTier,
   type DungeonReward,
 } from "../progression";
 import {
@@ -714,7 +721,13 @@ export class DungeonScene extends Phaser.Scene {
     this.cameras.main.setZoom(
       this.daylitLevel ? GAMEPLAY_CAMERA_ZOOM / DAYLIT_VIEW_MULTIPLIER : GAMEPLAY_CAMERA_ZOOM,
     );
-    this.cameras.main.setBounds(0, 0, worldW, worldH);
+    // Camera bounds are the drawn band, not the whole grid. A grid is taller than
+    // its level — an open-sky vault leaves a deep slab of solid fill beneath the
+    // lowest floor — and at a daylit level's halved zoom the camera framed a
+    // screenful of that slab, which is why those levels only used the top of the
+    // screen. Physics keeps the full-grid bounds; only the view is trimmed.
+    const band = drawnBandY(this.activeDungeon.grid);
+    this.cameras.main.setBounds(0, band.top, worldW, band.height);
     this.cameras.main.setBackgroundColor(this.presentationPalette.background);
     this.createAtmosphere(layoutSeed);
 
@@ -904,6 +917,9 @@ export class DungeonScene extends Phaser.Scene {
       case "actionChoice":
         this.refreshActionChoiceOverlay();
         return;
+      case "respite":
+        hud.showRespiteOverlay(this.respiteHost());
+        return;
       default:
         // briefing / playing / victory / gameover own no overlay of their own:
         // the briefing card is raised by the HUD on create, and the ending
@@ -936,6 +952,9 @@ export class DungeonScene extends Phaser.Scene {
         return;
       case "actionChoice":
         hud.hideActionChoiceOverlay();
+        return;
+      case "respite":
+        hud.hideRespiteOverlay();
         return;
       default:
         return;
@@ -4301,10 +4320,11 @@ export class DungeonScene extends Phaser.Scene {
             // Still in progress in this Cursed Scroll
             this.biomeOffer = null;
           }
-          // Enter the terminal mode only once the offer exists — the HUD builds
-          // the victory screen from it when the event lands.
-          this.modes.set("victory");
-          this.ctx.events.emit("won");
+          // The party is out, but the run does not end here: respite comes first,
+          // where gear, trade, and downtime happen. `departRespite` carries on to
+          // the victory screen, which the HUD builds from the offer computed above.
+          this.modes.set("respite");
+          this.ctx.events.emit("respite");
         },
       });
     }
@@ -4735,6 +4755,114 @@ export class DungeonScene extends Phaser.Scene {
     this.saveToSlot(0);
   }
 
+  /**
+   * The respite screen's view of the scene. Everything it can do is a method
+   * here, so the panel stays a renderer and the rules stay in one place — the
+   * same shop and downtime functions the safe-zone menu already calls.
+   */
+  respiteHost(): RespiteHost {
+    const find = (characterId: string): CharacterSprite => {
+      const member = this.party.members.find((candidate) => candidate.character.id === characterId);
+      if (!member) throw new Error(`No party member with id "${characterId}"`);
+      return member;
+    };
+    return {
+      members: () => this.party.members
+        .filter((member) => !member.character.dead)
+        .map((member) => ({ character: member.character, displayName: member.cls.displayName })),
+      gold: () => this.ctx.spendableGold,
+      zoneName: () => this.dungeonDisplayName,
+      downtimeSpent: () => this.downtimeUsed,
+      trainingDcFor: (characterId, skill) =>
+        instructorTrainingDc(this.trainingFailures.get(`${characterId}:${skill}`) ?? 0),
+
+      moveItem: (fromId, toId, itemId) => {
+        const from = find(fromId);
+        const to = find(toId);
+        const def = item(itemId);
+        try {
+          if (!from.character.inventory.has(itemId)) throw new Error(`${from.character.name} has no ${def.name}`);
+          if (!to.character.inventory.canAdd(def)) throw new Error(`${to.character.name} has no room for ${def.name}`);
+          from.character.inventory.remove(itemId, 1);
+          this.unequipEverywhere(from.character, itemId);
+          to.character.inventory.add(def);
+          this.ctx.say(`${from.character.name} hands ${def.name} to ${to.character.name}.`, "#a8c0e0");
+        } catch (error) {
+          this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
+        }
+      },
+
+      equipItem: (characterId, itemId) => {
+        const member = find(characterId);
+        const def = item(itemId);
+        try {
+          if (def.tags.includes("weapon")) member.character.equipWeapon(def);
+          else if (def.armor) member.character.equipArmor(def);
+          else if (def.shield) member.character.equipShield(def);
+          else throw new Error(`${def.name} cannot be equipped`);
+          this.ctx.say(`${member.character.name} equips ${def.name}.`, "#e0c060");
+        } catch (error) {
+          this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
+        }
+      },
+
+      dropItem: (characterId, itemId) => {
+        const member = find(characterId);
+        const def = item(itemId);
+        try {
+          member.character.inventory.remove(itemId, 1);
+          this.unequipEverywhere(member.character, itemId);
+          this.ctx.say(`${member.character.name} leaves ${def.name} behind.`, "#a0a4b0");
+        } catch (error) {
+          this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
+        }
+      },
+
+      sellItem: (characterId, itemId) => {
+        const member = find(characterId);
+        const def = item(itemId);
+        try {
+          const price = shopSell(this.ctx, member.character.inventory, def);
+          this.unequipEverywhere(member.character, itemId);
+          this.ctx.say(`${member.character.name} sells ${def.name} for ${price} gold.`, "#e0c060");
+        } catch (error) {
+          this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
+        }
+      },
+
+      buyItem: (characterId, itemId) => {
+        const member = find(characterId);
+        const def = item(itemId);
+        try {
+          shopBuy(this.ctx, member.character.inventory, def);
+          this.ctx.say(`${member.character.name} buys ${def.name} for ${buyPrice(def)} gold.`, "#e0c060");
+        } catch (error) {
+          this.ctx.say(error instanceof Error ? error.message : String(error), "#d07070");
+        }
+      },
+
+      carouse: (characterId, tier) => this.completeCarousing(find(characterId), tier),
+      train: (characterId, skill) => this.completeTraining(find(characterId), skill),
+      depart: () => this.departRespite(),
+    };
+  }
+
+  /** Clear an item out of every equipment slot that still points at it. */
+  private unequipEverywhere(character: Character, itemId: string): void {
+    if (character.inventory.has(itemId)) return;
+    if (character.wieldedWeapon?.id === itemId) character.wieldedWeapon = null;
+    if (character.wornArmor?.id === itemId) character.wornArmor = null;
+    if (character.carriedShield?.id === itemId) character.carriedShield = null;
+  }
+
+  /** Leave respite for the victory / destination-choice screen. */
+  departRespite(): void {
+    if (!this.modes.is("respite")) return;
+    this.saveToSlot(0);
+    this.modes.set("victory");
+    this.ctx.events.emit("won");
+  }
+
   private openMidnightSunOaths(member: CharacterSprite): void {
     const dungeonIndex = this.registry.get("dungeonIndex");
     const destinationIndex = typeof dungeonIndex === "number" ? dungeonIndex : 0;
@@ -4953,6 +5081,81 @@ export class DungeonScene extends Phaser.Scene {
     }
     if (free) this.clearDangerTrack();
     this.saveToSlot(0); // Checkpoint auto-saved!
+    this.offerScrollStudy();
+  }
+
+  /**
+   * A rest is when a caster can study a carried scroll instead of merely saving
+   * it for one casting. Offered rather than applied: the scroll burns whether the
+   * check lands or not, so the wager has to be the player's to take.
+   */
+  private offerScrollStudy(): void {
+    const options: { label: string; run: () => void }[] = [];
+    for (const member of this.party.aliveMembers()) {
+      for (const study of this.studyableScrollsFor(member)) {
+        options.push({
+          label: `${member.character.name}: study ${study.scrollName} → ${study.spellName} (T${study.spellTier}, DC ${SCROLL_LEARNING_DC}, scroll is consumed)`,
+          run: () => this.completeScrollStudy(member, study),
+        });
+      }
+    }
+    if (options.length === 0) return;
+    options.push({ label: "keep the scrolls for casting", run: () => {} });
+    this.openActionChoice(options, {
+      title: "STUDY A SCROLL",
+      subtitle: "Success copies the spell into the caster's repertoire. Failure burns the scroll.",
+    });
+  }
+
+  /** Carried scrolls whose spell this member could actually add to their repertoire. */
+  private studyableScrollsFor(member: CharacterSprite): ScrollStudyOption[] {
+    const c = member.character;
+    const candidates: ScrollCandidate[] = [];
+    for (const stack of c.inventory.all()) {
+      if (!stack.def.tags.includes("scroll")) continue;
+      const contained = spellForMagicItem(stack.def.id, stack.def.rulesId, stack.def.boundSpellId);
+      if (!contained) continue;
+      candidates.push({
+        itemId: stack.def.id,
+        scrollName: stack.def.name,
+        spellId: contained.id,
+        spellName: contained.name,
+        spellTier: contained.tier,
+        spellClasses: typeof contained.class === "string" ? [contained.class] : contained.class,
+      });
+    }
+    return studyableScrolls(candidates, {
+      castStat: member.cls.castStat,
+      className: getBaseRole(c.className),
+      maximumTier: maximumSpellTier(c.level),
+      knownSpellIds: c.knownSpells.map((known) => known.spellId),
+    });
+  }
+
+  private completeScrollStudy(member: CharacterSprite, study: ScrollStudyOption): void {
+    const c = member.character;
+    const castStat = member.cls.castStat;
+    if (!castStat) throw new Error(`${c.name} has no casting stat and cannot study a scroll`);
+    c.inventory.remove(study.itemId, 1);
+    const result = this.ctx.engine.check({
+      actor: c,
+      stat: castStat,
+      dc: SCROLL_LEARNING_DC,
+      kind: "spellcast",
+    });
+    if (result.success) {
+      c.learnSpell(study.spellId);
+      this.ctx.say(
+        `${c.name} studies ${study.scrollName} (${result.total} vs DC ${SCROLL_LEARNING_DC}) and learns ${study.spellName}!`,
+        "#9da7ec",
+      );
+    } else {
+      this.ctx.say(
+        `${c.name} loses the thread of ${study.scrollName} (${result.total} vs DC ${SCROLL_LEARNING_DC}); the scroll crumbles.`,
+        "#d07070",
+      );
+    }
+    this.saveToSlot(0);
   }
 
   /** Walls, columns, racks, foliage, and dungeon furniture are explicit cover. */

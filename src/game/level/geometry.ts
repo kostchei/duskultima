@@ -96,3 +96,29 @@ export function regionCenter(r: RoomRegion): { x: number; y: number } {
   const { top, bottom } = regionRowsAt(r, x);
   return { x, y: Math.round((top + bottom) / 2) };
 }
+
+/**
+ * The vertical band of a grid that actually draws something, in world pixels.
+ *
+ * A grid is taller than its level: rows below the lowest floor are solid fill,
+ * and an open-sky vault leaves a deep slab of it. Camera bounds taken from the
+ * full grid therefore let a zoomed-out level frame a screenful of nothing, so
+ * the view is bounded by this band instead. One tile of padding keeps the
+ * outermost drawn row from sitting flush against the screen edge.
+ */
+export function drawnBandY(
+  grid: readonly string[],
+  tileSize = 24,
+): { top: number; height: number } {
+  let first = -1;
+  let last = -1;
+  for (let y = 0; y < grid.length; y++) {
+    if (!/[^#]/.test(grid[y]!)) continue;
+    if (first === -1) first = y;
+    last = y;
+  }
+  if (first === -1) throw new Error("Grid has no drawn rows — every row is solid fill");
+  const top = Math.max(0, first - 1) * tileSize;
+  const bottom = Math.min(grid.length, last + 2) * tileSize;
+  return { top, height: bottom - top };
+}

@@ -313,3 +313,44 @@ describe("on-screen taps through the same action service", () => {
     expect(actions.held("gear")).toBe(false);
   });
 });
+
+describe("respite: the stop between destinations", () => {
+  it("freezes the world like any other full-screen panel", () => {
+    expect(pausesWorld("respite")).toBe(true);
+  });
+
+  it("is neither a dismissable overlay nor terminal — it is left deliberately", () => {
+    expect(isOverlayMode("respite")).toBe(false);
+    expect(isTerminalMode("respite")).toBe(false);
+    expect(isInterruptMode("respite")).toBe(false);
+  });
+
+  it("ignores overlay toggles so the panel keeps input", () => {
+    const { host } = recordingHost();
+    const modes = new ModeController(host, "playing");
+    modes.set("respite");
+    expect(modes.acceptsOverlayToggle).toBe(false);
+    modes.toggle("gear");
+    expect(modes.mode).toBe("gear");
+  });
+
+  it("carries on to victory, and victory cannot fall back into it", () => {
+    const { host, calls } = recordingHost();
+    const modes = new ModeController(host, "respite");
+    modes.set("victory");
+    expect(modes.mode).toBe("victory");
+    expect(calls).toContain("exit:respite");
+    expect(calls).toContain("enter:victory");
+    modes.set("respite");
+    expect(modes.mode).toBe("victory");
+  });
+
+  it("still yields to an interrupt and comes back", () => {
+    const { host } = recordingHost();
+    const modes = new ModeController(host, "respite");
+    modes.enterInterrupt("backgrounded");
+    expect(modes.mode).toBe("backgrounded");
+    modes.exitInterrupt();
+    expect(modes.mode).toBe("respite");
+  });
+});

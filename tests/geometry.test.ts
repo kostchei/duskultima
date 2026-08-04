@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  drawnBandY,
   regionCenter,
   regionRowsAt,
   regionShearAt,
@@ -94,5 +95,40 @@ describe("room geometry", () => {
     it("tolerates the divider column at the region's downhill edge", () => {
       expect(roomAtTolerant([tilted], 20, 14)?.id).toBe("room-1");
     });
+  });
+});
+
+describe("drawnBandY", () => {
+  it("trims the solid slab a grid carries below its lowest drawn row", () => {
+    const grid = [
+      "####",
+      "#..#",
+      "#..#",
+      "####",
+      "####",
+      "####",
+    ];
+    // Rows 1-2 draw; one row of padding each side gives rows 0-3.
+    expect(drawnBandY(grid, 10)).toEqual({ top: 0, height: 40 });
+  });
+
+  it("pads a band that starts partway down without going negative", () => {
+    const grid = ["####", "####", "####", "#..#", "####", "####"];
+    expect(drawnBandY(grid, 10)).toEqual({ top: 20, height: 30 });
+  });
+
+  it("never runs past the end of the grid", () => {
+    const grid = ["####", "#..#"];
+    const band = drawnBandY(grid, 10);
+    expect(band.top + band.height).toBeLessThanOrEqual(grid.length * 10);
+  });
+
+  it("keeps the whole grid when every row draws", () => {
+    const grid = ["#..#", "#..#", "#..#"];
+    expect(drawnBandY(grid, 10)).toEqual({ top: 0, height: 30 });
+  });
+
+  it("throws rather than returning an empty band for an all-solid grid", () => {
+    expect(() => drawnBandY(["####", "####"], 10)).toThrow(/no drawn rows/);
   });
 });

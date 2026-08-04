@@ -64,3 +64,68 @@ export function instructorTrainingDc(previousFailures: number): number {
   if (!Number.isInteger(previousFailures) || previousFailures < 0) throw new Error("Training failures must be non-negative");
   return Math.max(9, 15 - previousFailures * 3);
 }
+
+/**
+ * Learning a spell from a found scroll.
+ *
+ * A scroll can always be cast once. A caster resting with one may instead study
+ * it: a DC 15 casting-stat check to copy the spell into their repertoire. The
+ * scroll is spent either way — that is the wager, and the reason it is offered
+ * as a choice at rest rather than applied automatically.
+ */
+export const SCROLL_LEARNING_DC = 15;
+
+export interface ScrollStudyOption {
+  /** Inventory id of the scroll being studied. */
+  itemId: string;
+  scrollName: string;
+  spellId: string;
+  spellName: string;
+  spellTier: number;
+}
+
+/** The caster-facing shape of a scroll, so this stays free of item/spell data. */
+export interface ScrollCandidate {
+  itemId: string;
+  scrollName: string;
+  spellId: string;
+  spellName: string;
+  spellTier: number;
+  /** Classes the spell appears on. */
+  spellClasses: readonly string[];
+}
+
+/**
+ * Which carried scrolls this caster could actually study: a spell on their own
+ * class list, within the tier they can cast, that they do not already know.
+ * A non-caster gets nothing — `castStat` absent means no repertoire to copy into.
+ */
+export function studyableScrolls(
+  candidates: readonly ScrollCandidate[],
+  options: {
+    castStat: StatName | undefined;
+    className: string;
+    maximumTier: number;
+    knownSpellIds: readonly string[];
+  },
+): ScrollStudyOption[] {
+  if (!options.castStat) return [];
+  const known = new Set(options.knownSpellIds);
+  const seen = new Set<string>();
+  const studyable: ScrollStudyOption[] = [];
+  for (const candidate of candidates) {
+    if (known.has(candidate.spellId)) continue;
+    if (seen.has(candidate.itemId)) continue;
+    if (!candidate.spellClasses.includes(options.className)) continue;
+    if (candidate.spellTier > options.maximumTier) continue;
+    seen.add(candidate.itemId);
+    studyable.push({
+      itemId: candidate.itemId,
+      scrollName: candidate.scrollName,
+      spellId: candidate.spellId,
+      spellName: candidate.spellName,
+      spellTier: candidate.spellTier,
+    });
+  }
+  return studyable;
+}

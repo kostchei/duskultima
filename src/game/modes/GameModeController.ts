@@ -34,6 +34,12 @@ export type GameMode =
   | "shop"
   /** More than one contextual "E" interaction is valid at once; pick one. */
   | "actionChoice"
+  /**
+   * Between destinations: the party is out of the vault but has not chosen where
+   * to go next. Gear, trade, and downtime happen here. Not terminal — departing
+   * moves on to `victory`.
+   */
+  | "respite"
   /** Vault cleared: summary, and possibly the scroll-destination choice. */
   | "victory"
   /** Party wiped. */
@@ -68,6 +74,7 @@ const WORLD_PAUSING: ReadonlySet<GameMode> = new Set<GameMode>([
   "gear",
   "shop",
   "actionChoice",
+  "respite",
   "orientation-blocked",
   "backgrounded",
 ]);

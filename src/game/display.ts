@@ -56,12 +56,15 @@ export const RENDER_SCALE =
 export const GAMEPLAY_ZOOM_MULTIPLIER = IS_MOBILE_DISPLAY ? 1.25 : 1;
 export const GAMEPLAY_CAMERA_ZOOM = RENDER_SCALE * GAMEPLAY_ZOOM_MULTIPLIER;
 /**
- * How much further a lit, open-sky level sees. Halving the camera zoom doubles
- * the world distance visible in each dimension — the payoff for a level that
+ * How much further a lit, open-sky level sees — the payoff for a level that
  * rolled daylight, and the reason it plays as an outdoor level rather than a
  * roofless corridor.
+ *
+ * Read it as apparent size: everything on screen draws at `1 / multiplier` of
+ * its normal size. A full 2x put the party at half size, which was too small to
+ * read at a glance; 4/3 puts them at three-quarters, keeping the open feel.
  */
-export const DAYLIT_VIEW_MULTIPLIER = 2;
+export const DAYLIT_VIEW_MULTIPLIER = 4 / 3;
 
 export const GAMEPLAY_VIEW_W = GAME_W / GAMEPLAY_ZOOM_MULTIPLIER;
 export const GAMEPLAY_VIEW_H = GAME_H / GAMEPLAY_ZOOM_MULTIPLIER;

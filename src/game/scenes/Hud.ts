@@ -32,6 +32,7 @@ import { showAlert, showConfirm } from "../ui/modal";
 import { shouldShowTouchControls } from "../MobilePrefs";
 import { createTouchOverlay as buildTouchOverlay } from "../ui/TouchOverlay";
 import { createPauseSettings } from "../ui/PauseSettings";
+import { RespiteScreen, type RespiteHost } from "../ui/RespiteScreen";
 
 const UI_STYLE = {
   fontFamily: '"Trebuchet MS", Arial, sans-serif',
@@ -106,6 +107,7 @@ export class HudScene extends Phaser.Scene {
   private statsOverlay: Phaser.GameObjects.Container | null = null;
   private gearOverlay: Phaser.GameObjects.Container | null = null;
   private shopOverlay: Phaser.GameObjects.Container | null = null;
+  private respiteScreen: RespiteScreen | null = null;
   private actionChoiceOverlay: Phaser.GameObjects.Container | null = null;
   private compactMobileHud = false;
   private mobileHpLabel: Phaser.GameObjects.Text | null = null;
@@ -135,6 +137,7 @@ export class HudScene extends Phaser.Scene {
     this.gearOverlay = null;
     this.shopOverlay = null;
     this.actionChoiceOverlay = null;
+    this.respiteScreen = null;
     this.mobileHpLabel = null;
     this.mobileEquipmentToggle = null;
     this.mobileEquipmentDropdown = null;
@@ -1165,6 +1168,19 @@ export class HudScene extends Phaser.Scene {
     if (this.gearOverlay) {
       this.gearOverlay.destroy();
       this.gearOverlay = null;
+    }
+  }
+
+  /** The between-destinations screen: party gear, trade, and downtime. */
+  showRespiteOverlay(host: RespiteHost): void {
+    if (this.respiteScreen) return;
+    this.respiteScreen = new RespiteScreen(this, host, this.dungeon.presentationPalette.accent);
+  }
+
+  hideRespiteOverlay(): void {
+    if (this.respiteScreen) {
+      this.respiteScreen.destroy();
+      this.respiteScreen = null;
     }
   }
 
