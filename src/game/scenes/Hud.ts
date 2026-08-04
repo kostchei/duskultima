@@ -64,9 +64,14 @@ const DATA_STYLE = {
 } as const;
 
 const MAX_PARTY = 4;
-const LOG_LINES = 2;
-const PARTY_BOX = { x: 8, y: 8, w: 520, headerH: 28, rowH: 22, detailH: 20 };
+const LOG_LINES = 3;
+const PARTY_BOX = { x: 8, y: 8, w: 368, headerH: 20, rowH: 16, detailH: 14 };
 const MISSION_BOX = { x: 600, y: 8, w: 352, h: 70 };
+/** The running log: a narrow column top-right, tucked under the minimap and
+ * squared off with the mission panel above it. */
+const LOG_BOX = { x: 600, w: 352, h: 8 + LOG_LINES * 13, lineH: 13 };
+/** Party row columns, measured from the panel's left edge. */
+const PARTY_COL = { name: 16, barX: 158, barW: 62, stats: 240 };
 const MOBILE_HEADER_H = 30;
 const MOBILE_EQUIPMENT_W = 156;
 
@@ -110,6 +115,8 @@ export class HudScene extends Phaser.Scene {
   /** Party-row hover supplies a compact spell readout without changing leader. */
   private hoveredCasterId: string | null = null;
   private lastPartySize = -1;
+  /** Where drawChrome last put the log panel, so a resized minimap forces a redraw. */
+  private lastLogY = -1;
 
   constructor() {
     super("Hud");
@@ -135,6 +142,7 @@ export class HudScene extends Phaser.Scene {
     this.hoveredCasterId = null;
     this.compactMobileHud = shouldShowTouchControls();
     this.lastPartySize = -1;
+    this.lastLogY = -1;
     this.partyNames = [];
     this.partyStats = [];
     this.hpLabels = [];
@@ -151,12 +159,12 @@ export class HudScene extends Phaser.Scene {
     this.chrome = this.add.graphics().setDepth(990);
     this.hpBars = this.add.graphics().setDepth(995);
     this.partyHeader = this.add
-      .text(18, 14, "", { ...UI_STYLE, fontSize: "11px", color: titleColor, fontStyle: "bold" })
+      .text(PARTY_COL.name, 11, "", { ...UI_STYLE, fontSize: "10px", color: titleColor, fontStyle: "bold" })
       .setDepth(1000);
 
     for (let i = 0; i < MAX_PARTY; i++) {
       const y = PARTY_BOX.y + PARTY_BOX.headerH + i * PARTY_BOX.rowH;
-      const partyName = this.add.text(18, y, "", { ...UI_STYLE, fontSize: "11px" })
+      const partyName = this.add.text(PARTY_COL.name, y, "", { ...UI_STYLE, fontSize: "10px" })
         .setDepth(1000)
         .setVisible(false)
         .setInteractive({ useHandCursor: true });
@@ -169,9 +177,9 @@ export class HudScene extends Phaser.Scene {
       this.partyNames.push(partyName);
       this.hpLabels.push(
         this.add
-          .text(240, y + 6, "", {
+          .text(PARTY_COL.barX + PARTY_COL.barW / 2, y + 5, "", {
             ...DATA_STYLE,
-            fontSize: "9px",
+            fontSize: "8px",
             color: "#ffffff",
             stroke: "#050508",
             strokeThickness: 2,
@@ -182,14 +190,14 @@ export class HudScene extends Phaser.Scene {
       );
       this.partyStats.push(
         this.add
-          .text(282, y, "", { ...UI_STYLE, fontSize: "10px", color: "#d9dbe1" })
+          .text(PARTY_COL.stats, y, "", { ...UI_STYLE, fontSize: "9px", color: "#d9dbe1" })
           .setDepth(1000)
           .setVisible(false),
       );
     }
 
     this.leaderDetail = this.add
-      .text(18, 0, "", { ...DATA_STYLE, fontSize: "9px", color: "#d6bb72" })
+      .text(PARTY_COL.name, 0, "", { ...DATA_STYLE, fontSize: "8px", color: "#d6bb72" })
       .setDepth(1000);
 
     this.dungeonTitle = this.add
@@ -216,15 +224,16 @@ export class HudScene extends Phaser.Scene {
       .setOrigin(1, 0)
       .setDepth(1000);
 
-    // Positioned by drawChrome: the log rides under the party panel so the
-    // bottom of the screen — where the party actually fights — stays visible.
+    // Positioned by drawChrome: the log runs down the top-right corner under the
+    // minimap, keeping the centre and bottom of the screen — where the party
+    // actually fights — clear of chrome.
     for (let i = 0; i < LOG_LINES; i++) {
       this.logTexts.push(
         this.add
-          .text(18, 0, "", {
+          .text(LOG_BOX.x + 8, 0, "", {
             ...UI_STYLE,
-            fontSize: "11px",
-            wordWrap: { width: 570 },
+            fontSize: "9px",
+            wordWrap: { width: LOG_BOX.w - 16 },
           })
           .setDepth(1000),
       );
@@ -561,11 +570,12 @@ export class HudScene extends Phaser.Scene {
     }
 
     const partyH = partyBoxHeight(memberCount);
-    const logY = PARTY_BOX.y + partyH + 6;
+    const logY = this.logBoxY();
+    this.lastLogY = logY;
     this.chrome.fillStyle(0x05060a, 0.76);
     this.chrome.fillRoundedRect(PARTY_BOX.x, PARTY_BOX.y, PARTY_BOX.w, partyH, 5);
     this.chrome.fillRoundedRect(MISSION_BOX.x, MISSION_BOX.y, MISSION_BOX.w, MISSION_BOX.h, 5);
-    this.chrome.fillRoundedRect(8, logY, 584, 44, 5);
+    this.chrome.fillRoundedRect(LOG_BOX.x, logY, LOG_BOX.w, LOG_BOX.h, 5);
 
     this.chrome.fillStyle(accent, 0.8);
     this.chrome.fillRect(PARTY_BOX.x + 5, PARTY_BOX.y, PARTY_BOX.w - 10, 2);
@@ -574,12 +584,20 @@ export class HudScene extends Phaser.Scene {
     this.chrome.lineStyle(1, accent, 0.62);
     this.chrome.strokeRoundedRect(PARTY_BOX.x, PARTY_BOX.y, PARTY_BOX.w, partyH, 5);
     this.chrome.strokeRoundedRect(MISSION_BOX.x, MISSION_BOX.y, MISSION_BOX.w, MISSION_BOX.h, 5);
-    this.chrome.strokeRoundedRect(8, logY, 584, 44, 5);
+    this.chrome.strokeRoundedRect(LOG_BOX.x, logY, LOG_BOX.w, LOG_BOX.h, 5);
 
     this.leaderDetail.setY(PARTY_BOX.y + PARTY_BOX.headerH + memberCount * PARTY_BOX.rowH + 2);
-    this.logTexts.forEach((text, i) => text.setY(logY + 4 + i * 19));
-    this.torchWarning.setY(Math.max(logY + 44, MISSION_BOX.y + MISSION_BOX.h) + 16);
+    this.logTexts.forEach((text, i) => text.setY(logY + 5 + i * LOG_BOX.lineH));
+    this.torchWarning.setY(Math.max(logY + LOG_BOX.h, PARTY_BOX.y + partyH) + 16);
     this.luckHint.setY(this.torchWarning.y + 26);
+  }
+
+  /**
+   * Top of the log panel. It hangs off the bottom of the minimap, whose height
+   * grows with the vault's row count, so it is measured rather than assumed.
+   */
+  private logBoxY(): number {
+    return Math.ceil(this.mapText.y + (this.mapText.visible ? this.mapText.height : 0)) + 8;
   }
 
   /** The talent roll gets a legible card instead of text floating over combat. */
@@ -1626,11 +1644,13 @@ export class HudScene extends Phaser.Scene {
         .setVisible(true)
         .setText(c.dead ? "DEAD" : c.dying ? `DOWN ${c.dying.roundsRemaining}` : `${c.hp}/${c.maxHp}${conditionTag}`);
 
-      this.hpBars.fillStyle(0x1f2128, 1).fillRoundedRect(203, y + 3, 74, 12, 3);
-      this.hpBars.fillStyle(hpColor, 1).fillRoundedRect(205, y + 5, 70 * ratio, 8, 2);
+      const barX = PARTY_COL.barX;
+      const barW = PARTY_COL.barW;
+      this.hpBars.fillStyle(0x1f2128, 1).fillRoundedRect(barX - 2, y + 1, barW + 4, 11, 3);
+      this.hpBars.fillStyle(hpColor, 1).fillRoundedRect(barX, y + 3, barW * ratio, 7, 2);
       if (isLeader && !c.dead) {
         this.hpBars.lineStyle(1, this.dungeon.presentationPalette.accent, 0.9);
-        this.hpBars.strokeRoundedRect(202, y + 2, 76, 14, 3);
+        this.hpBars.strokeRoundedRect(barX - 3, y, barW + 6, 13, 3);
       }
     }
 
@@ -1692,6 +1712,8 @@ export class HudScene extends Phaser.Scene {
     this.mapText
       .setVisible(this.dungeon.activeDungeon.connectors !== undefined)
       .setText(this.dungeon.compactMap);
+    // The log hangs off the minimap, so a change in its height moves the panel.
+    if (this.logBoxY() !== this.lastLogY) this.drawChrome(members.length);
 
     if (minTorchMs < 30_000) {
       this.torchWarning.setVisible(true).setAlpha(0.6 + 0.4 * Math.sin(time / 120));

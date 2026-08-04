@@ -23,7 +23,8 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "staff", name: "Staff", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", twoHanded: true, reachTiles: 2.0, weaponVisual: "staff", valueGp: 2 },
   { id: "shortsword", name: "Shortsword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 1.7, weaponVisual: "dagger", valueGp: 7 },
   { id: "spear", name: "Spear", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 2.4, weaponVisual: "spear", valueGp: 5 },
-  { id: "javelin", name: "Javelin", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", finesse: true, reachTiles: 1.8, weaponVisual: "javelin", valueGp: 1 },
+  // Thrown, so no reachTiles: a javelin is loosed at range like a bow, not swung.
+  { id: "javelin", name: "Javelin", slotCost: 1, bundleSize: 1, tags: ["weapon", "ranged"], damage: "1d4", finesse: true, weaponVisual: "javelin", valueGp: 1 },
   { id: "warhammer", name: "Warhammer", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d8", reachTiles: 1.7, weaponVisual: "mace", valueGp: 10 },
   { id: "bastard-sword", name: "Bastard Sword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d10", twoHanded: true, reachTiles: 1.9, weaponVisual: "longsword", valueGp: 10 },
   { id: "greatsword", name: "Greatsword", slotCost: 2, bundleSize: 1, tags: ["weapon"], damage: "1d12", twoHanded: true, reachTiles: 2.0, weaponVisual: "longsword", valueGp: 12 },

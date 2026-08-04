@@ -30,6 +30,13 @@ import { bowShot, swordClang, swordCrit, thud, whoosh } from "../audio/sfx";
 import { hitBurst } from "../fx/vfx";
 import type { LightSystem } from "./light";
 
+// Running-log colours: blows the party lands read cool, blows it takes read hot,
+// and a miss on either side is muted so the log's hits stand out at a glance.
+const LOG_ALLY_HIT = "#b9d98a";
+const LOG_ALLY_MISS = "#8b9182";
+const LOG_FOE_HIT = "#ff8a70";
+const LOG_FOE_MISS = "#9a8a8a";
+
 export function floatText(
   scene: Phaser.Scene,
   x: number,
@@ -253,11 +260,16 @@ export function meleeSwing(deps: MeleeDeps, attacker: CharacterSprite, isExtraSw
     else deps.scene.cameras.main.shake(80, 0.003);
     if (result.check.crit) swordCrit();
     else swordClang();
+    ctx.say(
+      `${attacker.character.name} ${result.check.crit ? "crits" : "hits"} the ${target.def.name} for ${totalDamage}.`,
+      result.check.crit ? "#ffd040" : LOG_ALLY_HIT,
+    );
     applyDamageToMonster(deps, target, totalDamage, attacker);
     applyThorns(deps, target, attacker);
   } else {
     whoosh();
     floatText(deps.scene, target.x, target.y - 16, `${die} miss`, "#8888aa");
+    ctx.say(`${attacker.character.name} misses the ${target.def.name}.`, LOG_ALLY_MISS);
   }
   if (posCtx.advantage.length > 0 && posCtx.disadvantage.length === 0) {
     floatText(deps.scene, attacker.x, attacker.y - 34, posCtx.advantage[0]!, "#70d070", 11);
@@ -326,11 +338,28 @@ export function applyDamageToMonster(deps: MeleeDeps, target: MonsterSprite, dam
   }
 }
 
-/** The first ranged or throwable weapon in a character's pack (shortbow or dagger). */
+/**
+ * The best ranged or throwable weapon in a character's pack. Any `ranged`-tagged
+ * weapon qualifies (bows, crossbows, javelins), biggest damage die first; a dagger
+ * is the last resort because it is thrown rather than loosed.
+ */
 export function carriedRangedWeapon(attacker: CharacterSprite): ItemDef | null {
-  if (attacker.character.inventory.has("shortbow")) return item("shortbow");
+  const ranged = attacker.character.inventory
+    .all()
+    .map((stack) => stack.def)
+    .filter((def) => def.tags.includes("ranged") && def.damage);
+  if (ranged.length > 0) {
+    return ranged.reduce((best, def) => (damageDieSize(def) > damageDieSize(best) ? def : best));
+  }
   if (attacker.character.inventory.has("dagger")) return item("dagger");
   return null;
+}
+
+/** The die face count of a weapon's damage expression, for ranking ranged options. */
+function damageDieSize(def: ItemDef): number {
+  const match = /d(\d+)/.exec(def.damage ?? "");
+  if (!match) throw new Error(`${def.name} has no damage die`);
+  return Number(match[1]);
 }
 
 /** Loose an arrow or throw a dagger: attack roll at range, projectile flight, damage on arrival. */
@@ -367,13 +396,14 @@ export function rangedShot(
   // Loosing the shot gives the position away, win or lose.
   revealCharacter(attacker.character);
 
-  const isDagger = weapon.id === "dagger";
-  if (isDagger) {
+  // Thrown weapons leave the hand; bows loose a shaft. Different sound, different streak.
+  const isThrown = weapon.id === "dagger" || weapon.id === "javelin";
+  if (isThrown) {
     whoosh({ gain: 0.7 });
   } else {
     bowShot();
   }
-  const projectile = isDagger
+  const projectile = isThrown
     ? scene.add.image(attacker.x + attacker.facing * 8, attacker.y - 8, "slash").setDepth(20).setDisplaySize(12, 6)
     : scene.add.rectangle(attacker.x + attacker.facing * 8, attacker.y - 8, 10, 2, 0xd8cfa8).setDepth(20);
   projectile.setRotation(Phaser.Math.Angle.Between(attacker.x, attacker.y, target.x, target.y));
@@ -386,13 +416,19 @@ export function rangedShot(
       projectile.destroy();
       if (!target.active || !target.aliveInFight) return;
       const die = result.check.natural;
+      const verb = isThrown ? "throw" : "shot";
       if (result.check.success) {
         const label = result.check.crit ? `${die}! CRIT ${result.damage}` : `${die} → ${result.damage}`;
         floatText(scene, target.x, target.y - 16, label, result.check.crit ? "#ffd040" : "#ff7050");
+        ctx.say(
+          `${attacker.character.name}'s ${verb} ${result.check.crit ? "crits" : "hits"} the ${target.def.name} for ${result.damage}.`,
+          result.check.crit ? "#ffd040" : LOG_ALLY_HIT,
+        );
         applyDamageToMonster(deps, target, result.damage, attacker);
       } else {
         whoosh({ gain: 0.6 });
         floatText(scene, target.x, target.y - 16, `${die} miss`, "#8888aa");
+        ctx.say(`${attacker.character.name}'s ${verb} misses the ${target.def.name}.`, LOG_ALLY_MISS);
       }
     },
   });
@@ -447,6 +483,7 @@ export function monsterSwing(
 
     thud();
     floatText(scene, target.x, target.y - 16, `-${result.damage}`, "#ff5050");
+    ctx.say(`The ${monster.def.name} hits ${target.character.name} for ${result.damage}.`, LOG_FOE_HIT);
     const wentDown = ctx.engine.damageCharacter(target.character, result.damage, { attack: true });
     if (result.appliedCondition && !wentDown) {
       const duration = result.appliedCondition === "poisoned" ? 3 : 2;
@@ -475,6 +512,7 @@ export function monsterSwing(
   } else {
     whoosh({ gain: 0.5 });
     floatText(scene, target.x, target.y - 16, "miss", "#8888aa");
+    ctx.say(`The ${monster.def.name} misses ${target.character.name}.`, LOG_FOE_MISS);
   }
 }
 
