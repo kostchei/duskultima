@@ -2,7 +2,14 @@ import { getBaseRole, type Alignment, type ClassName, type SpellClass, type Roll
 import { characterTitle } from "../engine";
 import type { SaveSlot, SavedCharacter } from "./state";
 import type { VisualSkinId, ZonePackId } from "./visual/model";
-import { generatedMagicItem, item, plebNameForSeed } from "../data";
+import {
+  MAGIC_ARMOR_BASE_IDS,
+  generatedMagicArmor,
+  generatedMagicItem,
+  isGenericMagicArmorId,
+  item,
+  plebNameForSeed,
+} from "../data";
 import {
   TREASURE_0_3,
   TREASURE_4_6,
@@ -22,6 +29,8 @@ export interface PartyProgress {
   level: number;
   knownSpellIds: readonly string[];
   dead?: boolean;
+  /** What this member is already wearing, so magic armor can fill the real gaps. */
+  wornArmorId?: string;
 }
 
 export interface CompanionReward {
@@ -113,6 +122,43 @@ function rollTableEntry(table: RollableTable, seed: number): { entry: TableEntry
   return { entry, roll };
 }
 
+/** Protection a member currently gets from what they wear: base AC plus any enchantment. */
+function armorValue(armorId: string | undefined): number {
+  if (!armorId) return 10; // unarmored
+  const def = item(armorId);
+  if (!def.armor) throw new Error(`"${armorId}" is worn as armor but defines none`);
+  return def.armor.acBase + (def.magicBonus ?? 0);
+}
+
+/**
+ * Which suit a generic "+N magic armor" find turns out to be. The party's gaps
+ * decide: for each armor type, score the single biggest upgrade it offers anyone
+ * who can legally wear it — a fighter in plain chainmail wants the plate, and a
+ * member already in magic armor is no longer a gap. Types nobody in the party
+ * can wear score nothing, so a wizard-and-thief party stops finding plate.
+ * Ties break on the caller's seed, keeping the reward a pure function of it.
+ */
+export function chooseMagicArmorType(party: readonly PartyProgress[], bonus: number, seed: number): string {
+  const living = party.filter((member) => !member.dead);
+  const scored = MAGIC_ARMOR_BASE_IDS.map((armorId) => {
+    const def = item(armorId);
+    if (!def.armor) throw new Error(`Magic armor base "${armorId}" defines no armor`);
+    const wearers = living.filter((member) => def.armor!.classes.includes(member.className));
+    const gain = wearers.reduce(
+      (best, member) => Math.max(best, def.armor!.acBase + bonus - armorValue(member.wornArmorId)),
+      Number.NEGATIVE_INFINITY,
+    );
+    return { armorId, gain: wearers.length === 0 ? Number.NEGATIVE_INFINITY : gain };
+  });
+  const best = Math.max(...scored.map((entry) => entry.gain));
+  // An all-wizard party can wear none of it. That is a real game state, not an
+  // error — the find is loot to sell — so the type is simply not gap-driven.
+  const pool = best === Number.NEGATIVE_INFINITY
+    ? [...MAGIC_ARMOR_BASE_IDS]
+    : scored.filter((entry) => entry.gain === best).map((entry) => entry.armorId);
+  return pool[stableIndex(seed, pool.length)]!;
+}
+
 /**
  * Resolves either treasure reward-cycle slot against the registered core and
  * Cursed Scroll treasure tables. The result's kind describes what was rolled,
@@ -145,7 +191,16 @@ function rollVaultTreasure(
   }
   const baseDef = item(data.itemId);
   const spellRoll = stableIndex(dungeonIndex * 1877 + partySalt * 43 + slotSalt * 101, 12) + 1;
-  const def = generatedMagicItem(baseDef.id, spellRoll);
+  const def = isGenericMagicArmorId(baseDef.id)
+    ? generatedMagicArmor(
+        baseDef.id,
+        chooseMagicArmorType(
+          party,
+          baseDef.magicBonus ?? 0,
+          dungeonIndex * 3299 + partySalt * 53 + slotSalt * 29,
+        ),
+      )
+    : generatedMagicItem(baseDef.id, spellRoll);
   const qty = data.qty ?? 1;
   const valueGp = data.valueGp ?? (def.valueGp ?? 0) * qty;
   const quality = def.treasureQuality
@@ -232,6 +287,7 @@ export function progressFromSavedParty(party: readonly SavedCharacter[]): PartyP
     level: member.level,
     knownSpellIds: member.knownSpells.map((known) => known.spellId),
     dead: member.dead,
+    wornArmorId: member.wornArmorId ?? undefined,
   }));
 }
 

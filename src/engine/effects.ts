@@ -184,6 +184,17 @@ export function effectiveStatScore(
   return score;
 }
 
+/** Flat melee-only damage, which `Engine.attack` adds after the weapon's own bonuses. */
+export function sumMeleeDamageBonus(effects: readonly Effect[]): number {
+  let total = 0;
+  for (const e of effects) {
+    for (const h of e.hooks) {
+      if (h.kind === "meleeDamageBonus") total += h.bonus;
+    }
+  }
+  return total;
+}
+
 export function sumStatBonus(effects: readonly Effect[], stat: StatName): number {
   let total = 0;
   for (const e of effects) {

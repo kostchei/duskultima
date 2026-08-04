@@ -220,7 +220,53 @@ const GENERATED_SPELL_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.flatM
   });
 });
 
-const ITEM_LIST: readonly ItemDef[] = [...BASE_ITEM_LIST, ...CORE_TREASURE_ITEMS, ...GENERATED_SPELL_ITEMS];
+/**
+ * "+N magic armor" names no armor type, so the find is minted as one. These are
+ * the types it can take; the reward layer picks which, filling the party's gaps.
+ */
+export const MAGIC_ARMOR_BASE_IDS: readonly string[] = ["leather-armor", "chainmail", "plate-mail"];
+
+/** The generic magic-armor rows: a bonus and a benefit/curse with no armor behind them. */
+const GENERIC_MAGIC_ARMOR_BASE = "aegis-mail";
+
+export function isGenericMagicArmorId(id: string): boolean {
+  return CORE_TREASURE_ITEM_SPECS.some(
+    (spec) => spec.id === id && spec.baseItemId === GENERIC_MAGIC_ARMOR_BASE,
+  );
+}
+
+/**
+ * One concrete item per (generic magic-armor row × armor type). The armor's own
+ * stats come from the real mundane armor — a +2 plate keeps plate's DEX cap,
+ * slot cost, and stealth disadvantage — while the bonus and the benefit/curse
+ * rolls come from the treasure row.
+ */
+const GENERATED_ARMOR_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.flatMap((spec) => {
+  if (spec.baseItemId !== GENERIC_MAGIC_ARMOR_BASE) return [];
+  const treasureDef = CORE_TREASURE_ITEMS.find((candidate) => candidate.id === spec.id)!;
+  return MAGIC_ARMOR_BASE_IDS.map((armorId) => {
+    const armorDef = BASE_ITEMS.get(armorId);
+    if (!armorDef?.armor) throw new Error(`Magic armor base "${armorId}" is not armor`);
+    const bonus = treasureDef.magicBonus ?? 0;
+    return {
+      ...treasureDef,
+      id: `${spec.id}--${armorId}`,
+      rulesId: armorId,
+      name: `+${bonus} ${armorDef.name}`,
+      description: `${spec.description} It is a suit of ${armorDef.name.toLowerCase()}.`,
+      armor: armorDef.armor,
+      armorVisual: armorDef.armorVisual,
+      slotCost: armorDef.slotCost,
+    };
+  });
+});
+
+const ITEM_LIST: readonly ItemDef[] = [
+  ...BASE_ITEM_LIST,
+  ...CORE_TREASURE_ITEMS,
+  ...GENERATED_SPELL_ITEMS,
+  ...GENERATED_ARMOR_ITEMS,
+];
 
 const ITEMS = new Map(ITEM_LIST.map((i) => [i.id, i]));
 if (ITEMS.size !== ITEM_LIST.length) throw new Error("Duplicate item ids in data");
@@ -241,4 +287,11 @@ export function generatedMagicItem(baseItemId: string, d12: number): ItemDef {
   if (!spec?.spellTier || !spec.spellContainer) return item(baseItemId);
   const contained = magicItemSpell(spec.spellTier, d12);
   return item(`${baseItemId}--${contained.id}`);
+}
+
+/** Resolve a generic "+N magic armor" find as a specific suit of armor. */
+export function generatedMagicArmor(baseItemId: string, armorId: string): ItemDef {
+  if (!isGenericMagicArmorId(baseItemId)) throw new Error(`"${baseItemId}" is not generic magic armor`);
+  if (!MAGIC_ARMOR_BASE_IDS.includes(armorId)) throw new Error(`"${armorId}" is not a magic armor base`);
+  return item(`${baseItemId}--${armorId}`);
 }

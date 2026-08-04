@@ -933,9 +933,18 @@ export class HudScene extends Phaser.Scene {
     });
 
     const xpVal = c.level >= MAX_LEVEL ? "MAX" : `${c.xp}/${xpToNextLevel(c.level)}`;
-    const secondaryDetails = 
+    // Derived combat totals: talents like Weapon Mastery are invisible on a sheet
+    // that only lists their prose, so show what the dice will actually add.
+    const profile = c.attackProfile;
+    const signed = (n: number) => (n >= 0 ? `+${n}` : `${n}`);
+    const attackLines = profile
+      ? `ATK : ${signed(profile.toHit)} (${profile.stat}, ${profile.weapon!.name})\n`
+        + `DMG : ${profile.damageDice}${signed(profile.damageBonus)}\n`
+      : "ATK : unarmed\n";
+    const secondaryDetails =
       `HP : ${c.hp} / ${c.maxHp}\n` +
       `AC : ${c.ac}\n` +
+      attackLines +
       `XP : ${xpVal}\n` +
       `VOICE : ${c.voiceRegister.toUpperCase()}`;
 
@@ -959,7 +968,11 @@ export class HudScene extends Phaser.Scene {
       lineSpacing: 3
     });
 
-    const spellsTitle = this.add.text(w / 2 - 205, h / 2 + 75, "SPELLS - CLICK TO PREPARE", {
+    // Anchored to the block above rather than a fixed offset: the secondary
+    // column grows with the character (attack profile, conditions), and a fixed
+    // y let it overrun this heading.
+    const spellsY = secondaryText.y + secondaryText.height + 14;
+    const spellsTitle = this.add.text(w / 2 - 205, spellsY, "SPELLS - CLICK TO PREPARE", {
       ...UI_STYLE,
       fontSize: "11px",
       color: titleColor,
@@ -969,7 +982,7 @@ export class HudScene extends Phaser.Scene {
     const spellRows = c.knownSpells.map((known: any, index: number) => {
       const def = spell(known.spellId);
       const selected = member?.spellIndex === index;
-      const row = this.add.text(w / 2 - 205, h / 2 + 95 + index * 16, `${selected ? ">" : " "} ${def.name}  T${def.tier}${def.focus ? " FOCUS" : ""}${known.status === "lost" ? "  LOST" : ""}`, {
+      const row = this.add.text(w / 2 - 205, spellsY + 20 + index * 16, `${selected ? ">" : " "} ${def.name}  T${def.tier}${def.focus ? " FOCUS" : ""}${known.status === "lost" ? "  LOST" : ""}`, {
         ...DATA_STYLE,
         fontSize: "10px",
         color: known.status === "lost" ? "#8d8088" : selected ? "#ffd45f" : "#c9cbd1",

@@ -16,6 +16,7 @@ import {
   type ContestedCheckSide,
 } from "./check";
 import { Dice } from "./dice";
+import { sumMeleeDamageBonus } from "./effects";
 import { EventLog } from "./events";
 import type { ItemDef } from "./inventory";
 import { restoreOnRest } from "./itemActions";
@@ -302,9 +303,7 @@ export class Engine {
       );
       const worldSerpentMultiplier = melee && this.hasFocusedSpellOn("world-serpent", a.id) ? 2 : 1;
       if (!input.weapon?.tags.includes("ranged")) damage *= Math.max(meleeMultiplier, worldSerpentMultiplier);
-      if (melee) for (const effect of a.effects) for (const hook of effect.hooks) {
-        if (hook.kind === "meleeDamageBonus") damage += hook.bonus;
-      }
+      if (melee) damage += sumMeleeDamageBonus(a.effects);
       // Crits double the damage dice (all of them, backstab dice included).
       if (check.crit) for (let i = 0; i < diceRolls; i++) damage += this.dice.roll(input.damage);
       damage = Math.max(1, damage);

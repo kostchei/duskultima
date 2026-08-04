@@ -1,6 +1,16 @@
 /** Character model: six stats, class, effects (talents + conditions), HP/AC/XP, spells. */
 
-import { critThreshold, effectiveStatScore, hookAppliesToWeapon, sumHook, type Effect, type EffectHook } from "./effects";
+import {
+  critThreshold,
+  effectiveStatScore,
+  hookAppliesToWeapon,
+  sumCheckBonus,
+  sumHook,
+  sumMeleeDamageBonus,
+  type CheckKind,
+  type Effect,
+  type EffectHook,
+} from "./effects";
 import type { Dice } from "./dice";
 import { Inventory, ItemStateTracker, type ItemDef } from "./inventory";
 
@@ -349,6 +359,37 @@ export class Character {
 
   get damageBonus(): number {
     return this.damageBonusWith(this.wieldedWeapon?.id);
+  }
+
+  /**
+   * What the wielded weapon actually adds up to, for display. Mirrors the stat
+   * choice and modifier stack that `Engine.attack` rolls with, so a sheet built
+   * from this can never disagree with what the dice do.
+   */
+  get attackProfile(): {
+    weapon: ItemDef | null;
+    stat: StatName;
+    toHit: number;
+    damageDice: string;
+    damageBonus: number;
+  } | null {
+    const weapon = this.wieldedWeapon;
+    if (!weapon || !weapon.damage) return null;
+    const ranged = weapon.tags.includes("ranged");
+    const stat: StatName = ranged || (weapon.finesse === true && this.mod("DEX") > this.mod("STR"))
+      ? "DEX"
+      : "STR";
+    const kind: CheckKind = ranged ? "attack" : "meleeAttack";
+    const magic = weapon.magicBonus ?? 0;
+    return {
+      weapon,
+      stat,
+      toHit: this.mod(stat) + sumCheckBonus(this.effects, kind, this.level, weapon.id, stat) + magic,
+      damageDice: weapon.damage,
+      damageBonus: this.mod(stat) + this.damageBonusWith(weapon.id) + magic
+        + (!ranged && this.ancestry === "half-orc" ? 1 : 0)
+        + (!ranged ? sumMeleeDamageBonus(this.effects) : 0),
+    };
   }
 
   /**
