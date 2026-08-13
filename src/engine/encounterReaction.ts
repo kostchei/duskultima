@@ -10,7 +10,7 @@
 
 import type { Dice } from "./dice";
 
-export type MonsterActivity = "eating" | "guarding" | "sleeping" | "building" | "hunting";
+export type MonsterActivity = "eating" | "guarding" | "sleeping" | "building" | "hunting" | "socializing";
 export type MonsterReaction = "hostile" | "suspicious" | "neutral" | "curious" | "friendly";
 export type EncounterDistance = "close" | "near" | "far";
 export type EncounterChoice =
@@ -25,24 +25,30 @@ export type EncounterChoice =
   | "subdue"
   | "retreat";
 
-const ACTIVITIES: readonly MonsterActivity[] = ["eating", "guarding", "sleeping", "building", "hunting"];
-const DISTANCES: readonly EncounterDistance[] = ["close", "near", "far"];
-
 export function rollActivity(dice: Dice): MonsterActivity {
-  return ACTIVITIES[dice.die(ACTIVITIES.length) - 1]!;
+  const roll = dice.roll("2d6");
+  if (roll <= 4) return "hunting";
+  if (roll <= 6) return "eating";
+  if (roll <= 8) return "building";
+  if (roll <= 10) return "socializing";
+  if (roll === 11) return "guarding";
+  return "sleeping";
 }
 
 export function rollDistance(dice: Dice): EncounterDistance {
-  return DISTANCES[dice.die(DISTANCES.length) - 1]!;
+  const roll = dice.die(6);
+  if (roll === 1) return "close";
+  if (roll >= 5) return "far";
+  return "near";
 }
 
 /** 2d6 bell curve: hostile and friendly are the rare tails, same shape as a reaction roll should have. */
 export function rollReaction(dice: Dice): MonsterReaction {
   const roll = dice.roll("2d6");
-  if (roll <= 3) return "hostile";
-  if (roll <= 5) return "suspicious";
-  if (roll <= 8) return "neutral";
-  if (roll <= 10) return "curious";
+  if (roll <= 6) return "hostile";
+  if (roll <= 8) return "suspicious";
+  if (roll === 9) return "neutral";
+  if (roll <= 11) return "curious";
   return "friendly";
 }
 
