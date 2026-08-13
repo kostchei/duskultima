@@ -34,8 +34,9 @@ egg-layer, so it is not used as an egg guardian. Kobolds are present in the
 Red Sands roster as small desert lizard-folk; their eggs are intentionally a
 strange but valid lower-tier objective. Scrags are large monitor lizards and
 Purple Worms are gargantuan, legendary nest guardians. Hippogriffs are
-already present in the Midnight Sun roster; Wyverns and Desert Dragons are
-now explicit Red Sands roster creatures and egg-goal candidates.
+already present in the Midnight Sun roster; Wyverns and all six canonical
+dragon variants (Desert, Fire, Forest, Frost, Sea, and Swamp) are now explicit
+roster creatures and egg-goal candidates.
 
 ## Room archetypes
 

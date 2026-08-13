@@ -192,6 +192,7 @@ export const DIABLERIE_ROSTER: readonly MonsterDef[] = [
   d("black-pudding", "Black Pudding", { level: 6, role: "brute", archetype: "ooze", size: "large", art: GRUB, specialAbility: "split" }),
   d("night-hag", "Night Hag", { level: 8, role: "caster", archetype: "biped", size: "medium", art: CULTIST }),
   d("treant", "Treant", { level: 8, role: "champion", archetype: "plant", size: "huge", art: GRUB }),
+  d("swamp-dragon", "Swamp Dragon", { level: 12, role: "champion", archetype: "serpent", size: "gargantuan", art: STORM, ac: 17, hitDice: "12d8", attackBonus: 9, damage: "3d10" }),
 ];
 
 assertRosterComplete("diablerie", DIABLERIE_ROSTER);

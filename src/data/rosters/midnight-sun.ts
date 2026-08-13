@@ -88,6 +88,7 @@ export const MIDNIGHT_SUN_ROSTER: readonly MonsterDef[] = [
 
   // --- LV 14 ---
   d("valkyrie", "Valkyrie", { level: 14, role: "champion", archetype: "flyer", size: "medium", art: NYMPH }),
+  d("frost-dragon", "Frost Dragon", { level: 14, role: "champion", archetype: "flyer", size: "gargantuan", art: DRAKE, ac: 18, hitDice: "14d8", attackBonus: 10, damage: "3d10" }),
 ];
 
 assertRosterComplete("midnight-sun", MIDNIGHT_SUN_ROSTER);

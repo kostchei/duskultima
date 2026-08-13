@@ -64,12 +64,14 @@ export const EGG_GUARDIANS_BY_BIOME: Readonly<Record<MonsterBiome, readonly EggG
   diablerie: [
     { speciesId: "giant-spider", speciesName: "Giant Spider", guardianName: "the broodmother spider", guardianMonsterId: "giant-spider", guardianSize: "large", treasureQuality: "fabulous" },
     { speciesId: "giant-wasp", speciesName: "Giant Wasp", guardianName: "the wasp queen", guardianMonsterId: "giant-wasp", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "swamp-dragon", speciesName: "Swamp Dragon", guardianName: "the swamp dragon", guardianMonsterId: "swamp-dragon", guardianSize: "gargantuan", treasureQuality: "legendary" },
   ],
   "red-sands": [
     { speciesId: "kobold", speciesName: "Kobold", guardianName: "the kobold matron", guardianMonsterId: "kobold", guardianSize: "medium", treasureQuality: "fabulous" },
     { speciesId: "scrag", speciesName: "Scrag", guardianName: "the scrag matriarch", guardianMonsterId: "scrag", guardianSize: "large", treasureQuality: "fabulous" },
     { speciesId: "wyvern", speciesName: "Wyvern", guardianName: "the wyvern mother", guardianMonsterId: "wyvern", guardianSize: "large", treasureQuality: "legendary" },
     { speciesId: "desert-dragon", speciesName: "Desert Dragon", guardianName: "the desert dragon", guardianMonsterId: "desert-dragon", guardianSize: "gargantuan", treasureQuality: "legendary" },
+    { speciesId: "fire-dragon", speciesName: "Fire Dragon", guardianName: "the fire dragon", guardianMonsterId: "fire-dragon", guardianSize: "gargantuan", treasureQuality: "legendary" },
     { speciesId: "purple-worm", speciesName: "Purple Worm", guardianName: "the purple worm mother", guardianMonsterId: "purple-worm", guardianSize: "gargantuan", treasureQuality: "legendary" },
   ],
   "midnight-sun": [
@@ -77,15 +79,18 @@ export const EGG_GUARDIANS_BY_BIOME: Readonly<Record<MonsterBiome, readonly EggG
     { speciesId: "hippogriff", speciesName: "Hippogriff", guardianName: "the nesting hippogriff", guardianMonsterId: "hippogriff", guardianSize: "large", treasureQuality: "fabulous" },
     { speciesId: "plesiosaurus", speciesName: "Plesiosaurus", guardianName: "the lake mother", guardianMonsterId: "plesiosaurus", guardianSize: "huge", treasureQuality: "fabulous" },
     { speciesId: "remorhaz", speciesName: "Remorhaz", guardianName: "the ember broodmother", guardianMonsterId: "remorhaz", guardianSize: "gargantuan", treasureQuality: "legendary" },
+    { speciesId: "frost-dragon", speciesName: "Frost Dragon", guardianName: "the frost dragon", guardianMonsterId: "frost-dragon", guardianSize: "gargantuan", treasureQuality: "legendary" },
   ],
   "river-of-night": [
     { speciesId: "ankheg", speciesName: "Ankheg", guardianName: "the ankheg queen", guardianMonsterId: "ankheg", guardianSize: "large", treasureQuality: "fabulous" },
     { speciesId: "crocodile", speciesName: "Crocodile", guardianName: "the river mother", guardianMonsterId: "crocodile", guardianSize: "large", treasureQuality: "fabulous" },
     { speciesId: "basilisk", speciesName: "Basilisk", guardianName: "the clutch keeper", guardianMonsterId: "basilisk", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "forest-dragon", speciesName: "Forest Dragon", guardianName: "the forest dragon", guardianMonsterId: "forest-dragon", guardianSize: "gargantuan", treasureQuality: "legendary" },
   ],
   "dwellers-in-the-deep": [
     { speciesId: "chuul", speciesName: "Chuul", guardianName: "the clutch sentinel", guardianMonsterId: "chuul", guardianSize: "large", treasureQuality: "fabulous" },
     { speciesId: "void-spider", speciesName: "Void Spider", guardianName: "the abyssal broodmother", guardianMonsterId: "void-spider", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "sea-dragon", speciesName: "Sea Dragon", guardianName: "the sea dragon", guardianMonsterId: "sea-dragon", guardianSize: "gargantuan", treasureQuality: "legendary" },
   ],
   "city-of-masks": [],
 };

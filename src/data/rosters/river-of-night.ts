@@ -59,6 +59,7 @@ export const RIVER_OF_NIGHT_ROSTER: readonly MonsterDef[] = [
   // --- LV 9 ---
   d("couatl", "Couatl", { level: 9, role: "caster", archetype: "serpent", size: "medium", art: DRAGON }),
   d("naga", "Serpent Naga", { level: 9, role: "caster", archetype: "serpent", size: "large", art: VIPER }),
+  d("forest-dragon", "Forest Dragon", { level: 12, role: "champion", archetype: "flyer", size: "gargantuan", art: DRAGON, ac: 17, hitDice: "12d8", attackBonus: 9, damage: "3d10" }),
 ];
 
 assertRosterComplete("river-of-night", RIVER_OF_NIGHT_ROSTER);

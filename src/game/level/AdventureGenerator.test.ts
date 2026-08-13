@@ -47,14 +47,18 @@ describe("AdventureGenerator goals", () => {
       "scrag",
       "wyvern",
       "desert-dragon",
+      "fire-dragon",
       "purple-worm",
     ]);
+    const eggProfiles = Object.values(EGG_GUARDIANS_BY_BIOME).flat();
     const purpleWorm = EGG_GUARDIANS_BY_BIOME["red-sands"].find((profile) => profile.speciesId === "purple-worm");
     expect(purpleWorm?.guardianSize).toBe("gargantuan");
     expect(purpleWorm?.treasureQuality).toBe("legendary");
     expect(EGG_GUARDIANS_BY_BIOME["midnight-sun"].map((profile) => profile.speciesId)).toContain("hippogriff");
+    for (const dragonId of ["desert-dragon", "fire-dragon", "forest-dragon", "frost-dragon", "sea-dragon", "swamp-dragon"]) {
+      expect(eggProfiles.some((profile) => profile.speciesId === dragonId)).toBe(true);
+    }
 
-    const eggProfiles = Object.values(EGG_GUARDIANS_BY_BIOME).flat();
     expect(eggProfiles.find((profile) => profile.speciesId === "purple-worm")?.guardianMonsterId).toBe("purple-worm");
     expect(eggProfiles.find((profile) => profile.speciesId === "purple-worm")?.speciesName).toBe("Purple Worm");
   });

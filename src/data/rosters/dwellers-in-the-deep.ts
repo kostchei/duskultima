@@ -60,6 +60,7 @@ export const DEEP_ROSTER: readonly MonsterDef[] = [
 
   // --- LV 10 ---
   d("archmage", "Archmage", { level: 10, role: "caster", archetype: "biped", size: "medium", art: PRIEST }),
+  d("sea-dragon", "Sea Dragon", { level: 16, role: "champion", archetype: "serpent", size: "gargantuan", art: ABYSSAL, ac: 18, hitDice: "16d8", attackBonus: 10, damage: "3d12" }),
 ];
 
 assertRosterComplete("dwellers-in-the-deep", DEEP_ROSTER);

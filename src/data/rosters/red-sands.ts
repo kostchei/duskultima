@@ -25,6 +25,7 @@ const WARLORD = art(0x6a5248, 0x3c2c26, 0xf07832, 0xffd45f, "weapon", "horns");
 const FIRE = art(0xd04020, 0x802010, 0xff9030, 0xffd040);
 const DEVIL = art(0x5a2a2a, 0x321616, 0xa84030, 0xe0d040, "horns");
 const GOLEM = art(0x8a7a60, 0x544a3a, 0xc0b090, 0xff8030);
+const DRAGON = art(0x9a3a2a, 0x5a1f1a, 0xf0a040, 0xffd040, "wings");
 
 export const RED_SANDS_ROSTER: readonly MonsterDef[] = [
   // --- LV 0 ---
@@ -104,6 +105,7 @@ export const RED_SANDS_ROSTER: readonly MonsterDef[] = [
   d("djinni", "Djinni", { level: 10, role: "caster", archetype: "elemental", size: "large", art: MYSTIC }),
   d("mummy", "Mummy", { level: 10, role: "soldier", archetype: "biped", size: "medium", art: BANDIT, undead: true }),
   d("desert-dragon", "Desert Dragon", { level: 13, role: "champion", archetype: "flyer", size: "gargantuan", art: DESERT, ac: 17, hitDice: "13d8", attackBonus: 9, damage: "3d10" }),
+  d("fire-dragon", "Fire Dragon", { level: 17, role: "champion", archetype: "flyer", size: "gargantuan", art: DRAGON, ac: 18, hitDice: "17d8", attackBonus: 10, damage: "3d12" }),
   d("purple-worm", "Purple Worm", { level: 12, role: "champion", archetype: "vermin", size: "gargantuan", art: DESERT, ac: 18, hitDice: "12d8", attackBonus: 8, damage: "2d12" }),
 ];
 
