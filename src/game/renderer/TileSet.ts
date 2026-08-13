@@ -21,6 +21,8 @@ export enum TileType {
   CAMPFIRE = 10,
   TRAP = 11,
   WATER = 12,
+  RAMP = 13,
+  SHAFT = 14,
 
   // Entities
   FIGHTER = 20,
@@ -86,6 +88,8 @@ export class TileSet {
     this.tileMap.set(TileType.CAMPFIRE, this.drawCampfireTile(palette));
     this.tileMap.set(TileType.TRAP, this.drawTrapTile(palette));
     this.tileMap.set(TileType.WATER, this.drawWaterTile());
+    this.tileMap.set(TileType.RAMP, this.drawRampTile(palette));
+    this.tileMap.set(TileType.SHAFT, this.drawShaftTile(palette));
 
     // Entities
     this.tileMap.set(TileType.FIGHTER, this.drawHeroTile("#e74c3c", "#f39c12", "F", palette));
@@ -253,6 +257,29 @@ export class TileSet {
     ctx.fillStyle = "#21558b";
     ctx.fillRect(4, 6, 10, 2);
     ctx.fillRect(18, 16, 10, 2);
+    return cvs;
+  }
+
+  private drawRampTile(p: BiomePalette): HTMLCanvasElement {
+    const cvs = this.drawFloorTile(p);
+    const ctx = cvs.getContext("2d")!;
+    ctx.strokeStyle = "#d4ac5a";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(5, 25);
+    ctx.lineTo(27, 7);
+    ctx.stroke();
+    return cvs;
+  }
+
+  private drawShaftTile(p: BiomePalette): HTMLCanvasElement {
+    const cvs = this.drawFloorTile(p);
+    const ctx = cvs.getContext("2d")!;
+    ctx.fillStyle = "#101018";
+    ctx.fillRect(7, 7, 18, 18);
+    ctx.strokeStyle = "#6b7280";
+    ctx.strokeRect(7, 7, 18, 18);
+    ctx.strokeRect(11, 11, 10, 10);
     return cvs;
   }
 

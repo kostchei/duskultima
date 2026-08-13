@@ -12,7 +12,7 @@ import { UltimaFrame } from "./game/ui/UltimaFrame";
 import { Modals } from "./game/ui/Modals";
 import { InputHandler } from "./game/input/InputHandler";
 import { TileType } from "./game/renderer/TileSet";
-import { Adventure, SiteDef } from "./game/level/Adventure";
+import { Adventure, goalUsesChest, SiteDef } from "./game/level/Adventure";
 import { AdventureGenerator } from "./game/level/AdventureGenerator";
 import { ZoneHazards } from "./engine/zoneHazards";
 import { AudioEngine } from "./game/audio/AudioEngine";
@@ -195,8 +195,15 @@ class Game {
       const targetX = this.grid.playerPos.x + dx;
       const targetY = this.grid.playerPos.y + dy;
       const entityAtTarget = this.grid.getEntityAt(targetX, targetY);
-      if (entityAtTarget?.rescueClass) {
+      if (entityAtTarget?.goalInteraction === "rescue-companion" && entityAtTarget.rescueClass) {
         this.rescueHero(entityAtTarget);
+        return;
+      }
+      if (entityAtTarget?.goalInteraction === "hostage" || entityAtTarget?.goalInteraction === "objective") {
+        entityAtTarget.hp = 0;
+        this.frame.addLog(`${this.leader.name} completes the objective: ${this.currentSite.goal.description}.`, "hit");
+        this.completeSiteGoal(null);
+        this.endTurn("move");
         return;
       }
       if (entityAtTarget?.isHostile && entityAtTarget.hp > 0) {
@@ -226,11 +233,22 @@ class Game {
         this.frame.addLog(this.currentSite.goal.isCompleted ? "Press [E]nter to descend to the next site." : "The stairs down are locked until you fulfill the Site Goal!", "prompt");
       } else if (tileAtTarget === TileType.CHEST_CLOSED) {
         this.grid.setTile(targetX, targetY, TileType.CHEST_OPEN);
-        this.frame.addLog(`${this.leader.name} opens the chest and finds gold & treasure!`, "hit");
-        const xp = treasureQualityXp("normal");
+        const goal = this.currentSite.goal;
+        if (goal.kind === "fabled-item" && goal.targetItemId) {
+          const fabledItem = item(goal.targetItemId);
+          this.leader.inventory.add(fabledItem, 1, true);
+          this.frame.addLog(`${this.leader.name} recovers the fabled ${fabledItem.name}!`, "hit");
+        } else if (goal.kind === "monster-eggs") {
+          this.frame.addLog(`${this.leader.name} secures the monster eggs; the nesting mother still lurks nearby.`, "hit");
+        } else if (goal.kind === "harvest-components" || goal.kind === "exotic-materials") {
+          this.frame.addLog(`${this.leader.name} gathers ${goal.requiredQuantity ?? 1} ${goal.target}.`, "hit");
+        } else {
+          this.frame.addLog(`${this.leader.name} opens the cache and finds gold & treasure!`, "hit");
+        }
+        const xp = treasureQualityXp(goal.treasureQuality ?? "normal");
         this.party.forEach((char) => this.engine.awardXp(char, xp));
-        this.frame.addLog(`${xp} normal-treasure XP awarded to each party member.`, "hit");
-        if (this.currentSite.goal.verb === "Retrieve") this.completeSiteGoal(null);
+        this.frame.addLog(`${xp} ${goal.treasureQuality ?? "normal"}-treasure XP awarded to each party member.`, "hit");
+        if (goalUsesChest(goal)) this.completeSiteGoal(null);
       }
     }
     if (moved === 0) {
@@ -379,7 +397,8 @@ class Game {
     this.frame.addLog(`${result.check.crit ? "Critical hit! " : "Hit! "}Dealt ${result.damage} damage to ${monster.name}.`, "hit");
     if (monster.hp <= 0) {
       this.frame.addLog(`${monster.name} is slain!`, "hit");
-      if (this.currentSite.goal.verb === "Slay" && monster.name === this.currentSite.goal.target) {
+      if ((this.currentSite.goal.kind === "assassinate-leader" || this.currentSite.goal.kind === "kill-boss")
+        && monster.name === this.currentSite.goal.target) {
         this.completeSiteGoal(null);
       }
     }

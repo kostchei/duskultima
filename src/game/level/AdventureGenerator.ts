@@ -5,7 +5,7 @@
 
 import { Dice } from "../../engine/dice";
 import type { MonsterBiome } from "../../engine";
-import { Adventure, GoalVerb, SiteDef, SiteGoal, SiteSize } from "./Adventure";
+import { Adventure, GoalKind, GoalVerb, SiteDef, SiteGoal, SiteSize } from "./Adventure";
 
 const BIOMES: readonly MonsterBiome[] = [
   "diablerie",
@@ -32,15 +32,119 @@ const NAME_SUFFIXES = [
   "of the Radiant Sorcerer", "of the Night Queen", "of the Hidden Gem"
 ];
 
-const GOAL_TARGETS = [
-  { verb: "Slay" as GoalVerb, target: "Gloom Ogre" },
-  { verb: "Slay" as GoalVerb, target: "Skeleton Commander" },
-  { verb: "Retrieve" as GoalVerb, target: "Crown of the Deep" },
-  { verb: "Retrieve" as GoalVerb, target: "Starfall Relic" },
-  { verb: "Cleanse" as GoalVerb, target: "Tainted Shrine" },
-  { verb: "Cleanse" as GoalVerb, target: "Foul Altar" },
-  { verb: "Investigate" as GoalVerb, target: "Lost Tome" },
-  { verb: "Investigate" as GoalVerb, target: "Ancient Crypt" },
+interface GoalTemplate {
+  kind: GoalKind;
+  verb: GoalVerb;
+  target: string;
+  completion: SiteGoal["completion"];
+  approaches: readonly SiteGoal["approaches"][number][];
+  objectiveEntity?: SiteGoal["objectiveEntity"];
+  targetItemId?: string;
+  requiredQuantity?: number;
+  treasureQuality?: SiteGoal["treasureQuality"];
+  guardianName?: string;
+  description: string;
+}
+
+export const GOAL_TEMPLATES: readonly GoalTemplate[] = [
+  {
+    kind: "fabled-item",
+    verb: "Retrieve",
+    target: "Crown of the Deep",
+    completion: "acquire",
+    approaches: ["combat", "stealth", "evasion"],
+    targetItemId: "crown-of-the-deep",
+    treasureQuality: "legendary",
+    description: "Recover the fabled Crown of the Deep",
+  },
+  {
+    kind: "lift-hex",
+    verb: "Cleanse",
+    target: "the Rot-Bramble hex",
+    completion: "interact",
+    approaches: ["combat", "stealth", "evasion", "social"],
+    objectiveEntity: "objective",
+    description: "Lift the Rot-Bramble hex",
+  },
+  {
+    kind: "harvest-components",
+    verb: "Retrieve",
+    target: "ritual components",
+    completion: "acquire",
+    approaches: ["combat", "stealth", "evasion"],
+    requiredQuantity: 3,
+    description: "Harvest 3 ritual components",
+  },
+  {
+    kind: "treasure-cache",
+    verb: "Retrieve",
+    target: "the sealed treasure cache",
+    completion: "acquire",
+    approaches: ["combat", "stealth", "evasion"],
+    description: "Secure the sealed treasure cache",
+  },
+  {
+    kind: "exotic-materials",
+    verb: "Retrieve",
+    target: "exotic materials",
+    completion: "acquire",
+    approaches: ["combat", "stealth", "evasion"],
+    requiredQuantity: 3,
+    description: "Harvest 3 exotic materials",
+  },
+  {
+    kind: "rescue-hostage",
+    verb: "Rescue",
+    target: "the captive hostage",
+    completion: "rescue",
+    approaches: ["combat", "stealth", "evasion", "social"],
+    objectiveEntity: "hostage",
+    description: "Rescue the hostage",
+  },
+  {
+    kind: "monster-eggs",
+    verb: "Retrieve",
+    target: "monster eggs",
+    completion: "acquire",
+    approaches: ["combat", "stealth", "evasion"],
+    requiredQuantity: 1,
+    guardianName: "the nesting mother",
+    description: "Recover the monster eggs without waking the nesting mother",
+  },
+  {
+    kind: "assassinate-leader",
+    verb: "Slay",
+    target: "the enemy leader",
+    completion: "defeat-target",
+    approaches: ["combat", "stealth", "evasion"],
+    description: "Assassinate the enemy leader",
+  },
+  {
+    kind: "secure-chokepoint",
+    verb: "Investigate",
+    target: "the mountain chokepoint",
+    completion: "interact",
+    approaches: ["combat", "stealth", "evasion", "social"],
+    objectiveEntity: "objective",
+    description: "Secure the chokepoint",
+  },
+  {
+    kind: "kill-boss",
+    verb: "Slay",
+    target: "the site boss",
+    completion: "defeat-target",
+    approaches: ["combat", "stealth", "evasion"],
+    description: "Kill the site boss",
+  },
+  {
+    kind: "clear-border",
+    verb: "Investigate",
+    target: "the border crossing",
+    completion: "secure-area",
+    approaches: ["combat", "stealth", "evasion", "social"],
+    objectiveEntity: "objective",
+    description: "Clear the border crossing for safe passage",
+  },
 ];
 
 export class AdventureGenerator {
@@ -75,21 +179,35 @@ export class AdventureGenerator {
         const rescueClass = remainingRescues.shift()!;
         const heroName = rescueClass === "thief" ? "Lyra" : rescueClass === "priest" ? "Elen" : "Vael";
         goal = {
+          kind: "rescue-companion",
           verb: "Rescue",
           target: `${heroName} the ${rescueClass.toUpperCase()}`,
           isRescue: true,
           rescueClass: rescueClass,
+          completion: "rescue",
+          approaches: ["combat", "stealth", "evasion", "social"],
+          requiresAllHostilesDefeated: false,
+          objectiveEntity: "rescue-companion",
           isCompleted: false,
           description: `Rescue ${heroName} the ${rescueClass.toUpperCase()} from captivity`,
         };
       } else {
-        const standardGoal = this.getRandomItem(GOAL_TARGETS);
+        const standardGoal = this.getRandomItem([...GOAL_TEMPLATES]);
         goal = {
+          kind: standardGoal.kind,
           verb: standardGoal.verb,
           target: standardGoal.target,
           isRescue: false,
+          completion: standardGoal.completion,
+          approaches: standardGoal.approaches,
+          requiresAllHostilesDefeated: false,
+          objectiveEntity: standardGoal.objectiveEntity,
+          targetItemId: standardGoal.targetItemId,
+          requiredQuantity: standardGoal.requiredQuantity,
+          treasureQuality: standardGoal.treasureQuality,
+          guardianName: standardGoal.guardianName,
           isCompleted: false,
-          description: `${standardGoal.verb} the ${standardGoal.target}`,
+          description: standardGoal.description,
         };
       }
 

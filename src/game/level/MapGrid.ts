@@ -4,7 +4,13 @@
  */
 
 import { TileType } from "../renderer/TileSet";
-import { SiteDef } from "./Adventure";
+import { goalUsesChest, SiteDef } from "./Adventure";
+import {
+  buildRoomPlans,
+  buildTravelSegments,
+  type RoomPlan,
+  type TravelSegment,
+} from "./roomGeneration";
 
 export interface MapEntity {
   id: string;
@@ -23,6 +29,16 @@ export interface MapEntity {
   specialAbility?: "web" | "poison" | "engulf" | "shadow-extinct" | "split" | "corrode" | "thorns";
   isParty?: boolean;
   rescueClass?: "thief" | "priest" | "wizard";
+  goalInteraction?: "rescue-companion" | "hostage" | "objective";
+  isGoalTarget?: boolean;
+  monsterSize?: "medium" | "large" | "huge" | "gargantuan";
+}
+
+export interface CorridorTrapMarker {
+  x: number;
+  y: number;
+  trapId: number;
+  triggered: boolean;
 }
 
 export class MapGrid {
@@ -37,6 +53,9 @@ export class MapGrid {
   public stairsDownPos = { x: 18, y: 18 };
   public siteDef: SiteDef | null = null;
   public partyPositions = new Map<string, { x: number; y: number }>();
+  public roomPlans: readonly RoomPlan[] = [];
+  public travelSegments: readonly TravelSegment[] = [];
+  public corridorTraps: CorridorTrapMarker[] = [];
 
   constructor(width = 28, height = 28) {
     this.width = width;
@@ -120,23 +139,16 @@ export class MapGrid {
       if (row) {
         for (let x = 0; x < this.width; x++) {
           row[x] = TileType.WALL;
+          this.visited[y]![x] = false;
+          this.visible[y]![x] = false;
         }
       }
     }
 
-    // Generate room rectangles based on roomCount
-    const roomRects: Array<{ x: number; y: number; w: number; h: number }> = [];
-    const gridCols = Math.ceil(Math.sqrt(roomCount));
-
-    for (let i = 0; i < roomCount; i++) {
-      const col = i % gridCols;
-      const row = Math.floor(i / gridCols);
-      const rx = 2 + col * 7;
-      const ry = 2 + row * 7;
-      const rw = 5;
-      const rh = 5;
-      roomRects.push({ x: rx, y: ry, w: rw, h: rh });
-    }
+    this.roomPlans = buildRoomPlans(roomCount, siteDef.goal);
+    this.travelSegments = buildTravelSegments(this.roomPlans);
+    this.corridorTraps = [];
+    const roomRects = this.roomPlans.map((room) => room.rect);
 
     // Carve floors for rooms
     for (const r of roomRects) {
@@ -150,20 +162,32 @@ export class MapGrid {
       }
     }
 
-    // Connect corridors between consecutive rooms
-    for (let i = 0; i < roomRects.length - 1; i++) {
+    // Connect explicit travel segments between consecutive rooms. The width
+    // is intentionally independent of room count: some routes must admit the
+    // largest creature the site can roll, while others may later become
+    // narrow squeeze routes as a deliberate hazard.
+    for (const segment of this.travelSegments) {
+      const i = segment.fromRoom;
       const r1 = roomRects[i]!;
       const r2 = roomRects[i + 1]!;
       const cx1 = Math.floor(r1.x + r1.w / 2);
       const cy1 = Math.floor(r1.y + r1.h / 2);
       const cx2 = Math.floor(r2.x + r2.w / 2);
       const cy2 = Math.floor(r2.y + r2.h / 2);
-      this.carveCorridor(cx1, cy1, cx2, cy2);
+      this.carveCorridor(cx1, cy1, cx2, cy2, segment.width);
 
       // Place door at corridor midpoint
       const midX = Math.floor((cx1 + cx2) / 2);
       const midY = Math.floor((cy1 + cy2) / 2);
       this.setTile(midX, midY, TileType.DOOR_CLOSED);
+      if (segment.kind === "ramp") this.setTile(midX, midY + 1, TileType.RAMP);
+      if (segment.kind === "shaft") this.setTile(midX, midY + 1, TileType.SHAFT);
+      if (segment.trapId !== undefined) {
+        const trapX = Math.floor((cx1 + midX) / 2);
+        const trapY = Math.floor((cy1 + midY) / 2);
+        this.setTile(trapX, trapY, TileType.TRAP);
+        this.corridorTraps.push({ x: trapX, y: trapY, trapId: segment.trapId, triggered: false });
+      }
     }
 
     // Room 1: Entrance -> Player spawn
@@ -185,7 +209,7 @@ export class MapGrid {
     this.entities = [];
 
     // Spawn Goal Entity
-    if (siteDef.goal.isRescue) {
+    if (siteDef.goal.kind === "rescue-companion") {
       this.entities.push({
         id: "rescue-npc",
         name: siteDef.goal.target,
@@ -197,8 +221,22 @@ export class MapGrid {
         ac: 10,
         isHostile: false,
         rescueClass: siteDef.goal.rescueClass,
+        goalInteraction: "rescue-companion",
       });
-    } else if (siteDef.goal.verb === "Slay") {
+    } else if (siteDef.goal.kind === "rescue-hostage") {
+      this.entities.push({
+        id: "hostage",
+        name: siteDef.goal.target,
+        x: goalX,
+        y: goalY,
+        tileType: TileType.RESCUE_NPC,
+        hp: 1,
+        maxHp: 1,
+        ac: 10,
+        isHostile: false,
+        goalInteraction: "hostage",
+      });
+    } else if (siteDef.goal.kind === "assassinate-leader" || siteDef.goal.kind === "kill-boss") {
       this.entities.push({
         id: "boss-monster",
         name: siteDef.goal.target,
@@ -212,46 +250,85 @@ export class MapGrid {
         attackBonus: 4,
         initiativeDexModifier: 0,
         damage: "1d10",
+        isGoalTarget: true,
+        monsterSize: "large",
       });
-    } else if (siteDef.goal.verb === "Retrieve") {
+    } else if (goalUsesChest(siteDef.goal)) {
       this.setTile(goalX, goalY, TileType.CHEST_CLOSED);
+      if (siteDef.goal.kind === "monster-eggs") {
+        this.entities.push({
+          id: "nesting-mother",
+          name: siteDef.goal.guardianName ?? "nesting mother",
+          x: goalX + 2,
+          y: goalY,
+          tileType: TileType.GLOOM_OGRE,
+          hp: 30,
+          maxHp: 30,
+          ac: 15,
+          isHostile: true,
+          attackBonus: 5,
+          initiativeDexModifier: 1,
+          damage: "2d8",
+          monsterSize: "huge",
+        });
+      }
     } else {
-      this.setTile(goalX, goalY, TileType.CAMPFIRE);
+      this.entities.push({
+        id: "goal-objective",
+        name: siteDef.goal.target,
+        x: goalX,
+        y: goalY,
+        tileType: TileType.RESCUE_NPC,
+        hp: 1,
+        maxHp: 1,
+        ac: 10,
+        isHostile: false,
+        goalInteraction: "objective",
+      });
     }
 
     // Spawn 1-3 wandering monsters in intermediate rooms
     for (let i = 1; i < roomRects.length - 1; i++) {
       if (i === goalRoomIndex) continue;
       const r = roomRects[i]!;
+      const archetype = this.roomPlans[i]?.archetype;
       this.entities.push({
         id: `m-${i}`,
-        name: "Goblin Scout",
+        name: archetype === "elite" ? "Elite Goblin Guard" : "Goblin Scout",
         x: r.x + 2,
         y: r.y + 2,
-        tileType: TileType.GOBLIN,
-        hp: 6,
-        maxHp: 6,
-        ac: 11,
+        tileType: archetype === "elite" ? TileType.ORC : TileType.GOBLIN,
+        hp: archetype === "elite" ? 10 : 6,
+        maxHp: archetype === "elite" ? 10 : 6,
+        ac: archetype === "elite" ? 13 : 11,
         isHostile: true,
-        attackBonus: 1,
+        attackBonus: archetype === "elite" ? 3 : 1,
         initiativeDexModifier: 2,
         damage: "1d6",
+        monsterSize: archetype === "elite" ? "large" : "medium",
       });
     }
   }
 
-  private carveCorridor(x1: number, y1: number, x2: number, y2: number): void {
+  private carveCorridor(x1: number, y1: number, x2: number, y2: number, width: number): void {
+    const half = Math.floor(width / 2);
+    const carve = (x: number, y: number): void => {
+      for (let offset = -half; offset <= half; offset++) {
+        if (x1 === x2) this.setTile(x + offset, y, TileType.FLOOR);
+        else this.setTile(x, y + offset, TileType.FLOOR);
+      }
+    };
     let currX = x1;
     let currY = y1;
     while (currX !== x2) {
-      this.setTile(currX, currY, TileType.FLOOR);
+      carve(currX, currY);
       currX += currX < x2 ? 1 : -1;
     }
     while (currY !== y2) {
-      this.setTile(currX, currY, TileType.FLOOR);
+      carve(currX, currY);
       currY += currY < y2 ? 1 : -1;
     }
-    this.setTile(x2, y2, TileType.FLOOR);
+    carve(x2, y2);
   }
 
   /**
