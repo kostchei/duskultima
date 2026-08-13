@@ -18,6 +18,9 @@ import { ZoneHazards } from "./engine/zoneHazards";
 import { AudioEngine } from "./game/audio/AudioEngine";
 import { resolveCarouse, carouseCost, type CarouseTier } from "./engine/downtime";
 import { treasureQualityXp } from "./engine/treasureXp";
+import { chooseAutoSupportAction, type LeaderIntent } from "./engine/partyAutomation";
+import { gridDistance, movementTiles, RANGE_BAND_TILES } from "./engine/rangeBands";
+import { spell } from "./data/spells";
 
 class Game {
   private engine: Engine;
@@ -36,6 +39,9 @@ class Game {
   private isTorchActive = true;
   private breathRoundsSubmerged = 0;
   private crtEnabled = true;
+  private movementBandsRemaining: 0 | 1 | 2 = 2;
+  private actionAvailable = true;
+  private autoFollowerIds = new Set<string>();
 
   constructor() {
     this.engine = new Engine();
@@ -56,6 +62,7 @@ class Game {
 
     this.frame.addLog("DuskUltima initialized. You begin your solo journey as Thorin the Fighter!", "system");
     this.frame.addLog("Use Arrow Keys to move. Press [A]ttack, [C]ast, [T]orch, [I]nventory.", "prompt");
+    this.frame.addLog("Move near + act, or hold Shift to move double near and end the round.", "prompt");
   }
 
   private get leader(): Character {
@@ -95,15 +102,18 @@ class Game {
     const site = this.currentSite;
     this.grid.generateSite(site);
     this.round = 1;
+    this.movementBandsRemaining = 2;
+    this.actionAvailable = true;
     this.breathRoundsSubmerged = 0;
     this.audio.updateBiomeAmbience(site.biome);
     this.frame.addLog(`Entered Site ${this.currentAdventure.currentSiteIndex + 1}: ${site.name} (${site.sizeCategory.toUpperCase()}, ${site.roomCount} Rooms, Biome: ${site.biome.toUpperCase()}).`, "system");
     this.frame.addLog(`Site Goal: ${site.goal.description}`, "prompt");
+    this.syncPartyFormation();
   }
 
   private setupInput(): void {
     new InputHandler({
-      onMove: (dx, dy) => this.handleMove(dx, dy),
+      onMove: (dx, dy, bands) => this.handleMove(dx, dy, bands ?? 1),
       onAttack: () => this.handleAttack(),
       onCast: () => this.handleCast(),
       onLook: () => this.handleLook(),
@@ -114,6 +124,7 @@ class Game {
       onPass: () => this.handlePass(),
       onStats: () => this.handleStats(),
       onSelectLeader: (idx) => this.selectLeader(idx),
+      onToggleAuto: (idx) => this.toggleAutoFollower(idx),
       onInteract: () => this.handleInteract(),
       onToggleCrt: () => this.handleToggleCrt(),
     });
@@ -138,59 +149,90 @@ class Game {
     }
   }
 
-  private handleMove(dx: number, dy: number): void {
-    const targetX = this.grid.playerPos.x + dx;
-    const targetY = this.grid.playerPos.y + dy;
-
-    // Check entity at target (Rescue NPC or Monster)
-    const entityAtTarget = this.grid.getEntityAt(targetX, targetY);
-    if (entityAtTarget) {
-      if (entityAtTarget.rescueClass) {
-        this.rescueHero(entityAtTarget);
-        return;
-      } else if (entityAtTarget.isHostile && entityAtTarget.hp > 0) {
-        this.attackMonsterAt(entityAtTarget);
-        this.endTurn();
-        return;
-      }
+  private toggleAutoFollower(idx: number): void {
+    const follower = this.party[idx];
+    if (!follower || idx === this.leaderIndex) return;
+    if (this.autoFollowerIds.has(follower.id)) {
+      this.autoFollowerIds.delete(follower.id);
+      this.frame.addLog(`${follower.name} switches to manual control.`, "system");
+    } else {
+      this.autoFollowerIds.add(follower.id);
+      this.frame.addLog(`${follower.name} will follow and support the leader automatically.`, "system");
     }
+    this.updateUi();
+  }
 
-    // Door check -> auto open closed doors
-    const tileAtTarget = this.grid.getTile(targetX, targetY);
-    if (tileAtTarget === TileType.DOOR_CLOSED) {
-      this.grid.setTile(targetX, targetY, TileType.DOOR_OPEN);
-      this.frame.addLog("You open the heavy wooden door.", "item");
-      this.audio.playStepSfx();
-      this.endTurn();
+  private syncPartyFormation(): void {
+    this.grid.setPartyMembers(this.party.map((member) => member.id));
+    this.grid.moveAutoFollowers([...this.autoFollowerIds]);
+  }
+
+  private handleMove(dx: number, dy: number, requestedBands: 1 | 2): void {
+    if (this.actionAvailable === false && this.movementBandsRemaining === 0) {
+      this.frame.addLog("Your turn is complete. Choose an action after the round advances.", "prompt");
+      return;
+    }
+    if (requestedBands > this.movementBandsRemaining) {
+      this.frame.addLog("You have only one near movement left; hold Shift on the next round for double near.", "prompt");
       return;
     }
 
-    if (this.grid.isWalkable(targetX, targetY)) {
+    const steps = movementTiles(requestedBands);
+    let moved = 0;
+    for (let step = 0; step < steps; step++) {
+      const targetX = this.grid.playerPos.x + dx;
+      const targetY = this.grid.playerPos.y + dy;
+      const entityAtTarget = this.grid.getEntityAt(targetX, targetY);
+      if (entityAtTarget?.rescueClass) {
+        this.rescueHero(entityAtTarget);
+        return;
+      }
+      if (entityAtTarget?.isHostile && entityAtTarget.hp > 0) {
+        if (requestedBands === 1 && this.actionAvailable) {
+          this.attackMonsterAt(entityAtTarget);
+          this.actionAvailable = false;
+          this.endTurn("attack");
+        } else {
+          this.frame.addLog("A hostile blocks the double-near advance.", "combat");
+          this.endTurn("move");
+        }
+        return;
+      }
+      const tileAtTarget = this.grid.getTile(targetX, targetY);
+      if (tileAtTarget === TileType.DOOR_CLOSED) {
+        this.grid.setTile(targetX, targetY, TileType.DOOR_OPEN);
+        this.frame.addLog("You open the heavy wooden door.", "item");
+        moved++;
+        break;
+      }
+      if (!this.grid.isWalkable(targetX, targetY)) break;
       this.grid.playerPos.x = targetX;
       this.grid.playerPos.y = targetY;
+      moved++;
       this.audio.playStepSfx();
-
-      // Check stairs or features
       if (tileAtTarget === TileType.STAIRS_DOWN) {
-        if (!this.currentSite.goal.isCompleted) {
-          this.frame.addLog("The stairs down are locked until you fulfill the Site Goal!", "prompt");
-        } else {
-          this.frame.addLog("Press [E]nter to descend to the next site.", "prompt");
-        }
+        this.frame.addLog(this.currentSite.goal.isCompleted ? "Press [E]nter to descend to the next site." : "The stairs down are locked until you fulfill the Site Goal!", "prompt");
       } else if (tileAtTarget === TileType.CHEST_CLOSED) {
         this.grid.setTile(targetX, targetY, TileType.CHEST_OPEN);
         this.frame.addLog(`${this.leader.name} opens the chest and finds gold & treasure!`, "hit");
         const xp = treasureQualityXp("normal");
         this.party.forEach((char) => this.engine.awardXp(char, xp));
         this.frame.addLog(`${xp} normal-treasure XP awarded to each party member.`, "hit");
-        if (this.currentSite.goal.verb === "Retrieve") {
-          this.completeSiteGoal(null);
-        }
+        if (this.currentSite.goal.verb === "Retrieve") this.completeSiteGoal(null);
       }
-
-      this.endTurn();
-    } else {
+    }
+    if (moved === 0) {
       this.frame.addLog("Path blocked.", "prompt");
+      return;
+    }
+    this.movementBandsRemaining = (this.movementBandsRemaining - requestedBands) as 0 | 1;
+    this.syncPartyFormation();
+    if (requestedBands === 2 || this.movementBandsRemaining === 0) {
+      this.endTurn("move");
+    } else {
+      this.frame.addLog("Moved near. Attack, cast, pass, or move near again.", "prompt");
+      this.updateUi();
+      this.render();
     }
   }
 
@@ -230,6 +272,8 @@ class Game {
 
     // Add to active party & remove from unrescued list
     this.party.push(newHero);
+    this.autoFollowerIds.add(newHero.id);
+    this.syncPartyFormation();
     this.unrescuedClasses = this.unrescuedClasses.filter((c) => c !== rescueClass);
     npcEntity.hp = 0; // Remove entity from grid
 
@@ -239,12 +283,12 @@ class Game {
     this.endTurn();
   }
 
-  private attackMonsterAt(monster: any): void {
+  private attackMonsterAt(monster: any, attacker: Character = this.leader): void {
     const attackRoll = this.engine.dice.roll("1d20");
-    const strMod = this.leader.mod("STR");
+    const strMod = attacker.mod("STR");
     const totalRoll = attackRoll + strMod;
 
-    this.frame.addLog(`${this.leader.name} attacks ${monster.name}! [1d20+${strMod}=${totalRoll} vs AC ${monster.ac}]`, "combat");
+    this.frame.addLog(`${attacker.name} attacks ${monster.name}! [1d20+${strMod}=${totalRoll} vs AC ${monster.ac}]`, "combat");
 
     if (totalRoll >= monster.ac) {
       const dmg = Math.max(1, this.engine.dice.roll("1d6") + strMod);
@@ -293,25 +337,32 @@ class Game {
   }
 
   private handleAttack(): void {
-    const px = this.grid.playerPos.x;
-    const py = this.grid.playerPos.y;
-    const adjacent = [
-      this.grid.getEntityAt(px + 1, py),
-      this.grid.getEntityAt(px - 1, py),
-      this.grid.getEntityAt(px, py + 1),
-      this.grid.getEntityAt(px, py - 1),
-    ].find((m) => m && m.isHostile && m.hp > 0);
-
-    if (adjacent) {
-      this.attackMonsterAt(adjacent);
-      this.endTurn();
+    if (!this.actionAvailable) {
+      this.frame.addLog("You have already taken an action this turn.", "prompt");
+      return;
+    }
+    const maxRange = this.leader.wieldedWeapon?.tags.includes("ranged") ? RANGE_BAND_TILES.far : RANGE_BAND_TILES.close;
+    const target = this.grid.entities
+      .filter((entity) => entity.isHostile && entity.hp > 0 && gridDistance(this.grid.playerPos, entity) <= maxRange)
+      .sort((a, b) => gridDistance(this.grid.playerPos, a) - gridDistance(this.grid.playerPos, b))[0];
+    if (target) {
+      this.attackMonsterAt(target);
+      this.actionAvailable = false;
+      this.movementBandsRemaining = Math.min(1, this.movementBandsRemaining) as 0 | 1;
+      this.endTurn("attack");
     } else {
-      this.frame.addLog("No enemy adjacent to attack.", "prompt");
+      this.frame.addLog(maxRange > RANGE_BAND_TILES.close ? "No hostile within far range." : "No enemy within close range.", "prompt");
     }
   }
 
   private handleCast(): void {
+    if (!this.actionAvailable) {
+      this.frame.addLog("You have already taken an action this turn.", "prompt");
+      return;
+    }
     this.modals.showSpellbook(this.leader, (spellId) => {
+      this.actionAvailable = false;
+      this.movementBandsRemaining = Math.min(1, this.movementBandsRemaining) as 0 | 1;
       this.audio.playSpellSfx();
       this.frame.addLog(`${this.leader.name} casts ${spellId.replace("_", " ")}!`, "spell");
       if (spellId === "light") {
@@ -325,7 +376,7 @@ class Game {
       } else {
         this.frame.addLog("The spell surges with arcane energy!", "spell");
       }
-      this.endTurn();
+      this.endTurn("cast");
     });
   }
 
@@ -405,7 +456,7 @@ class Game {
 
   private handlePass(): void {
     this.frame.addLog(`${this.leader.name} passes turn.`, "prompt");
-    this.endTurn();
+    this.endTurn("pass");
   }
 
   private handleInteract(): void {
@@ -455,7 +506,45 @@ class Game {
     });
   }
 
-  private endTurn(): void {
+  private resolveAutoSupport(intent: LeaderIntent): void {
+    const threat = this.grid.entities.some((entity) => entity.isHostile && entity.hp > 0 && gridDistance(this.grid.playerPos, entity) <= RANGE_BAND_TILES.far);
+    for (const follower of this.party) {
+      if (follower.id === this.leader.id || !this.autoFollowerIds.has(follower.id)) continue;
+      const action = chooseAutoSupportAction(follower, this.leader, {
+        leaderIntent: intent,
+        hasThreat: threat,
+        leaderHpPercent: this.leader.hp / Math.max(1, this.leader.maxHp),
+      });
+      if (action.kind === "follow") {
+        this.frame.addLog(`${follower.name} follows the leader.`, "system");
+      } else if (action.kind === "cast") {
+        const chosen = spell(action.spellId);
+        this.audio.playSpellSfx();
+        if (action.spellId === "cure_wounds") {
+          const heal = this.engine.dice.roll(chosen.dice ?? "1d6");
+          this.leader.hp = Math.min(this.leader.maxHp, this.leader.hp + heal);
+          this.frame.addLog(`${follower.name} supports ${this.leader.name} with Cure Wounds for ${heal} HP.`, "spell");
+        } else if (chosen.dice) {
+          const target = this.grid.entities
+            .filter((entity) => entity.isHostile && entity.hp > 0 && gridDistance(this.grid.playerPos, entity) <= RANGE_BAND_TILES.far)
+            .sort((a, b) => gridDistance(this.grid.playerPos, a) - gridDistance(this.grid.playerPos, b))[0];
+          if (target) {
+            const damage = this.engine.dice.roll(chosen.dice);
+            target.hp -= damage;
+            this.frame.addLog(`${follower.name} casts ${chosen.name} in support for ${damage} damage.`, "spell");
+          }
+        }
+      } else if (action.kind === "attack") {
+        const target = this.grid.entities
+          .filter((entity) => entity.isHostile && entity.hp > 0 && gridDistance(this.grid.playerPos, entity) <= RANGE_BAND_TILES.close)
+          .sort((a, b) => gridDistance(this.grid.playerPos, a) - gridDistance(this.grid.playerPos, b))[0];
+        if (target) this.attackMonsterAt(target, follower);
+      }
+    }
+  }
+
+  private endTurn(intent: LeaderIntent = "pass"): void {
+    this.resolveAutoSupport(intent);
     this.round++;
     if (this.isTorchActive && this.torchTimer > 0) {
       this.torchTimer -= 10;
@@ -483,6 +572,9 @@ class Game {
     }
 
     this.monsterAiTurn();
+    this.movementBandsRemaining = 2;
+    this.actionAvailable = true;
+    this.syncPartyFormation();
     this.grid.updateFov(this.isTorchActive ? 4 : 1);
     this.updateUi();
     this.render();
@@ -501,9 +593,16 @@ class Game {
       this.round,
       this.torchTimer,
       this.isTorchActive,
-      this.leader.gold
+      this.leader.gold,
+      `Move: ${this.movementBandsRemaining}/2 near${this.actionAvailable ? " · Action ready" : " · Action spent"}`
     );
-    this.frame.updateParty(this.party, this.leaderIndex, (idx) => this.selectLeader(idx));
+    this.frame.updateParty(
+      this.party,
+      this.leaderIndex,
+      (idx) => this.selectLeader(idx),
+      this.party.map((member) => member.id !== this.leader.id && this.autoFollowerIds.has(member.id)),
+      (idx) => this.toggleAutoFollower(idx),
+    );
   }
 
   private render(): void {

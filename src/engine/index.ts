@@ -63,6 +63,8 @@ export * from "./magicItems";
 export * from "./monster";
 export * from "./monsterSelect";
 export * from "./movement";
+export * from "./rangeBands";
+export * from "./partyAutomation";
 export * from "./potions";
 export * from "./patrons";
 export * from "./spells";
