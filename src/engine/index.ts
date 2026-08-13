@@ -53,6 +53,7 @@ export * from "./encounterReaction";
 export * from "./encounterStealth";
 export * from "./events";
 export * from "./inventory";
+export * from "./hexcrawl";
 export * from "./itemActions";
 export * from "./magicItems";
 export * from "./monster";
