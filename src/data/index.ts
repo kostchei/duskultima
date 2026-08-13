@@ -52,6 +52,7 @@ export {
   item,
 } from "./items";
 export { resolveFoundItem, rollItemTraits, type RolledItemTraits } from "./magicItemTraitRoll";
+export { bestTreasureQuality, rollFabledItem, rollTreasureCache, rollTreasureFind, type FabledItemFind, type TreasureFind } from "./treasureGeneration";
 export { ITEM_BENEFITS, ITEM_CURSES, ITEM_FLAWS, ITEM_VIRTUES, type MagicItemTrait } from "./tables/magicItemTraits";
 export { monster } from "./monsters";
 export { CLASS_SPELL_ROSTER, highestAvailableSpellIndex, highestAvailableDamagingSpellIndex, magicItemSpell, spell, spellForMagicItem, spellsForClass, unlockClassSpellsForLevel } from "./spells";

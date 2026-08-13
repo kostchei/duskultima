@@ -3,9 +3,10 @@
  * Links the Shadowdark OSR rules engine with the Ultima V style renderer, UI, ZoneHazards, and Web Audio API.
  */
 
-import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ConditionKind } from "./engine/index";
+import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ConditionKind, type TreasureQuality } from "./engine/index";
 import { Character } from "./engine/character";
 import { item } from "./data/items";
+import { bestTreasureQuality, rollFabledItem, rollTreasureCache } from "./data/treasureGeneration";
 import { MapGrid } from "./game/level/MapGrid";
 import { MapRenderer } from "./game/renderer/MapRenderer";
 import { UltimaFrame } from "./game/ui/UltimaFrame";
@@ -234,10 +235,17 @@ class Game {
       } else if (tileAtTarget === TileType.CHEST_CLOSED) {
         this.grid.setTile(targetX, targetY, TileType.CHEST_OPEN);
         const goal = this.currentSite.goal;
-        if (goal.kind === "fabled-item" && goal.targetItemId) {
-          const fabledItem = item(goal.targetItemId);
-          this.leader.inventory.add(fabledItem, 1, true);
-          this.frame.addLog(`${this.leader.name} recovers the fabled ${fabledItem.name}!`, "hit");
+        let rewardQuality: TreasureQuality = goal.treasureQuality ?? "normal";
+        if (goal.kind === "fabled-item") {
+          const fabledItem = rollFabledItem(this.engine.dice);
+          this.leader.inventory.add(fabledItem.def, 1, true);
+          this.frame.addLog(`${this.leader.name} recovers ${fabledItem.def.name}: ${fabledItem.def.benefits?.[0] ?? "a magical benefit"}${fabledItem.def.curses?.[0] ? `; disadvantage: ${fabledItem.def.curses[0]}` : ""}.`, "hit");
+          rewardQuality = fabledItem.quality;
+        } else if (goal.kind === "treasure-cache") {
+          const cache = rollTreasureCache(this.engine.dice, this.leader.level);
+          for (const finding of cache) this.leader.inventory.add(finding.def, finding.qty, true);
+          rewardQuality = bestTreasureQuality(cache);
+          this.frame.addLog(`${this.leader.name} opens the cache and finds ${cache.length} treasure items: ${cache.map((finding) => `${finding.qty > 1 ? `${finding.qty}x ` : ""}${finding.def.name}`).join(", ")}.`, "hit");
         } else if (goal.kind === "monster-eggs") {
           this.frame.addLog(`${this.leader.name} secures the monster eggs; the nesting mother still lurks nearby.`, "hit");
         } else if (goal.kind === "harvest-components" || goal.kind === "exotic-materials") {
@@ -245,9 +253,9 @@ class Game {
         } else {
           this.frame.addLog(`${this.leader.name} opens the cache and finds gold & treasure!`, "hit");
         }
-        const xp = treasureQualityXp(goal.treasureQuality ?? "normal");
+        const xp = treasureQualityXp(rewardQuality);
         this.party.forEach((char) => this.engine.awardXp(char, xp));
-        this.frame.addLog(`${xp} ${goal.treasureQuality ?? "normal"}-treasure XP awarded to each party member.`, "hit");
+        this.frame.addLog(`${xp} ${rewardQuality}-treasure XP awarded to each party member.`, "hit");
         if (goalUsesChest(goal)) this.completeSiteGoal(null);
       }
     }

@@ -98,12 +98,11 @@ export const GOAL_TEMPLATES: readonly GoalTemplate[] = [
   {
     kind: "fabled-item",
     verb: "Retrieve",
-    target: "Crown of the Deep",
+    target: "a random fabled magical item",
     completion: "acquire",
     approaches: ["combat", "stealth", "evasion"],
-    targetItemId: "crown-of-the-deep",
     treasureQuality: "legendary",
-    description: "Recover the fabled Crown of the Deep",
+    description: "Recover a random fabled magical item with at least one benefit",
   },
   {
     kind: "lift-hex",

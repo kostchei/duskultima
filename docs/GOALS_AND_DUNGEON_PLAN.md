@@ -13,10 +13,10 @@ specifically says so.
 The site goal vocabulary is:
 
 - `rescue-companion`: free a class companion who joins the party.
-- `fabled-item`: recover a named, guaranteed item such as the Crown of the Deep.
+- `fabled-item`: recover a random fabulous/legendary magical item with at least one benefit; it may also carry a disadvantage.
 - `lift-hex`: break a curse, blight, or zone affliction.
 - `harvest-components`: collect a required number of ritual or alchemical components.
-- `treasure-cache`: open and secure a cache; the contents use treasure generation.
+- `treasure-cache`: open and secure a cache containing 2–5 independently rolled treasure items.
 - `exotic-materials`: gather rare materials, usually from dangerous terrain or creatures.
 - `rescue-hostage`: free a hostage without implying party recruitment.
 - `monster-eggs`: recover species-specific eggs; the nest has an ecological guardian that can be fought, distracted, or avoided. Scrag, kobold, spider/wasp, ankheg, crocodile, basilisk, cockatrice, hippogriff, wyvern, dragon, plesiosaurus, remorhaz, chuul, and void-spider clutches are plausible by biome. Purple Worm eggs are rare, epic/legendary targets.
@@ -72,8 +72,8 @@ can retreat, bypass, hide, or break morale where the situation permits.
    slay, and retrieve compatibility.
 2. Add room archetypes and travel-segment metadata, including wide corridors
    and corridor trap locations.
-3. Bind fabled-item goals to real item IDs and make treasure-cache goals roll
-   actual treasure.
+3. Roll fabled-item goals as guaranteed-benefit magical finds; make
+   treasure-cache goals roll 2–5 actual treasure items.
 4. Add objective interactions for hexes, components, materials, hostages,
    chokepoints, and eggs, including avoidable guardian monsters.
 5. Add monster treasure chance and post-encounter treasure resolution.
