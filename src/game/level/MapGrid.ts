@@ -5,6 +5,7 @@
 
 import { TileType } from "../renderer/TileSet";
 import { goalUsesChest, SiteDef } from "./Adventure";
+import { monster } from "../../data/monsters";
 import {
   buildRoomPlans,
   buildTravelSegments,
@@ -256,20 +257,21 @@ export class MapGrid {
     } else if (goalUsesChest(siteDef.goal)) {
       this.setTile(goalX, goalY, TileType.CHEST_CLOSED);
       if (siteDef.goal.kind === "monster-eggs") {
+        const guardian = siteDef.goal.guardianMonsterId ? monster(siteDef.goal.guardianMonsterId) : undefined;
         this.entities.push({
           id: "nesting-mother",
-          name: siteDef.goal.guardianName ?? "nesting mother",
+          name: siteDef.goal.guardianName ?? guardian?.name ?? "nesting mother",
           x: goalX + 2,
           y: goalY,
           tileType: TileType.GLOOM_OGRE,
-          hp: 30,
-          maxHp: 30,
-          ac: 15,
+          hp: guardian ? Math.max(24, guardian.level * 4) : 30,
+          maxHp: guardian ? Math.max(24, guardian.level * 4) : 30,
+          ac: guardian?.ac ?? 15,
           isHostile: true,
-          attackBonus: 5,
-          initiativeDexModifier: 1,
-          damage: "2d8",
-          monsterSize: "huge",
+          attackBonus: guardian?.attackBonus ?? 5,
+          initiativeDexModifier: guardian ? Math.floor(guardian.level / 2) : 1,
+          damage: guardian?.damage ?? "2d8",
+          monsterSize: siteDef.goal.guardianSize ?? "huge",
         });
       }
     } else {

@@ -36,6 +36,7 @@ export const RED_SANDS_ROSTER: readonly MonsterDef[] = [
   d("donkey", "Donkey", { level: 1, role: "vermin", archetype: "quadruped", size: "medium", art: DESERT, darkvision: false }),
   d("rookie", "Rookie Pit Fighter", { level: 1, role: "soldier", archetype: "biped", size: "medium", art: BANDIT, darkvision: false }),
   d("cobra-snake", "Cobra Snake", { level: 1, role: "vermin", archetype: "serpent", size: "small", art: SCORPION, specialAbility: "poison" }),
+  d("kobold", "Kobold", { level: 1, role: "skirmisher", archetype: "biped", size: "small", art: BANDIT }),
   d("apprentice", "Apprentice Sorcerer", { level: 1, role: "caster", archetype: "biped", size: "medium", art: MYSTIC, darkvision: false }),
 
   // --- LV 2 ---
@@ -93,6 +94,7 @@ export const RED_SANDS_ROSTER: readonly MonsterDef[] = [
   d("stone-golem", "Stone Golem", { level: 8, role: "brute", archetype: "brute", size: "large", art: GOLEM }),
   d("rakshasa", "Rakshasa", { level: 8, role: "caster", archetype: "biped", size: "medium", art: BANDIT }),
   d("bulette", "Bulette", { level: 8, role: "brute", archetype: "quadruped", size: "huge", art: DESERT }),
+  d("wyvern", "Wyvern", { level: 8, role: "champion", archetype: "flyer", size: "large", art: DESERT, ac: 15, hitDice: "8d8", attackBonus: 7, damage: "2d8" }),
 
   // --- LV 9 ---
   d("sphinx", "Sphinx", { level: 9, role: "caster", archetype: "quadruped", size: "huge", art: DESERT }),
@@ -101,6 +103,8 @@ export const RED_SANDS_ROSTER: readonly MonsterDef[] = [
   d("iron-golem", "Iron Golem", { level: 10, role: "champion", archetype: "brute", size: "huge", art: GOLEM }),
   d("djinni", "Djinni", { level: 10, role: "caster", archetype: "elemental", size: "large", art: MYSTIC }),
   d("mummy", "Mummy", { level: 10, role: "soldier", archetype: "biped", size: "medium", art: BANDIT, undead: true }),
+  d("desert-dragon", "Desert Dragon", { level: 13, role: "champion", archetype: "flyer", size: "gargantuan", art: DESERT, ac: 17, hitDice: "13d8", attackBonus: 9, damage: "3d10" }),
+  d("purple-worm", "Purple Worm", { level: 12, role: "champion", archetype: "vermin", size: "gargantuan", art: DESERT, ac: 18, hitDice: "12d8", attackBonus: 8, damage: "2d12" }),
 ];
 
 assertRosterComplete("red-sands", RED_SANDS_ROSTER);

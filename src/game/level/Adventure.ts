@@ -23,6 +23,7 @@ export type GoalKind =
 export type GoalCompletion = "rescue" | "acquire" | "interact" | "defeat-target" | "secure-area";
 export type GoalApproach = "combat" | "stealth" | "evasion" | "social";
 export type GoalEntityKind = "rescue-companion" | "hostage" | "objective";
+export type EggGuardianSize = "medium" | "large" | "huge" | "gargantuan";
 
 export interface SiteGoal {
   /** Stable machine-readable goal identity. */
@@ -42,6 +43,11 @@ export interface SiteGoal {
   requiredQuantity?: number;
   treasureQuality?: "fabulous" | "legendary";
   guardianName?: string;
+  /** Species whose eggs are being harvested, distinct from the guardian. */
+  eggSpeciesId?: string;
+  eggSpeciesName?: string;
+  guardianMonsterId?: string;
+  guardianSize?: EggGuardianSize;
   objectiveEntity?: GoalEntityKind;
   isCompleted: boolean;
   description: string;

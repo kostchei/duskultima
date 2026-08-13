@@ -4,7 +4,7 @@
  */
 
 import { Dice } from "../../engine/dice";
-import type { MonsterBiome } from "../../engine";
+import type { MonsterBiome, MonsterSize } from "../../engine";
 import { Adventure, GoalKind, GoalVerb, SiteDef, SiteGoal, SiteSize } from "./Adventure";
 
 const BIOMES: readonly MonsterBiome[] = [
@@ -44,6 +44,54 @@ interface GoalTemplate {
   treasureQuality?: SiteGoal["treasureQuality"];
   guardianName?: string;
   description: string;
+}
+
+export interface EggGuardianProfile {
+  speciesId: string;
+  speciesName: string;
+  guardianName: string;
+  guardianMonsterId: string;
+  guardianSize: Exclude<MonsterSize, "tiny" | "small">;
+  treasureQuality: "fabulous" | "legendary";
+}
+
+/**
+ * Egg goals are ecological, not a generic "monster mother" encounter. The
+ * target can be harvested without killing the guardian, and the guardian's
+ * size/name communicates why the nest is dangerous before the approach.
+ */
+export const EGG_GUARDIANS_BY_BIOME: Readonly<Record<MonsterBiome, readonly EggGuardianProfile[]>> = {
+  diablerie: [
+    { speciesId: "giant-spider", speciesName: "Giant Spider", guardianName: "the broodmother spider", guardianMonsterId: "giant-spider", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "giant-wasp", speciesName: "Giant Wasp", guardianName: "the wasp queen", guardianMonsterId: "giant-wasp", guardianSize: "large", treasureQuality: "fabulous" },
+  ],
+  "red-sands": [
+    { speciesId: "kobold", speciesName: "Kobold", guardianName: "the kobold matron", guardianMonsterId: "kobold", guardianSize: "medium", treasureQuality: "fabulous" },
+    { speciesId: "scrag", speciesName: "Scrag", guardianName: "the scrag matriarch", guardianMonsterId: "scrag", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "wyvern", speciesName: "Wyvern", guardianName: "the wyvern mother", guardianMonsterId: "wyvern", guardianSize: "large", treasureQuality: "legendary" },
+    { speciesId: "desert-dragon", speciesName: "Desert Dragon", guardianName: "the desert dragon", guardianMonsterId: "desert-dragon", guardianSize: "gargantuan", treasureQuality: "legendary" },
+    { speciesId: "purple-worm", speciesName: "Purple Worm", guardianName: "the purple worm mother", guardianMonsterId: "purple-worm", guardianSize: "gargantuan", treasureQuality: "legendary" },
+  ],
+  "midnight-sun": [
+    { speciesId: "cockatrice", speciesName: "Cockatrice", guardianName: "the nesting cockatrice", guardianMonsterId: "cockatrice", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "hippogriff", speciesName: "Hippogriff", guardianName: "the nesting hippogriff", guardianMonsterId: "hippogriff", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "plesiosaurus", speciesName: "Plesiosaurus", guardianName: "the lake mother", guardianMonsterId: "plesiosaurus", guardianSize: "huge", treasureQuality: "fabulous" },
+    { speciesId: "remorhaz", speciesName: "Remorhaz", guardianName: "the ember broodmother", guardianMonsterId: "remorhaz", guardianSize: "gargantuan", treasureQuality: "legendary" },
+  ],
+  "river-of-night": [
+    { speciesId: "ankheg", speciesName: "Ankheg", guardianName: "the ankheg queen", guardianMonsterId: "ankheg", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "crocodile", speciesName: "Crocodile", guardianName: "the river mother", guardianMonsterId: "crocodile", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "basilisk", speciesName: "Basilisk", guardianName: "the clutch keeper", guardianMonsterId: "basilisk", guardianSize: "large", treasureQuality: "fabulous" },
+  ],
+  "dwellers-in-the-deep": [
+    { speciesId: "chuul", speciesName: "Chuul", guardianName: "the clutch sentinel", guardianMonsterId: "chuul", guardianSize: "large", treasureQuality: "fabulous" },
+    { speciesId: "void-spider", speciesName: "Void Spider", guardianName: "the abyssal broodmother", guardianMonsterId: "void-spider", guardianSize: "large", treasureQuality: "fabulous" },
+  ],
+  "city-of-masks": [],
+};
+
+function eggProfilesForBiome(biome: MonsterBiome): readonly EggGuardianProfile[] {
+  return EGG_GUARDIANS_BY_BIOME[biome];
 }
 
 export const GOAL_TEMPLATES: readonly GoalTemplate[] = [
@@ -192,11 +240,17 @@ export class AdventureGenerator {
           description: `Rescue ${heroName} the ${rescueClass.toUpperCase()} from captivity`,
         };
       } else {
-        const standardGoal = this.getRandomItem([...GOAL_TEMPLATES]);
+        const availableTemplates = GOAL_TEMPLATES.filter((template) =>
+          template.kind !== "monster-eggs" || eggProfilesForBiome(biome).length > 0,
+        );
+        const standardGoal = this.getRandomItem([...availableTemplates]);
+        const eggProfile = standardGoal.kind === "monster-eggs"
+          ? this.getRandomItem([...eggProfilesForBiome(biome)])
+          : undefined;
         goal = {
           kind: standardGoal.kind,
           verb: standardGoal.verb,
-          target: standardGoal.target,
+          target: eggProfile ? `${eggProfile.speciesName} eggs` : standardGoal.target,
           isRescue: false,
           completion: standardGoal.completion,
           approaches: standardGoal.approaches,
@@ -204,10 +258,16 @@ export class AdventureGenerator {
           objectiveEntity: standardGoal.objectiveEntity,
           targetItemId: standardGoal.targetItemId,
           requiredQuantity: standardGoal.requiredQuantity,
-          treasureQuality: standardGoal.treasureQuality,
-          guardianName: standardGoal.guardianName,
+          treasureQuality: eggProfile?.treasureQuality ?? standardGoal.treasureQuality,
+          guardianName: eggProfile?.guardianName ?? standardGoal.guardianName,
+          eggSpeciesId: eggProfile?.speciesId,
+          eggSpeciesName: eggProfile?.speciesName,
+          guardianMonsterId: eggProfile?.guardianMonsterId,
+          guardianSize: eggProfile?.guardianSize,
           isCompleted: false,
-          description: standardGoal.description,
+          description: eggProfile
+            ? `Harvest ${eggProfile.speciesName} eggs without waking ${eggProfile.guardianName}`
+            : standardGoal.description,
         };
       }
 

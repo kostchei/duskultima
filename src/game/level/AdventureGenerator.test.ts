@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AdventureGenerator, GOAL_TEMPLATES } from "./AdventureGenerator";
+import { AdventureGenerator, EGG_GUARDIANS_BY_BIOME, GOAL_TEMPLATES } from "./AdventureGenerator";
 import type { GoalKind } from "./Adventure";
 
 const STANDARD_GOALS: readonly GoalKind[] = [
@@ -39,5 +39,23 @@ describe("AdventureGenerator goals", () => {
       for (const site of adventure.sites) generatedKinds.add(site.goal.kind);
     }
     expect(generatedKinds).toContain("rescue-companion");
+  });
+
+  it("models egg goals as species-specific nests with appropriately scaled guardians", () => {
+    expect(EGG_GUARDIANS_BY_BIOME["red-sands"].map((profile) => profile.speciesId)).toEqual([
+      "kobold",
+      "scrag",
+      "wyvern",
+      "desert-dragon",
+      "purple-worm",
+    ]);
+    const purpleWorm = EGG_GUARDIANS_BY_BIOME["red-sands"].find((profile) => profile.speciesId === "purple-worm");
+    expect(purpleWorm?.guardianSize).toBe("gargantuan");
+    expect(purpleWorm?.treasureQuality).toBe("legendary");
+    expect(EGG_GUARDIANS_BY_BIOME["midnight-sun"].map((profile) => profile.speciesId)).toContain("hippogriff");
+
+    const eggProfiles = Object.values(EGG_GUARDIANS_BY_BIOME).flat();
+    expect(eggProfiles.find((profile) => profile.speciesId === "purple-worm")?.guardianMonsterId).toBe("purple-worm");
+    expect(eggProfiles.find((profile) => profile.speciesId === "purple-worm")?.speciesName).toBe("Purple Worm");
   });
 });
