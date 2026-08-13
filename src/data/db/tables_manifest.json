@@ -1,0 +1,8 @@
+{
+  "database": "shadowdork.db",
+  "monsters_count": 243,
+  "spells_count": 98,
+  "roll_tables_count": 5092,
+  "rules_count": 328,
+  "status": "populated_with_sdtools"
+}

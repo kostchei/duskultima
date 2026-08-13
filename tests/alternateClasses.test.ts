@@ -173,4 +173,34 @@ describe("alternate class mechanics", () => {
     expect(witch.classState.familiarAlive).toBe(true);
     expect(witch.maxHp).toBe(before - Math.min(before - 1, 2));
   });
+
+  it("validates all 17 classes and 6 ancestries from Classes.txt", () => {
+    const engine = makeEngine();
+    const classNames = [
+      "fighter", "cleric", "magic-user", "thief", "bard", "monk",
+      "necromancer", "paladin", "ranger", "seawolf", "warlock",
+      "basilisk-warrior", "ras-godai", "roustabout", "delver", "duelist", "pit-fighter"
+    ] as const;
+
+    for (const cName of classNames) {
+      const def = classDef(cName);
+      expect(def.name).toBe(cName);
+      const hero = createCharacter(engine, `test-${cName}`, `Hero-${cName}`, cName);
+      expect(hero.className).toBe(cName);
+    }
+
+    const ancestries = ["human", "dwarf", "elf", "half-orc", "gnome", "tiefling-deva"] as const;
+    for (const anc of ancestries) {
+      const hero = createCharacter(engine, `test-${anc}`, `Hero-${anc}`, "fighter", anc);
+      expect(hero.ancestry).toBe(anc);
+    }
+
+    // Dwarf finesse restriction
+    const dwarf = createCharacter(engine, "dwarf-hero", "Dwarf", "fighter", "dwarf");
+    dwarf.stats.STR = 10;
+    dwarf.stats.DEX = 18;
+    const rapier = { id: "shortsword", name: "Shortsword", tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 1 };
+    const res = engine.attack({ attacker: dwarf, targetAc: 10, weapon: rapier as any, damage: "1d6" });
+    expect(res.check.modifier).toBe(dwarf.mod("STR"));
+  });
 });

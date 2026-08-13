@@ -42,27 +42,27 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   // Armor — AC = acBase + DEX (capped); class permissions are RAW.
   {
     id: "leather-armor", name: "Leather Armor", slotCost: 1, bundleSize: 1, tags: ["armor"],
-    armor: { acBase: 11, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer"] }, armorVisual: "leather", valueGp: 10,
+    armor: { acBase: 11, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "bard", "ranger", "seawolf", "warlock", "roustabout", "delver", "duelist"] }, armorVisual: "leather", valueGp: 10,
   },
   {
     id: "chainmail", name: "Chainmail", slotCost: 2, bundleSize: 1, tags: ["armor"],
     description: "Disadvantage on stealth checks.",
-    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf"], stealthDisadvantage: true }, armorVisual: "chain", valueGp: 60,
+    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf", "cleric", "paladin", "seawolf", "basilisk-warrior"], stealthDisadvantage: true }, armorVisual: "chain", valueGp: 60,
   },
   {
     id: "plate-mail", name: "Plate Mail", slotCost: 3, bundleSize: 1, tags: ["armor"],
     description: "Disadvantage on stealth checks.",
-    armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest", "pit-fighter", "sea-wolf"], stealthDisadvantage: true }, armorVisual: "plate", valueGp: 130,
+    armor: { acBase: 15, dexCap: 0, classes: ["fighter", "priest", "pit-fighter", "sea-wolf", "cleric", "paladin", "seawolf", "basilisk-warrior"], stealthDisadvantage: true }, armorVisual: "plate", valueGp: 130,
   },
   {
     id: "mithral-chainmail", name: "Mithral Chainmail", slotCost: 1, bundleSize: 1, tags: ["armor", "magic"],
     treasureQuality: "fabulous", benefits: ["Occupies only one gear slot and can be worn by lightly armored classes."],
-    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer"] }, armorVisual: "mithral",
+    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "bard", "ranger", "seawolf", "warlock", "roustabout", "delver", "duelist"] }, armorVisual: "mithral",
   },
   {
     id: "aegis-mail", name: "Aegis Mail", slotCost: 1, bundleSize: 1, tags: ["armor", "magic"],
     treasureQuality: "fabulous", magicBonus: 1, benefitRolls: 1, curseRolls: 1,
-    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "thief", "wizard", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer"] }, armorVisual: "mithral",
+    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "thief", "wizard", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "magic-user", "bard", "monk", "necromancer", "paladin", "ranger", "seawolf", "warlock", "basilisk-warrior", "roustabout", "delver", "duelist"] }, armorVisual: "mithral",
   },
   { id: "shield", name: "Shield", slotCost: 1, bundleSize: 1, tags: ["armor"], shield: true, valueGp: 10 },
 

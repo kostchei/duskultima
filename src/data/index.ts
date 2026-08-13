@@ -28,6 +28,16 @@ import {
   WITCH_TALENTS,
   SEER_TALENTS,
   BLACK_LOTUS_TALENTS,
+  BARD_TALENTS,
+  MONK_TALENTS,
+  NECROMANCER_TALENTS,
+  PALADIN_TALENTS,
+  RANGER_TALENTS,
+  WARLOCK_TALENTS,
+  BASILISK_WARRIOR_TALENTS,
+  ROUSTABOUT_TALENTS,
+  DELVER_TALENTS,
+  DUELIST_TALENTS,
 } from "./tables/talents";
 
 import { ALL_TREASURE_TABLES } from "./tables/treasure";
@@ -60,20 +70,43 @@ export function registerTables(engine: Engine): void {
   engine.tables.register(WITCH_TALENTS);
   engine.tables.register(SEER_TALENTS);
   engine.tables.register(BLACK_LOTUS_TALENTS);
+  engine.tables.register(BARD_TALENTS);
+  engine.tables.register(MONK_TALENTS);
+  engine.tables.register(NECROMANCER_TALENTS);
+  engine.tables.register(PALADIN_TALENTS);
+  engine.tables.register(RANGER_TALENTS);
+  engine.tables.register(WARLOCK_TALENTS);
+  engine.tables.register(BASILISK_WARRIOR_TALENTS);
+  engine.tables.register(ROUSTABOUT_TALENTS);
+  engine.tables.register(DELVER_TALENTS);
+  engine.tables.register(DUELIST_TALENTS);
   for (const table of ALL_MISHAP_TABLES) engine.tables.register(table);
   for (const table of ALL_TREASURE_TABLES) engine.tables.register(table);
 }
 
 const PRIME_STAT: Record<ClassName, StatName> = {
   fighter: "STR",
-  "pit-fighter": "STR",
-  "sea-wolf": "STR",
+  cleric: "WIS",
+  "magic-user": "INT",
   thief: "DEX",
+  bard: "CHA",
+  monk: "WIS",
+  necromancer: "CHA",
+  paladin: "CHA",
+  ranger: "INT",
+  seawolf: "STR",
+  "sea-wolf": "STR",
+  warlock: "CHA",
+  "basilisk-warrior": "CON",
   "ras-godai": "DEX",
+  roustabout: "CON",
+  delver: "INT",
+  duelist: "CHA",
+  "pit-fighter": "CON",
   priest: "WIS",
-  seer: "WIS",
   wizard: "INT",
   witch: "CHA",
+  seer: "WIS",
 };
 
 /**
@@ -168,7 +201,10 @@ export function createCharacter(
     const blackLotus = engine.tables.roll(engine.dice, "black-lotus-talents");
     applyTalentResult(engine.dice, engine.tables, c, blackLotus, "talent-black-lotus-start");
   }
-  const startingWeapon = item(def.startingWeaponId);
+  let startingWeapon = item(def.startingWeaponId);
+  if (ancestry === "dwarf" && startingWeapon.finesse) {
+    startingWeapon = item("spear");
+  }
   c.inventory.add(startingWeapon, 1, true);
   c.equipWeapon(startingWeapon);
   if (def.armorId) {

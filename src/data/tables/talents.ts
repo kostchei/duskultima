@@ -242,3 +242,103 @@ export const BLACK_LOTUS_TALENTS: RollableTable = {
     { min: 12, max: 12, text: "1/day, become unseen and unheard by a creature of level 9 or less (DC 15 WIS)", effects: [{ kind: "resourceBonus", resource: "unseen", bonus: 1 }] },
   ],
 };
+
+export const BARD_TALENTS: RollableTable = {
+  id: "bard-talents", name: "Bard Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Song of Courage: party gains advantage vs fear", effects: [{ kind: "checkBonus", applies: "morale", bonus: 2 }] },
+    { min: 3, max: 6, text: "+1 to Charisma or Dexterity stat", effects: [{ kind: "statBonusChoice", stats: ["CHA", "DEX"], bonus: 1 }] },
+    { min: 7, max: 9, text: "+1 to spellcasting checks", effects: [{ kind: "statBonus", stat: "CHA", bonus: 2 }] },
+    { min: 10, max: 11, text: "Inspire bonus increases to +2", effects: [{ kind: "checkBonus", applies: "attack", bonus: 1 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const MONK_TALENTS: RollableTable = {
+  id: "monk-talents", name: "Monk Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Flurry of Blows: extra attack on melee turn", effects: [{ kind: "checkBonus", applies: "attack", bonus: 1 }] },
+    { min: 3, max: 6, text: "+1 to Strength or Wisdom stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "WIS"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Unarmored AC increases by +1", effects: [{ kind: "acBonus", bonus: 1 }] },
+    { min: 10, max: 11, text: "Ki Strike: melee attacks count as magic", effects: [{ kind: "damageBonus", bonus: 1 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const NECROMANCER_TALENTS: RollableTable = {
+  id: "necromancer-talents", name: "Necromancer Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Animate undead thrall with +1d6 HP", effects: [{ kind: "statBonus", stat: "CHA", bonus: 2 }] },
+    { min: 3, max: 6, text: "+1 to Charisma or Intelligence stat", effects: [{ kind: "statBonusChoice", stats: ["CHA", "INT"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Siphon Life restores +1d4 additional HP", effects: [{ kind: "damageBonus", bonus: 1 }] },
+    { min: 10, max: 11, text: "Undead monsters treat you as neutral", effects: [{ kind: "advantageOn", applies: "stealth" }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const PALADIN_TALENTS: RollableTable = {
+  id: "paladin-talents", name: "Paladin Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Smite deals +1d8 extra radiant damage", effects: [{ kind: "damageBonus", bonus: 2 }] },
+    { min: 3, max: 6, text: "+1 to Strength or Charisma stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "CHA"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Aura of Protection: +1 AC to adjacent allies", effects: [{ kind: "acBonus", bonus: 1 }] },
+    { min: 10, max: 11, text: "Lay on Hands heals full HP once per day", effects: [{ kind: "statBonus", stat: "CHA", bonus: 2 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const RANGER_TALENTS: RollableTable = {
+  id: "ranger-talents", name: "Ranger Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Sniper: ranged crits on 19-20", effects: [{ kind: "critRange", value: 19 }] },
+    { min: 3, max: 6, text: "+1 to Dexterity or Intelligence stat", effects: [{ kind: "statBonusChoice", stats: ["DEX", "INT"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Wilderness Survival: party ignores hazard damage", effects: [{ kind: "advantageOn", applies: "traps" }] },
+    { min: 10, max: 11, text: "+2 to ranged damage rolls", effects: [{ kind: "damageBonus", bonus: 2 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const WARLOCK_TALENTS: RollableTable = {
+  id: "warlock-talents", name: "Warlock Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Patron's Gift: gain a second patron boon", effects: [{ kind: "statBonus", stat: "CHA", bonus: 2 }] },
+    { min: 3, max: 6, text: "+1 to Charisma or Constitution stat", effects: [{ kind: "statBonusChoice", stats: ["CHA", "CON"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Eldritch Blast deals +1d6 force damage", effects: [{ kind: "damageBonus", bonus: 1 }] },
+    { min: 10, max: 11, text: "Regain 1 spent spell slot on critical hit", effects: [{ kind: "critRange", value: 19 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const BASILISK_WARRIOR_TALENTS: RollableTable = {
+  id: "basilisk-warrior-talents", name: "Basilisk Warrior Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Petrifying Strike: 1/day slow target for 2 rounds", effects: [{ kind: "damageBonus", bonus: 1 }] },
+    { min: 3, max: 6, text: "+1 to Constitution or Strength stat", effects: [{ kind: "statBonusChoice", stats: ["CON", "STR"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Stone Skin increases to +3 AC", effects: [{ kind: "acBonus", bonus: 1 }] },
+    { min: 10, max: 11, text: "Immunity to poison and paralysis", effects: [{ kind: "advantageOnStat", stat: "CON" }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const ROUSTABOUT_TALENTS: RollableTable = {
+  id: "roustabout-talents", name: "Roustabout Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Brawl King: +2 to unarmed attack rolls", effects: [{ kind: "checkBonus", applies: "attack", bonus: 2 }] },
+    { min: 3, max: 6, text: "+1 to Strength or Constitution stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "CON"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Iron Gut: advantage on CON saves vs poison/alcohol", effects: [{ kind: "advantageOnStat", stat: "CON" }] },
+    { min: 10, max: 11, text: "Knockout Blow: 1/day stun target on hit", effects: [{ kind: "damageBonus", bonus: 2 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const DELVER_TALENTS: RollableTable = {
+  id: "delver-talents", name: "Delver Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Keen Sense: detect hidden treasure and traps automatically", effects: [{ kind: "advantageOn", applies: "traps" }] },
+    { min: 3, max: 6, text: "+1 to Dexterity or Intelligence stat", effects: [{ kind: "statBonusChoice", stats: ["DEX", "INT"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Torch Bearer: carried torches burn 50% longer", effects: [{ kind: "statBonus", stat: "INT", bonus: 1 }] },
+    { min: 10, max: 11, text: "+1 to all saving throws in dungeons", effects: [{ kind: "checkBonus", applies: "traps", bonus: 1 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};
+
+export const DUELIST_TALENTS: RollableTable = {
+  id: "duelist-talents", name: "Duelist Talents", dice: "2d6", entries: [
+    { min: 2, max: 2, text: "Master Fencer: crit on 19-20 with finesse weapons", effects: [{ kind: "critRange", value: 19 }] },
+    { min: 3, max: 6, text: "+1 to Dexterity or Charisma stat", effects: [{ kind: "statBonusChoice", stats: ["DEX", "CHA"], bonus: 1 }] },
+    { min: 7, max: 9, text: "Parry: +2 AC when wielding a rapier", effects: [{ kind: "acBonus", bonus: 2 }] },
+    { min: 10, max: 11, text: "Flamboyant Strike: +2 damage on finesse attacks", effects: [{ kind: "damageBonus", bonus: 2 }] },
+    { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
+  ],
+};

@@ -22,31 +22,75 @@ export type Stats = Record<StatName, number>;
 export type BaseClassName = "fighter" | "thief" | "priest" | "wizard";
 export type ClassName =
   | BaseClassName
-  | "pit-fighter"
+  | "cleric"
+  | "magic-user"
+  | "bard"
+  | "monk"
+  | "necromancer"
+  | "paladin"
+  | "ranger"
+  | "seawolf"
   | "sea-wolf"
+  | "warlock"
+  | "basilisk-warrior"
   | "ras-godai"
+  | "roustabout"
+  | "delver"
+  | "duelist"
+  | "pit-fighter"
   | "witch"
   | "seer";
 
 /** The stat a class leans on, and where a free stat bonus goes once nothing is deficient. */
-export const PRIMARY_STAT: Record<BaseClassName, StatName> = {
+export const PRIMARY_STAT: Record<ClassName, StatName> = {
   fighter: "STR",
+  cleric: "WIS",
+  "magic-user": "INT",
   thief: "DEX",
+  bard: "CHA",
+  monk: "WIS",
+  necromancer: "CHA",
+  paladin: "CHA",
+  ranger: "INT",
+  seawolf: "STR",
+  "sea-wolf": "STR",
+  warlock: "CHA",
+  "basilisk-warrior": "CON",
+  "ras-godai": "DEX",
+  roustabout: "CON",
+  delver: "INT",
+  duelist: "CHA",
+  "pit-fighter": "CON",
   priest: "WIS",
   wizard: "INT",
+  witch: "CHA",
+  seer: "WIS",
 };
 
 export function getBaseRole(className: ClassName): BaseClassName {
   switch (className) {
-    case "pit-fighter":
-    case "sea-wolf":
-      return "fighter";
-    case "ras-godai":
-      return "thief";
-    case "witch":
-      return "wizard";
+    case "cleric":
     case "seer":
       return "priest";
+    case "magic-user":
+    case "witch":
+    case "necromancer":
+    case "warlock":
+      return "wizard";
+    case "bard":
+    case "ras-godai":
+    case "duelist":
+    case "roustabout":
+    case "delver":
+      return "thief";
+    case "monk":
+    case "paladin":
+    case "ranger":
+    case "seawolf":
+    case "sea-wolf":
+    case "pit-fighter":
+    case "basilisk-warrior":
+      return "fighter";
     default:
       return className;
   }
@@ -54,9 +98,9 @@ export function getBaseRole(className: ClassName): BaseClassName {
 
 export type Alignment = "law" | "neutral" | "chaos";
 export type VoiceRegister = "low" | "medium" | "high";
-export type Ancestry = "human" | "dwarf" | "elf" | "half-orc";
+export type Ancestry = "human" | "dwarf" | "elf" | "half-orc" | "gnome" | "tiefling-deva";
 
-export const ANCESTRIES: readonly Ancestry[] = ["human", "dwarf", "elf", "half-orc"];
+export const ANCESTRIES: readonly Ancestry[] = ["human", "dwarf", "elf", "half-orc", "gnome", "tiefling-deva"];
 
 export function parseAncestry(value: string): Ancestry {
   if ((ANCESTRIES as readonly string[]).includes(value)) return value as Ancestry;
@@ -310,7 +354,8 @@ export class Character {
   /** Wear armor. Class permissions are the armor's, and they are law. */
   equipArmor(def: ItemDef): void {
     if (!def.armor) throw new Error(`${def.name} is not armor`);
-    if (!def.armor.classes.includes(this.className)) {
+    const isDwarfPlate = this.ancestry === "dwarf" && (def.id === "plate-mail" || def.armorVisual === "plate");
+    if (!isDwarfPlate && !def.armor.classes.includes(this.className)) {
       throw new Error(`A ${this.className} cannot wear ${def.name}`);
     }
     if (def.requiredClass && def.requiredClass !== this.className) throw new Error(`Only a ${def.requiredClass} can wear ${def.name}`);
@@ -424,7 +469,7 @@ export class Character {
     }
     if (weakest !== undefined) return weakest;
 
-    const primary = PRIMARY_STAT[getBaseRole(this.className)];
+    const primary = PRIMARY_STAT[this.className];
     if (!offered.includes(primary)) {
       throw new Error(
         `Stat talent offering ${offered.join("/")} cannot reach ${this.className}'s primary stat ${primary}`,

@@ -1,4 +1,4 @@
-import type { Character, SpellClass, SpellDef } from "../engine";
+import { getBaseRole, type Character, type SpellClass, type SpellDef } from "../engine";
 
 const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
   {
@@ -593,8 +593,12 @@ export function magicItemSpell(tier: number, d12: number): SpellDef {
   return spell(ids[d12 - 1]!);
 }
 
-export function spellsForClass(cls: SpellClass): readonly SpellDef[] {
-  return SPELL_LIST.filter((s) => (typeof s.class === "string" ? [s.class] : s.class).includes(cls));
+export function spellsForClass(cls: SpellClass | string): readonly SpellDef[] {
+  const targetClass = cls === "cleric" ? "priest" : cls === "magic-user" ? "wizard" : cls;
+  return SPELL_LIST.filter((s) => {
+    const list = typeof s.class === "string" ? [s.class] : s.class;
+    return list.includes(cls as SpellClass) || list.includes(targetClass as SpellClass);
+  });
 }
 
 /** Return the known-spell index of the highest-tier spell that can be cast. */

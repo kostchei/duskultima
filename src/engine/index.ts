@@ -268,9 +268,9 @@ export class Engine {
 
   attack(input: AttackInput): AttackResult {
     // Ranged weapons use DEX. Finesse melee weapons use the better of STR/DEX.
-    const finesse = input.weapon?.finesse === true;
-    const ranged = input.weapon?.tags.includes("ranged") === true;
     const a = input.attacker;
+    const finesse = input.weapon?.finesse === true && a.ancestry !== "dwarf";
+    const ranged = input.weapon?.tags.includes("ranged") === true;
     const stat = ranged || (finesse && a.mod("DEX") > a.mod("STR")) ? "DEX" : "STR";
     const melee = !ranged;
     const check = this.check({

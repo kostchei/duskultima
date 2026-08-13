@@ -248,9 +248,11 @@ export class LightSystem {
     for (const s of this.sources.values()) {
       const pos = s.position();
       if (!pos) continue;
+      const flicker = s.torch ? 1 + 0.04 * Math.sin(this.tickCount * 0.25 + (s.radius % 7)) : 1;
+      const effectiveRadius = s.radius * flicker;
       const sx = (pos.x - cam.scrollX - offX) * z;
       const sy = (pos.y - cam.scrollY - offY) * z;
-      this.brush.setScale((s.radius * 2 * z) / 256);
+      this.brush.setScale((effectiveRadius * 2 * z) / 256);
       if (s.dim === true) {
         // Thin the darkness rather than cut it: outlines, not visibility.
         this.brush.setAlpha(0.55);
@@ -259,11 +261,11 @@ export class LightSystem {
       } else {
         this.rt.erase(this.brush, sx, sy);
         // Second, tighter pass gives real flames a bright hot core.
-        this.brush.setScale((s.radius * 1.15 * z) / 256);
+        this.brush.setScale((effectiveRadius * 1.15 * z) / 256);
         this.rt.erase(this.brush, sx, sy);
       }
       if (!this.tintEnabled) continue;
-      this.brush.setScale((s.radius * 2 * z) / 256);
+      this.brush.setScale((effectiveRadius * 2 * z) / 256);
       this.brush.setTint(s.tint).setAlpha(s.tintAlpha);
       this.tintRt.draw(this.brush, sx, sy);
       this.brush.setTint(0xffffff).setAlpha(1);

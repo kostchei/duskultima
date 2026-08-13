@@ -1,0 +1,34 @@
+﻿Available, full implement
+Fighter [str]
+Cleric [wis] (with alignment spells)
+MagicUser [int] (with alignment spells)
+Thief [dex]
+Bard [cha]
+Monk [wis]
+Necromancer [cha]
+Paladin [cha] (can swap mount for smite)
+Ranger [int]
+Seawolf [str] (can swap shield wall for reckless attack)
+Warlock [var] : freya, molek, rathgamnon, saint ydris, shune the vile, 
+
+
+Recoverable:
+Basilisk Warrior [con]
+Ras-Godai [dex]
+Roustabout [var]
+Delver [var]
+Duelist [cha]
+Pit Fighter [con]
+
+
+
+
+
+
+Ancestries:
+Human
+Dwarf (can wear plate, can’t use finesse)
+Elf
+½ Orc
+Gnome (use kobold)
+Tiefling/Deva (racial feature is get a patron boon from a Chaotic or Lawful patron, from whom you are descended )

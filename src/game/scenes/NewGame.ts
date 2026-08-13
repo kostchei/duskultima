@@ -100,9 +100,11 @@ export class NewGameScene extends Phaser.Scene {
     const local = !["fighter", "thief", "priest", "wizard"].includes(this.className);
     const ancestryTrait: Record<Ancestry, string> = {
       human: "Ambitious: one extra starting talent",
-      dwarf: "Stout: roll level-up HP with advantage",
+      dwarf: "Stout: roll level-up HP with advantage, plate armor (no finesse)",
       elf: "Spellcraft: advantage on spell checks",
       "half-orc": "Mighty: +1 melee damage",
+      gnome: "Small: advantage on trap evasion and DEX checks",
+      "tiefling-deva": "Descendant: starts with a Patron Boon",
     };
 
     // Detail info box

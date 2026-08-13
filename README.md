@@ -179,7 +179,8 @@ tests/        Engine unit tests.
 e2e/          Playwright smoke tests.
 ```
 
-Design docs: [Shadowdork.md](Shadowdork.md) (game design),
+Design docs: [ARCHITECTURE.md](ARCHITECTURE.md) (system architecture & layer boundaries),
+[Shadowdork.md](Shadowdork.md) (game design),
 [docs/five-room-dungeons.md](docs/five-room-dungeons.md) (level-design bible: room-variant
 library, order shuffles, 2D layout patterns),
 [docs/mobile-playability-plan.md](docs/mobile-playability-plan.md) (touch input, lifecycle,

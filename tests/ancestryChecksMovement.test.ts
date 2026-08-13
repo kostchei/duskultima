@@ -44,7 +44,7 @@ class ScriptedDice extends Dice {
 
 describe("ancestry traits", () => {
   it("offers every implemented ancestry", () => {
-    expect(ANCESTRIES).toEqual(["human", "dwarf", "elf", "half-orc"]);
+    expect(ANCESTRIES).toEqual(["human", "dwarf", "elf", "half-orc", "gnome", "tiefling-deva"]);
   });
 
   it("dwarves take the better of two level-up HP rolls", () => {

@@ -50,12 +50,15 @@ export interface CastResult {
   mishapResolution?: "accepted" | "discarded";
 }
 
-const CAST_STAT: Record<SpellClass, StatName> = {
+const CAST_STAT: Record<string, StatName> = {
   wizard: "INT",
+  "magic-user": "INT",
   priest: "WIS",
+  cleric: "WIS",
   witch: "CHA",
   seer: "WIS",
 };
+
 export const WIZARD_MISHAP_TABLE_TIER_1_2 = "wizard-mishaps-tier-1-2";
 export const WIZARD_MISHAP_TABLE_TIER_3_4 = "wizard-mishaps-tier-3-4";
 export const WIZARD_MISHAP_TABLE_TIER_5 = "wizard-mishaps-tier-5";
@@ -84,11 +87,11 @@ export function mishapTableId(caster: Character, tier: number): string | undefin
 }
 
 export function castingStat(spellClass: SpellClass): StatName {
-  return CAST_STAT[spellClass];
+  return CAST_STAT[spellClass] ?? "INT";
 }
 
 function casterStat(caster: Character, _spell: SpellDef): StatName {
-  return CAST_STAT[caster.className as SpellClass];
+  return CAST_STAT[caster.className] ?? "INT";
 }
 
 export function spellClasses(spell: SpellDef): readonly SpellClass[] {
@@ -96,7 +99,11 @@ export function spellClasses(spell: SpellDef): readonly SpellClass[] {
 }
 
 export function canCastSpellClass(caster: Character, spellClass: SpellClasses): boolean {
-  return (typeof spellClass === "string" ? [spellClass] : spellClass).includes(caster.className as SpellClass);
+  const allowed = typeof spellClass === "string" ? [spellClass] : spellClass;
+  if (allowed.includes(caster.className as SpellClass)) return true;
+  if (caster.className === "cleric" && allowed.includes("priest")) return true;
+  if (caster.className === "magic-user" && allowed.includes("wizard")) return true;
+  return false;
 }
 
 /** Beginning any new spell ends the caster's previous Focus effect. */

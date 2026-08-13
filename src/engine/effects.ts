@@ -13,6 +13,9 @@ export type CheckKind =
   | "initiative"
   | "morale"
   | "stealth"
+  | "traps"
+  | "climbing"
+  | "swimming"
   | "stat" // generic ability check (climb, disarm, stabilize...)
   | "any";
 
