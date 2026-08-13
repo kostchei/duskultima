@@ -41,6 +41,7 @@ import { TableRegistry, type TableRollResult } from "./tables";
 import { DEFAULT_CONFIG, GameClock, type EngineConfig } from "./time";
 
 export * from "./advancement";
+export * from "./ancestryRules";
 export * from "./character";
 export * from "./check";
 export * from "./classAbilities";
@@ -60,6 +61,7 @@ export * from "./monster";
 export * from "./monsterSelect";
 export * from "./movement";
 export * from "./potions";
+export * from "./patrons";
 export * from "./spells";
 export * from "./soloDark";
 export * from "./tables";
