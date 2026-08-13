@@ -267,8 +267,27 @@ export class Character {
   /** Shield slung on the back (e.g. to carry a torch): hand free, no AC bonus. */
   shieldStowed = false;
 
-  /** One reroll per run. Spent through the game layer. */
-  luckToken = true;
+  /** SoloDark luck pool. The boolean accessor below preserves old UI/API callers. */
+  luckTokens = 1;
+  get luckToken(): boolean {
+    return this.luckTokens > 0;
+  }
+  set luckToken(value: boolean) {
+    this.luckTokens = value ? Math.max(1, this.luckTokens) : 0;
+  }
+  gainLuckTokens(amount = 1, cap = Number.POSITIVE_INFINITY): number {
+    if (!Number.isInteger(amount) || amount < 0) throw new Error("Luck amount must be non-negative");
+    if (!Number.isInteger(cap) || cap < 1) throw new Error("Luck cap must be positive");
+    const gained = Math.max(0, Math.min(cap, this.luckTokens + amount) - this.luckTokens);
+    this.luckTokens += gained;
+    return gained;
+  }
+  spendLuckToken(): boolean {
+    if (this.luckTokens < 1) return false;
+    this.luckTokens--;
+    return true;
+  }
+  gold = 0;
   classState: ClassState = { ...DEFAULT_CLASS_STATE, resourceUses: {}, oldGods: [], cauldronItems: [] };
 
   /** Set while at 0 HP; cleared by stabilization or healing. */

@@ -244,7 +244,7 @@ export function discardPendingMishap(pending: CastResult): void {
 export function spendLuckOnPendingMishap(caster: Character, pending: CastResult): void {
   if (!caster.luckToken) throw new Error(`${caster.name} has no Luck token`);
   discardPendingMishap(pending);
-  caster.luckToken = false;
+  caster.spendLuckToken();
 }
 
 /** Player decisions valid for this exact unresolved natural-1 result. */
