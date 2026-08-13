@@ -1,5 +1,6 @@
 import type { Character } from "./character";
 import type { Dice, Advantage } from "./dice";
+import type { Effect } from "./effects";
 
 /** SoloDark's three oracle odds, expressed as the die mode they modify. */
 export type OracleOdds = "unlikely" | "even" | "likely";
@@ -97,6 +98,14 @@ export interface InitiativeCheck {
   advantage: Advantage;
 }
 
+/** Minimal participant shape needed for group initiative. Characters satisfy this;
+ * the browser game also uses it for a monster representative. */
+export interface InitiativeParticipant {
+  id: string;
+  mod(stat: "DEX"): number;
+  effects?: readonly Effect[];
+}
+
 export interface GroupInitiativeResult {
   first: "party" | "enemies";
   party: InitiativeCheck;
@@ -120,8 +129,8 @@ export class ChaosInitiative {
 /** SoloDark group initiative: one DEX check per side, with ties rerolled. */
 export function groupInitiative(
   dice: Dice,
-  party: readonly Character[],
-  enemies: readonly Character[],
+  party: readonly InitiativeParticipant[],
+  enemies: readonly InitiativeParticipant[],
 ): GroupInitiativeResult {
   if (!party.length || !enemies.length) throw new Error("Both initiative groups need a representative");
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -143,8 +152,8 @@ export function groupInitiative(
   throw new Error("Group initiative remained tied for 100 rolls");
 }
 
-function hasInitiativeAdvantage(character: Character): boolean {
-  return character.effects.some((effect) => effect.hooks.some((hook) => hook.kind === "advantageOn" && hook.applies === "initiative"));
+function hasInitiativeAdvantage(character: InitiativeParticipant): boolean {
+  return character.effects?.some((effect) => effect.hooks.some((hook) => hook.kind === "advantageOn" && hook.applies === "initiative")) ?? false;
 }
 
 /** Natural 20 luck from SoloDark; tokens cap at the number of PCs. */

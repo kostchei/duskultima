@@ -567,7 +567,7 @@ export function unlockClassSpellsForLevel(character: Character, level = characte
 }
 
 export function spell(id: string): SpellDef {
-  const def = SPELLS.get(id);
+  const def = SPELLS.get(id) ?? SPELLS.get(id.replaceAll("_", "-"));
   if (!def) throw new Error(`Unknown spell "${id}"`);
   return def;
 }

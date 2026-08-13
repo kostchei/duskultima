@@ -170,9 +170,15 @@ export interface MonsterAttackResult {
   appliedCondition?: "webbed" | "poisoned" | "swallowed" | "corroded";
 }
 
+export interface MonsterCombatProfile {
+  attackBonus: number;
+  damage: string;
+  specialAbility?: MonsterDef["specialAbility"];
+}
+
 export function monsterAttackRoll(
   dice: Dice,
-  monster: MonsterDef,
+  monster: MonsterCombatProfile,
   targetAc: number,
   mode: "normal" | "advantage" | "disadvantage" = "normal",
 ): MonsterAttackResult {

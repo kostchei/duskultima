@@ -124,6 +124,28 @@ body.crt-off::before {
   background-color: #000;
 }
 
+.viewport-overlay {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  max-width: 90%;
+  padding: 8px 12px;
+  border: 1px solid var(--panel-border);
+  background: rgba(5, 5, 8, 0.94);
+  color: var(--text-gold);
+  font-size: 18px;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+}
+
+.viewport-overlay.is-visible {
+  opacity: 1;
+}
+
 #game-canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;

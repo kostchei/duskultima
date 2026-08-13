@@ -3,7 +3,7 @@
  * Links the Shadowdark OSR rules engine with the Ultima V style renderer, UI, ZoneHazards, and Web Audio API.
  */
 
-import { Engine } from "./engine/index";
+import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ConditionKind } from "./engine/index";
 import { Character } from "./engine/character";
 import { item } from "./data/items";
 import { MapGrid } from "./game/level/MapGrid";
@@ -42,6 +42,10 @@ class Game {
   private movementBandsRemaining: 0 | 1 | 2 = 2;
   private actionAvailable = true;
   private autoFollowerIds = new Set<string>();
+  /** Standard Shadowdark: initiative is rolled once when an encounter begins. */
+  private combatActive = false;
+  private partyActsFirst = true;
+  private playerTurnStarted = false;
 
   constructor() {
     this.engine = new Engine();
@@ -82,6 +86,10 @@ class Game {
       stats: { STR: 16, DEX: 14, CON: 15, INT: 10, WIS: 10, CHA: 12 },
       maxHp: 12,
     });
+    const sword = item("longsword");
+    fighter.inventory.add(sword, 1, true);
+    fighter.equipWeapon(sword);
+    this.engine.registerCharacter(fighter);
     fighter.inventory.add(item("torch"), 3);
     fighter.inventory.add(item("ration"), 5);
     fighter.gold = 40;
@@ -105,6 +113,9 @@ class Game {
     this.movementBandsRemaining = 2;
     this.actionAvailable = true;
     this.breathRoundsSubmerged = 0;
+    this.combatActive = false;
+    this.partyActsFirst = true;
+    this.playerTurnStarted = false;
     this.audio.updateBiomeAmbience(site.biome);
     this.frame.addLog(`Entered Site ${this.currentAdventure.currentSiteIndex + 1}: ${site.name} (${site.sizeCategory.toUpperCase()}, ${site.roomCount} Rooms, Biome: ${site.biome.toUpperCase()}).`, "system");
     this.frame.addLog(`Site Goal: ${site.goal.description}`, "prompt");
@@ -168,6 +179,7 @@ class Game {
   }
 
   private handleMove(dx: number, dy: number, requestedBands: 1 | 2): void {
+    if (!this.beginPlayerTurn()) return;
     if (this.actionAvailable === false && this.movementBandsRemaining === 0) {
       this.frame.addLog("Your turn is complete. Choose an action after the round advances.", "prompt");
       return;
@@ -230,6 +242,7 @@ class Game {
     if (requestedBands === 2 || this.movementBandsRemaining === 0) {
       this.endTurn("move");
     } else {
+      this.frame.showMovementTooltip("Shift + direction moves double near and ends the round");
       this.frame.addLog("Moved near. Attack, cast, pass, or move near again.", "prompt");
       this.updateUi();
       this.render();
@@ -248,7 +261,9 @@ class Game {
         stats: { STR: 11, DEX: 16, CON: 12, INT: 13, WIS: 10, CHA: 14 },
         maxHp: 8,
       });
-      newHero.inventory.add(item("dagger"), 2);
+      const dagger = item("dagger");
+      newHero.inventory.add(dagger, 2, true);
+      newHero.equipWeapon(dagger);
     } else if (rescueClass === "priest") {
       newHero = new Character({
         id: "char-elen",
@@ -257,8 +272,11 @@ class Game {
         stats: { STR: 13, DEX: 10, CON: 14, INT: 10, WIS: 16, CHA: 12 },
         maxHp: 9,
       });
+      const mace = item("mace");
+      newHero.inventory.add(mace, 1, true);
+      newHero.equipWeapon(mace);
       newHero.learnSpell("light");
-      newHero.learnSpell("cure_wounds");
+      newHero.learnSpell("cure-wounds");
     } else {
       newHero = new Character({
         id: "char-vael",
@@ -267,8 +285,13 @@ class Game {
         stats: { STR: 9, DEX: 14, CON: 11, INT: 17, WIS: 12, CHA: 10 },
         maxHp: 6,
       });
-      newHero.learnSpell("magic_missile");
+      const staff = item("staff");
+      newHero.inventory.add(staff, 1, true);
+      newHero.equipWeapon(staff);
+      newHero.learnSpell("magic-missile");
     }
+
+    this.engine.registerCharacter(newHero);
 
     // Add to active party & remove from unrescued list
     this.party.push(newHero);
@@ -283,26 +306,136 @@ class Game {
     this.endTurn();
   }
 
-  private attackMonsterAt(monster: any, attacker: Character = this.leader): void {
-    const attackRoll = this.engine.dice.roll("1d20");
-    const strMod = attacker.mod("STR");
-    const totalRoll = attackRoll + strMod;
+  private activeHostiles(): any[] {
+    return this.grid.entities.filter((entity) => entity.isHostile && entity.hp > 0);
+  }
 
-    this.frame.addLog(`${attacker.name} attacks ${monster.name}! [1d20+${strMod}=${totalRoll} vs AC ${monster.ac}]`, "combat");
+  /** Start one standard Shadowdark encounter initiative roll when a threat enters far range. */
+  private ensureCombatStarted(): void {
+    if (this.combatActive) return;
+    const enemy = this.activeHostiles()
+      .filter((entity) => gridDistance(this.grid.playerPos, entity) <= RANGE_BAND_TILES.far)
+      .sort((a, b) => gridDistance(this.grid.playerPos, a) - gridDistance(this.grid.playerPos, b))[0];
+    if (!enemy) return;
 
-    if (totalRoll >= monster.ac) {
-      const dmg = Math.max(1, this.engine.dice.roll("1d6") + strMod);
-      monster.hp -= dmg;
-      this.audio.playHitSfx();
-      this.frame.addLog(`Hit! Dealt ${dmg} damage to ${monster.name}.`, "hit");
-      if (monster.hp <= 0) {
-        this.frame.addLog(`${monster.name} is slain!`, "hit");
-        if (this.currentSite.goal.verb === "Slay" && monster.name === this.currentSite.goal.target) {
-          this.completeSiteGoal(null);
-        }
+    const initiative = groupInitiative(this.engine.dice, this.party, [{
+      id: enemy.id,
+      mod: () => enemy.initiativeDexModifier ?? 0,
+    }]);
+    this.combatActive = true;
+    this.partyActsFirst = initiative.first === "party";
+    this.frame.addLog(
+      `Combat begins! Initiative: party ${initiative.party.total} vs enemies ${initiative.enemies.total}. ${initiative.first === "party" ? "Your group acts first." : "The enemies act first."}`,
+      "combat",
+    );
+  }
+
+  /** Resolve an enemy-first initiative before the player's next action. */
+  private beginPlayerTurn(): boolean {
+    if (this.playerTurnStarted) return !this.leader.dead && !this.leader.dying;
+    this.playerTurnStarted = true;
+    this.ensureCombatStarted();
+    if (this.combatActive && !this.partyActsFirst) {
+      this.monsterAiTurn();
+      if (this.leader.dead || this.leader.dying) {
+        this.frame.addLog(`${this.leader.name} cannot act while dying.`, "combat");
+        return false;
       }
+    }
+    return !this.leader.dead && !this.leader.dying;
+  }
+
+  private findHostile(maxRange: number): any | undefined {
+    return this.activeHostiles()
+      .filter((entity) => gridDistance(this.grid.playerPos, entity) <= maxRange)
+      .sort((a, b) => gridDistance(this.grid.playerPos, a) - gridDistance(this.grid.playerPos, b))[0];
+  }
+
+  private attackMonsterAt(monster: any, attacker: Character = this.leader): void {
+    const weapon = attacker.wieldedWeapon;
+    if (!weapon?.damage) {
+      this.frame.addLog(`${attacker.name} has no usable weapon equipped.`, "combat");
+      return;
+    }
+    const result = this.engine.attack({
+      attacker,
+      targetAc: monster.ac,
+      damage: weapon.damage,
+      weapon,
+    });
+    const sign = result.check.modifier >= 0 ? "+" : "";
+    this.frame.addLog(
+      `${attacker.name} attacks ${monster.name}! [d20 ${result.check.natural}${sign}${result.check.modifier}=${result.check.total} vs AC ${monster.ac}]`,
+      "combat",
+    );
+
+    if (!result.check.success) {
+      this.frame.addLog(result.check.fumble ? "Natural 1 — the attack fumbles." : "Miss!", "combat");
+      return;
+    }
+
+    monster.hp = Math.max(0, monster.hp - result.damage);
+    this.audio.playHitSfx();
+    this.frame.addLog(`${result.check.crit ? "Critical hit! " : "Hit! "}Dealt ${result.damage} damage to ${monster.name}.`, "hit");
+    if (monster.hp <= 0) {
+      this.frame.addLog(`${monster.name} is slain!`, "hit");
+      if (this.currentSite.goal.verb === "Slay" && monster.name === this.currentSite.goal.target) {
+        this.completeSiteGoal(null);
+      }
+    }
+  }
+
+  private spellRangeTiles(range: string): number {
+    if (range === "close") return RANGE_BAND_TILES.close;
+    if (range === "near") return RANGE_BAND_TILES.near;
+    if (range === "far") return RANGE_BAND_TILES.far;
+    return 0;
+  }
+
+  /** Resolve a cast check and apply the small set of combat spell effects used by the browser game. */
+  private resolveSpellEffect(caster: Character, spellId: string, allyTarget: Character = caster): void {
+    const chosen = spell(spellId.replaceAll("_", "-"));
+    const target = chosen.target === "enemy" ? this.findHostile(this.spellRangeTiles(chosen.range)) : undefined;
+    const result = this.engine.cast(caster, chosen);
+    if (result.outcome === "pendingMishap") {
+      this.frame.addLog(`${caster.name} rolls a natural 1 on ${chosen.name}; the mishap is accepted: ${result.mishap?.entry.text ?? "arcane backlash"}`, "combat");
+      this.engine.acceptMishap(caster, result, "known");
+      return;
+    }
+    if (result.outcome === "fail") {
+      this.frame.addLog(`${caster.name}'s ${chosen.name} fails and is lost until rest.`, "combat");
+      return;
+    }
+
+    if (chosen.id === "light") {
+      this.isTorchActive = true;
+      this.torchTimer = 3600;
+      this.frame.addLog(`${caster.name}'s Light spell illuminates the dungeon.`, "spell");
+      return;
+    }
+    if (chosen.id === "cure-wounds") {
+      const diceCount = result.doubled ? 2 : 1;
+      let healing = 0;
+      for (let i = 0; i < diceCount; i++) healing += this.engine.dice.roll(chosen.dice ?? "1d6");
+      allyTarget.heal(healing);
+      this.frame.addLog(`${caster.name} restores ${healing} HP to ${allyTarget.name}.`, "hit");
+      return;
+    }
+    if (chosen.id === "bless") {
+      allyTarget.gainLuckTokens(1, this.party.length);
+      this.frame.addLog(`${caster.name} blesses ${allyTarget.name} with renewed luck.`, "spell");
+      return;
+    }
+    if (chosen.dice && target) {
+      const diceCount = result.doubled ? 2 : 1;
+      let damage = 0;
+      for (let i = 0; i < diceCount; i++) damage += this.engine.dice.roll(chosen.dice);
+      target.hp = Math.max(0, target.hp - damage);
+      this.audio.playHitSfx();
+      this.frame.addLog(`${caster.name} hits ${target.name} with ${chosen.name} for ${damage} damage${result.doubled ? " (critical)" : ""}.`, "hit");
+      if (target.hp <= 0) this.frame.addLog(`${target.name} is slain!`, "hit");
     } else {
-      this.frame.addLog("Miss!", "combat");
+      this.frame.addLog(`${caster.name} successfully casts ${chosen.name}.`, "spell");
     }
   }
 
@@ -337,14 +470,13 @@ class Game {
   }
 
   private handleAttack(): void {
+    if (!this.beginPlayerTurn()) return;
     if (!this.actionAvailable) {
       this.frame.addLog("You have already taken an action this turn.", "prompt");
       return;
     }
     const maxRange = this.leader.wieldedWeapon?.tags.includes("ranged") ? RANGE_BAND_TILES.far : RANGE_BAND_TILES.close;
-    const target = this.grid.entities
-      .filter((entity) => entity.isHostile && entity.hp > 0 && gridDistance(this.grid.playerPos, entity) <= maxRange)
-      .sort((a, b) => gridDistance(this.grid.playerPos, a) - gridDistance(this.grid.playerPos, b))[0];
+    const target = this.findHostile(maxRange);
     if (target) {
       this.attackMonsterAt(target);
       this.actionAvailable = false;
@@ -356,6 +488,7 @@ class Game {
   }
 
   private handleCast(): void {
+    if (!this.beginPlayerTurn()) return;
     if (!this.actionAvailable) {
       this.frame.addLog("You have already taken an action this turn.", "prompt");
       return;
@@ -365,17 +498,7 @@ class Game {
       this.movementBandsRemaining = Math.min(1, this.movementBandsRemaining) as 0 | 1;
       this.audio.playSpellSfx();
       this.frame.addLog(`${this.leader.name} casts ${spellId.replace("_", " ")}!`, "spell");
-      if (spellId === "light") {
-        this.isTorchActive = true;
-        this.torchTimer = 3600;
-        this.frame.addLog("A glowing orb of magical light illuminates the corridor!", "spell");
-      } else if (spellId === "cure_wounds") {
-        const heal = this.engine.dice.roll("1d6") + 2;
-        this.leader.hp = Math.min(this.leader.maxHp, this.leader.hp + heal);
-        this.frame.addLog(`${this.leader.name} heals for ${heal} HP!`, "hit");
-      } else {
-        this.frame.addLog("The spell surges with arcane energy!", "spell");
-      }
+      this.resolveSpellEffect(this.leader, spellId, this.leader);
       this.endTurn("cast");
     });
   }
@@ -416,10 +539,7 @@ class Game {
 
   private handleRest(): void {
     const onConfirmRest = () => {
-      this.party.forEach((char) => {
-        char.hp = char.maxHp;
-        char.knownSpells.forEach((s) => (s.status = "available"));
-      });
+      this.party.forEach((char) => this.engine.freeRest(char));
       this.isTorchActive = true;
       this.torchTimer = 3600;
       this.frame.addLog("The party rests at camp. HP restored and torches renewed!", "system");
@@ -455,6 +575,7 @@ class Game {
   }
 
   private handlePass(): void {
+    if (!this.beginPlayerTurn()) return;
     this.frame.addLog(`${this.leader.name} passes turn.`, "prompt");
     this.endTurn("pass");
   }
@@ -479,21 +600,28 @@ class Game {
 
       const dx = this.grid.playerPos.x - monster.x;
       const dy = this.grid.playerPos.y - monster.y;
-      const dist = Math.abs(dx) + Math.abs(dy);
+      const dist = gridDistance(this.grid.playerPos, monster);
 
-      if (dist === 1) {
-        const roll = this.engine.dice.roll("1d20");
-        this.frame.addLog(`${monster.name} attacks ${this.leader.name}! [1d20=${roll} vs AC ${this.leader.ac}]`, "combat");
-        if (roll >= this.leader.ac) {
-          const dmg = Math.max(1, this.engine.dice.roll("1d4"));
-          this.leader.hp = Math.max(0, this.leader.hp - dmg);
+      if (dist <= RANGE_BAND_TILES.close) {
+        const result = monsterAttackRoll(this.engine.dice, {
+          attackBonus: monster.attackBonus ?? 1,
+          damage: monster.damage ?? "1d4",
+          specialAbility: monster.specialAbility,
+        }, this.leader.ac);
+        this.frame.addLog(`${monster.name} attacks ${this.leader.name}! [d20 ${result.natural}+${monster.attackBonus ?? 1}=${result.total} vs AC ${this.leader.ac}]`, "combat");
+        if (result.hit) {
+          this.engine.damageCharacter(this.leader, result.damage, { attack: true });
           this.audio.playHitSfx();
-          this.frame.addLog(`${monster.name} strikes ${this.leader.name} for ${dmg} damage!`, "combat");
-          if (this.leader.hp === 0) {
-            this.frame.addLog(`${this.leader.name} has fallen!`, "combat");
+          this.frame.addLog(`${result.crit ? "Critical hit! " : "Hit! "}${monster.name} deals ${result.damage} damage.`, "combat");
+          if (result.appliedCondition) {
+            const condition = result.appliedCondition as ConditionKind;
+            if (applyCondition(this.leader, condition, { unit: "rounds", remaining: 3 })) {
+              this.frame.addLog(`${this.leader.name} is ${condition}.`, "combat");
+            }
           }
+          if (this.leader.dying) this.frame.addLog(`${this.leader.name} is dying!`, "combat");
         } else {
-          this.frame.addLog(`${monster.name}'s attack missed.`, "prompt");
+          this.frame.addLog(result.natural === 1 ? `${monster.name} fumbles its attack.` : `${monster.name}'s attack missed.`, "prompt");
         }
       } else if (dist <= 4) {
         const stepX = monster.x + Math.sign(dx);
@@ -518,22 +646,8 @@ class Game {
       if (action.kind === "follow") {
         this.frame.addLog(`${follower.name} follows the leader.`, "system");
       } else if (action.kind === "cast") {
-        const chosen = spell(action.spellId);
         this.audio.playSpellSfx();
-        if (action.spellId === "cure_wounds") {
-          const heal = this.engine.dice.roll(chosen.dice ?? "1d6");
-          this.leader.hp = Math.min(this.leader.maxHp, this.leader.hp + heal);
-          this.frame.addLog(`${follower.name} supports ${this.leader.name} with Cure Wounds for ${heal} HP.`, "spell");
-        } else if (chosen.dice) {
-          const target = this.grid.entities
-            .filter((entity) => entity.isHostile && entity.hp > 0 && gridDistance(this.grid.playerPos, entity) <= RANGE_BAND_TILES.far)
-            .sort((a, b) => gridDistance(this.grid.playerPos, a) - gridDistance(this.grid.playerPos, b))[0];
-          if (target) {
-            const damage = this.engine.dice.roll(chosen.dice);
-            target.hp -= damage;
-            this.frame.addLog(`${follower.name} casts ${chosen.name} in support for ${damage} damage.`, "spell");
-          }
-        }
+        this.resolveSpellEffect(follower, action.spellId, this.leader);
       } else if (action.kind === "attack") {
         const target = this.grid.entities
           .filter((entity) => entity.isHostile && entity.hp > 0 && gridDistance(this.grid.playerPos, entity) <= RANGE_BAND_TILES.close)
@@ -544,8 +658,12 @@ class Game {
   }
 
   private endTurn(intent: LeaderIntent = "pass"): void {
+    this.frame.hideMovementTooltip();
     this.resolveAutoSupport(intent);
     this.round++;
+    // Advance the pure engine clock so round-based conditions, concentration,
+    // poison, and Shadowdark death timers resolve in the live game too.
+    this.engine.advance(this.engine.config.roundMs);
     if (this.isTorchActive && this.torchTimer > 0) {
       this.torchTimer -= 10;
       if (this.torchTimer <= 0) {
@@ -571,9 +689,18 @@ class Game {
       this.frame.addLog(hazardRes.message, hazardRes.success ? "system" : "combat");
     }
 
-    this.monsterAiTurn();
+    if (!this.combatActive) {
+      this.monsterAiTurn();
+    } else if (this.partyActsFirst) {
+      this.monsterAiTurn();
+    }
+    if (this.combatActive && !this.activeHostiles().some((entity) => gridDistance(this.grid.playerPos, entity) <= RANGE_BAND_TILES.far)) {
+      this.combatActive = false;
+      this.frame.addLog("The immediate threat is gone; combat ends.", "system");
+    }
     this.movementBandsRemaining = 2;
     this.actionAvailable = true;
+    this.playerTurnStarted = false;
     this.syncPartyFormation();
     this.grid.updateFov(this.isTorchActive ? 4 : 1);
     this.updateUi();

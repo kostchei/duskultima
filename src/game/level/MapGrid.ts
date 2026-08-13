@@ -16,6 +16,11 @@ export interface MapEntity {
   maxHp: number;
   ac: number;
   isHostile: boolean;
+  /** Shadowdark monster combat values used by the live game loop. */
+  attackBonus?: number;
+  initiativeDexModifier?: number;
+  damage?: string;
+  specialAbility?: "web" | "poison" | "engulf" | "shadow-extinct" | "split" | "corrode" | "thorns";
   isParty?: boolean;
   rescueClass?: "thief" | "priest" | "wizard";
 }
@@ -204,6 +209,9 @@ export class MapGrid {
         maxHp: 24,
         ac: 14,
         isHostile: true,
+        attackBonus: 4,
+        initiativeDexModifier: 0,
+        damage: "1d10",
       });
     } else if (siteDef.goal.verb === "Retrieve") {
       this.setTile(goalX, goalY, TileType.CHEST_CLOSED);
@@ -225,6 +233,9 @@ export class MapGrid {
         maxHp: 6,
         ac: 11,
         isHostile: true,
+        attackBonus: 1,
+        initiativeDexModifier: 2,
+        damage: "1d6",
       });
     }
   }

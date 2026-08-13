@@ -14,6 +14,7 @@ export class UltimaFrame {
   private lightDisplay: HTMLElement;
   private partyList: HTMLElement;
   private logPanel: HTMLElement;
+  private viewportOverlay: HTMLElement;
 
   constructor() {
     this.locDisplay = document.getElementById("loc-display")!;
@@ -21,6 +22,17 @@ export class UltimaFrame {
     this.lightDisplay = document.getElementById("light-display")!;
     this.partyList = document.getElementById("party-list")!;
     this.logPanel = document.getElementById("log-panel")!;
+    this.viewportOverlay = document.getElementById("viewport-overlay")!;
+  }
+
+  public showMovementTooltip(text: string): void {
+    this.viewportOverlay.textContent = text;
+    this.viewportOverlay.title = text;
+    this.viewportOverlay.classList.add("is-visible");
+  }
+
+  public hideMovementTooltip(): void {
+    this.viewportOverlay.classList.remove("is-visible");
   }
 
   public updateHeader(
