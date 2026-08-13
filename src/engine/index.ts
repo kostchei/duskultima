@@ -63,6 +63,7 @@ export * from "./potions";
 export * from "./spells";
 export * from "./soloDark";
 export * from "./tables";
+export * from "./trapsHazards";
 export * from "./talents";
 export * from "./treasureXp";
 export * from "./time";
