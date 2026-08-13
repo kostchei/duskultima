@@ -1,111 +1,79 @@
 ---
 name: duskultima-table-db
-description: Access, query, roll on, and search all Shadowdark Core, Western Reaches, and SDtools tables, ancestries, backgrounds, trinkets, equipment, class talents, treasure, magic items, monsters, spells, and regional content.
+description: Query the source-manifest-backed Shadowdark Core, Western Reaches, and SDtools database through TypeScript, SQLite, or MCP.
 ---
 
-# DuskUltima Table Database & Query System
+# DuskUltima Table Database
 
-The **DuskUltima Table Database** consolidates all rules, roll tables, monsters, spells, 2-part compound ancestry names, d100 trinkets, backgrounds, equipment, class talents, treasure tables, magic item generators, and regional lore from:
-1. **Player's Guide to the Western Reaches** (`Player_s_Guide_to_the_Western_Reaches_V1.pdf.json`)
-2. **Shadowdark Core Rulebook** (`shadow-dark.pdf.json`)
-3. **Shadowdark Tools Datasets** (`SDtools_extracted`, including `shadowdark_master_dataset.json`)
+The database is rebuilt by `scripts/populate_sql_db.py`, which delegates to the relative-path source-driven builder in `scripts/populate_master_db.py`.
 
-All data is compiled into an SQLite database (`shadowdork.db`) and a master JSON bundle (`src/data/db/master_tables.json`), making tables available via **TypeScript APIs**, **Python SQLite queries**, **MCP (Model Context Protocol) Tools**, and this **SKILL.md**.
+Sources:
 
----
+- `docs/extracted/raw/shadow-dark.pdf.json`
+- `docs/extracted/raw/Player_s_Guide_to_the_Western_Reaches_V1.pdf.json`
+- `docs/raw_source/SDtools_extracted/data/*.json`
+- `docs/raw_source/Classes_and_ancestry.txt`
 
-## 📊 Resolved Database Metrics & Schema
+`src/data/db/source_manifest.json` is the audit manifest. Each entry records the document, extracted and printed pages, heading, die expression, expected row count, schema shape, and adapter. The database also stores this data in `source_manifest` and preserves unflattened content in `structured_rows`.
 
-All 9 audit gaps have been resolved:
-- **`shadowdark_master_dataset.json`**: Ingested (Quest generator: 109, Hazards/Traps: 39, Magic item generators: ~250, NPCs: 16, Spell tiers: 108).
-- **`items` Table**: Ingested basic gear, weapons, armor, poisons, mounts, boats, and siege weapons (40 core entries).
-- **Backgrounds**: 96 backgrounds (20 Shadowdark Core + 76 Western Reaches regional).
-- **Trinkets**: 416 page-bounded trinket entries (exactly 52 range entries per ancestry across all 8 ancestries: Dwarf p. 19, Elf p. 21, Goblin p. 23, Half-Elf p. 25, Half-Orc p. 27, Halfling p. 29, Human p. 31, Kobold p. 33).
-- **Class Talents**: Core (Fighter, Priest, Thief, Wizard) and Western Reaches class talent tables.
-- **Treasure & Magic Items**: 0–10+ Level Treasure tables (d100), core magic items (pages 140–160), potions, scrolls, wands, rings.
-- **Western Reaches Regional Content**: Secrets (d100 p. 78), Titles (p. 82), Hexcrawl & Weather (p. 226–232), Downtime & Bastions (p. 236–250).
+## Current generated counts
 
-### Primary Database Tables (`shadowdork.db`)
+Counts are generated, not hand-maintained. Read `src/data/db/tables_manifest.json` or query SQLite for the current values. The generated bundle includes `rules_catalog`, `structured_rows`, `project_classes`, `project_ancestries`, and `source_manifest` in addition to the roll tables, names, backgrounds, trinkets, items, monsters, and spells.
 
-| Table Name | Count | Key Columns |
-| :--- | :--- | :--- |
-| `tables_meta` | 292 | `name`, `die_type`, `category`, `source` |
-| `roll_tables` | 4,624 | `table_name`, `roll_min`, `roll_max`, `result_text`, `source` |
-| `ancestry_names` | 240 | `ancestry`, `type` ('part1', 'part2', 'standalone'), `name_part` |
-| `backgrounds` | 96 | `roll_val`, `name`, `description`, `source` |
-| `trinkets` | 416 | `ancestry`, `roll_min`, `roll_max`, `result_text`, `source` |
-| `items` | 40 | `name`, `cost`, `slot_cost`, `category`, `properties`, `source`, `page` |
-| `monsters` | 243 | `name`, `ac`, `hp`, `attack`, `mv`, `tier`, `biome` |
-| `spells` | 114 | `name`, `class_name`, `tier`, `range`, `duration`, `description` |
-| `rules_catalog` | 328 | `topic`, `category`, `rule_text`, `source`, `page` |
+## Classes and ancestries
 
----
+The project constraint file is authoritative. The database exposes 11 full classes and 6 recoverable classes in `project_classes`. The project-facing ancestries are Human, Dwarf, Elf, Half-Orc, Gnome, and Tiefling/Deva.
 
-## 🛠️ TypeScript Engine API (`src/engine/tableService.ts`)
+The source book contains eight name/trinket ancestries. The intentional project mappings are documented in `CLASSES_AND_ANCESTRIES.md`: Gnome uses the Kobold source name table; Tiefling/Deva uses Human names and receives its distinction through patron-boon rules. Goblin, Half-Elf, Halfling, and Kobold remain available as source-table queries.
 
-```typescript
+## TypeScript API
+
+```ts
 import {
-  listTables,
-  rollOnTable,
-  generateAncestryName,
-  getBackground,
-  getTrinket,
-  getItems,
-  getItemByName,
-  getTalents,
-  getTreasure,
-  getMonster,
-  getSpell,
-  searchDatabase
+  generateAncestryName, getBackground, getTrinket, rollOnTable,
+  getRules, getEquipment, getProjectClasses, getProjectAncestries,
+  getSourceManifest
 } from './src/engine/tableService';
 
-// 1. Generate an ancestry name
-const dwarfName = generateAncestryName('Dwarf'); // { name: "Dendor", ancestry: "Dwarf", method: "2-part compound generator" }
-
-// 2. Fetch background (from 96 available backgrounds)
-const bg = getBackground(); // { roll_val: 1, name: "Urchin", description: "..." }
-
-// 3. Roll page-bounded ancestry trinket
-const trinket = getTrinket('Elf', 15); // { ancestry: "Elf", roll: 15, result_text: "Bottle of blue ink" }
-
-// 4. Query equipment & weapons
-const dagger = getItemByName('Dagger'); // { name: "Dagger", cost: "5 sp", slot_cost: 1, category: "Weapon", ... }
-
-// 5. Query class talents
-const fighterTalent = getTalents('Fighter', 7); // { roll: 7, talent: "+1 to melee or ranged attacks" }
-
-// 6. Roll level treasure
-const treasure = getTreasure(1, 50);
-
-// 7. Universal keyword search
-const results = searchDatabase('sword');
+generateAncestryName('Gnome');
+getBackground(100); // 00 is normalized to roll 100 (Lost)
+getTrinket('Kobold', 100);
+rollOnTable('Core Rumors (Shadowdark Core)', 100);
+getRules({ category: 'Core Mechanics' });
+getEquipment({ category: 'Boat' });
+getProjectClasses('recoverable');
+getProjectAncestries();
+getSourceManifest();
 ```
 
----
+`getTalents()` selects the source page associated with the requested class and preserves 2d6/d10 roll labels. `getTreasure()` preserves 00/100 boundaries; callers should use the table name when a source contains multiple treasure tiers.
 
-## 🤖 MCP (Model Context Protocol) Tools (`scripts/mcp_table_server.py`)
+## SQLite
 
-AI agents can interact with the table database via JSON-RPC stdio:
+```sql
+SELECT heading, die_expression, expected_rows, schema_shape
+FROM source_manifest
+WHERE document LIKE '%shadow-dark%';
 
-1. **`list_tables`**: List all tables filtered by `category` or `source`.
-2. **`roll_table`**: Roll on any table by name or lookup specific roll value.
-3. **`generate_name`**: Generate character name for ancestry (Dwarf, Elf, Goblin, Half-Elf, Half-Orc, Halfling, Human, Kobold).
-4. **`get_background`**: Roll/fetch character background.
-5. **`get_trinket`**: Roll/fetch ancestry trinket.
-6. **`get_item`**: Query weapons, armor, gear, poisons, and mounts.
-7. **`get_talent`**: Roll/lookup class talent.
-8. **`get_treasure`**: Roll level treasure tables.
-9. **`search_database`**: Search items, monsters, spells, trinkets, backgrounds, and roll tables.
-10. **`query_sql`**: Safe read-only SQL query against `shadowdork.db`.
+SELECT * FROM rules_catalog
+WHERE rule_text LIKE '%light%';
 
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/call",
-  "params": {
-    "name": "get_item",
-    "arguments": { "name": "Dagger" }
-  }
-}
+SELECT name, category, range, damage, ac, speed, hp, gear_slots, properties
+FROM items
+WHERE category IN ('Weapon', 'Armor', 'Boat');
+```
+
+## MCP tools
+
+Run `python scripts/mcp_table_server.py` as a stdio JSON-RPC server. Tools include `list_tables`, `roll_table`, `generate_name`, `get_background`, `get_trinket`, `get_item`, `get_equipment`, `get_talent`, `get_treasure`, `search_database`, `get_rule`, and read-only `query_sql`.
+
+The MCP server resolves `shadowdork.db` relative to its own script, so it can be launched from any working directory.
+
+## Verification
+
+```powershell
+python scripts/populate_sql_db.py
+python scripts/test_table_database.py
+npx vitest run
+npm run build
 ```

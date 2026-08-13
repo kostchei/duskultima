@@ -10,6 +10,11 @@ import {
   getItemByName,
   getTalents,
   getTreasure,
+  getRules,
+  getEquipment,
+  getProjectClasses,
+  getProjectAncestries,
+  getSourceManifest,
   getMonster,
   getSpell,
   searchDatabase
@@ -28,6 +33,13 @@ describe('TableService API & Coverage Fixes', () => {
       expect(res.name).toBeTruthy();
       expect(res.ancestry).toBe(anc);
     });
+  });
+
+  it('honors project ancestry aliases from Classes_and_ancestry.txt', () => {
+    expect(generateAncestryName('Gnome').name).toBeTruthy();
+    expect(generateAncestryName('Gnome').method).toContain('Kobold source alias');
+    expect(generateAncestryName('Tiefling/Deva').name).toBeTruthy();
+    expect(getProjectAncestries()).toHaveLength(6);
   });
 
   it('rolls backgrounds from expanded 96 background pool', () => {
@@ -57,7 +69,7 @@ describe('TableService API & Coverage Fixes', () => {
 
     const dagger = getItemByName('Dagger');
     expect(dagger).toBeTruthy();
-    expect(dagger?.cost).toBe('5 sp');
+    expect(dagger?.cost).toBe('1 gp');
 
     const chainmail = getItemByName('Chainmail');
     expect(chainmail).toBeTruthy();
@@ -73,6 +85,14 @@ describe('TableService API & Coverage Fixes', () => {
     const treasure = getTreasure(1, 50);
     expect(treasure).toBeTruthy();
     expect(treasure.result).toBeTruthy();
+  });
+
+  it('queries rules, structured equipment, classes, and source manifest', () => {
+    expect(getRules('light').length).toBeGreaterThan(0);
+    expect(getEquipment({ category: 'Boat' }).length).toBeGreaterThanOrEqual(8);
+    expect(getProjectClasses('full')).toHaveLength(11);
+    expect(getProjectClasses('recoverable')).toHaveLength(6);
+    expect(getSourceManifest().length).toBeGreaterThanOrEqual(100);
   });
 
   it('queries monsters by name and tier', () => {

@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS roll_tables (
     roll_min INTEGER NOT NULL,
     roll_max INTEGER NOT NULL,
     result_text TEXT NOT NULL,
+    roll_label TEXT,
     weight INTEGER DEFAULT 1,
     category TEXT DEFAULT 'General',
     source TEXT NOT NULL,
@@ -85,6 +86,15 @@ CREATE TABLE IF NOT EXISTS items (
     slot_cost INTEGER DEFAULT 1,
     category TEXT,
     properties TEXT,
+    item_type TEXT,
+    rarity TEXT,
+    range TEXT,
+    damage TEXT,
+    ac TEXT,
+    speed TEXT,
+    hp TEXT,
+    gear_slots TEXT,
+    metadata_json TEXT,
     source TEXT NOT NULL,
     page INTEGER DEFAULT 0
 );
@@ -98,6 +108,49 @@ CREATE TABLE IF NOT EXISTS rules_catalog (
     page INTEGER DEFAULT 0
 );
 
+CREATE TABLE IF NOT EXISTS source_manifest (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    document TEXT NOT NULL,
+    source_path TEXT NOT NULL,
+    extracted_page_min INTEGER,
+    extracted_page_max INTEGER,
+    printed_page_min INTEGER,
+    printed_page_max INTEGER,
+    heading TEXT NOT NULL,
+    die_expression TEXT,
+    expected_rows INTEGER NOT NULL DEFAULT 0,
+    schema_shape TEXT NOT NULL,
+    adapter TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'captured',
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS structured_rows (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_name TEXT NOT NULL,
+    document TEXT NOT NULL,
+    extracted_page INTEGER,
+    printed_page INTEGER,
+    row_index INTEGER NOT NULL,
+    roll_label TEXT,
+    raw_text TEXT NOT NULL,
+    row_json TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS project_classes (
+    name TEXT PRIMARY KEY,
+    ability TEXT NOT NULL,
+    implementation_status TEXT NOT NULL,
+    notes TEXT
+);
+
+CREATE TABLE IF NOT EXISTS project_ancestries (
+    name TEXT PRIMARY KEY,
+    source_ancestry TEXT NOT NULL,
+    implementation_status TEXT NOT NULL,
+    notes TEXT
+);
+
 -- Performance Indices
 CREATE INDEX IF NOT EXISTS idx_roll_tables_name ON roll_tables(table_name);
 CREATE INDEX IF NOT EXISTS idx_roll_tables_cat ON roll_tables(category);
@@ -107,3 +160,6 @@ CREATE INDEX IF NOT EXISTS idx_monsters_name ON monsters(name);
 CREATE INDEX IF NOT EXISTS idx_monsters_tier ON monsters(tier);
 CREATE INDEX IF NOT EXISTS idx_spells_name ON spells(name);
 CREATE INDEX IF NOT EXISTS idx_spells_class_tier ON spells(class_name, tier);
+CREATE INDEX IF NOT EXISTS idx_source_manifest_document ON source_manifest(document);
+CREATE INDEX IF NOT EXISTS idx_structured_rows_table ON structured_rows(table_name);
+CREATE INDEX IF NOT EXISTS idx_items_type ON items(item_type);

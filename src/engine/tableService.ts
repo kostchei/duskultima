@@ -7,8 +7,30 @@ import {
   TrinketEntry,
   ItemEntry,
   MonsterData,
-  SpellData
+  SpellData,
+  RuleCatalogEntry,
+  StructuredRow,
+  ProjectClass,
+  ProjectAncestry,
+  SourceManifestEntry
 } from '../data/tableDatabase';
+
+const ANCESTRY_ALIASES: Record<string, string> = {
+  gnome: 'Kobold',
+  'tiefling/deva': 'Human',
+  tiefling: 'Human',
+  deva: 'Human'
+};
+
+const CLASS_TALENT_PAGES: Record<string, number> = {
+  cleric: 17, fighter: 19, thief: 21, wizard: 24,
+  magicuser: 24, bard: 34, 'basilisk warrior': 37,
+  delver: 38, 'desert rider': 41, duelist: 42,
+  'green knight': 44, paladin: 55, 'pit fighter': 57,
+  ranger: 58, 'ras-godai': 61, roustabout: 63,
+  seawolf: 64, seer: 66, warlock: 69, witch: 71,
+  wyrdling: 72, necromancer: 53
+};
 
 /**
  * List all available roll tables, optionally filtered by category or source.
@@ -60,12 +82,14 @@ export function rollOnTable(
  */
 export function generateAncestryName(ancestry: string): { name: string; ancestry: string; method: string } {
   const ancNorm = ancestry.toLowerCase().trim();
+  const sourceAncestry = ANCESTRY_ALIASES[ancNorm] || ancestry;
+  const sourceNorm = sourceAncestry.toLowerCase().trim();
   
   const part1s = masterTables.ancestry_names.filter(
-    (n) => (n.ancestry || '').toLowerCase() === ancNorm && n.type === 'part1'
+    (n) => (n.ancestry || '').toLowerCase() === sourceNorm && n.type === 'part1'
   );
   const part2s = masterTables.ancestry_names.filter(
-    (n) => (n.ancestry || '').toLowerCase() === ancNorm && n.type === 'part2'
+    (n) => (n.ancestry || '').toLowerCase() === sourceNorm && n.type === 'part2'
   );
 
   if (part1s.length > 0 && part2s.length > 0) {
@@ -77,17 +101,17 @@ export function generateAncestryName(ancestry: string): { name: string; ancestry
     const cleanP2 = p2.startsWith('-') ? p2.slice(1) : p2;
     const combined = cleanP1 + cleanP2;
     const formatted = combined.charAt(0).toUpperCase() + combined.slice(1);
-    return { name: formatted, ancestry, method: '2-part compound generator' };
+    return { name: formatted, ancestry, method: sourceAncestry === ancestry ? '2-part compound generator' : `2-part compound generator (${sourceAncestry} source alias)` };
   }
 
   const standalones = masterTables.ancestry_names.filter(
-    (n) => (n.ancestry || '').toLowerCase() === ancNorm || ancNorm.includes((n.ancestry || '').toLowerCase())
+    (n) => (n.ancestry || '').toLowerCase() === sourceNorm || sourceNorm.includes((n.ancestry || '').toLowerCase())
   );
 
   if (standalones.length > 0) {
     const chosenItem = standalones[Math.floor(Math.random() * standalones.length)];
     const chosen = chosenItem ? chosenItem.name_part : 'Thorin';
-    return { name: chosen, ancestry, method: 'standalone name list' };
+    return { name: chosen, ancestry, method: sourceAncestry === ancestry ? 'standalone name list' : `standalone name list (${sourceAncestry} source alias)` };
   }
 
   const fallbackHumans = masterTables.ancestry_names.filter((n) => (n.ancestry || '').toLowerCase() === 'human');
@@ -106,7 +130,8 @@ export function getBackground(fixedRoll?: number): BackgroundEntry {
     return fallbackBg;
   }
 
-  const roll = fixedRoll ?? Math.floor(Math.random() * bgs.length) + 1;
+  const validRolls = bgs.map((b) => b.roll_val).filter((roll) => roll >= 1 && roll <= 100);
+  const roll = fixedRoll === 0 ? 100 : (fixedRoll ?? validRolls[Math.floor(Math.random() * validRolls.length)] ?? 1);
   const match = bgs.find((b) => b.roll_val === roll) || bgs[Math.floor(Math.random() * bgs.length)];
   return match || fallbackBg;
 }
@@ -156,8 +181,9 @@ export function getItemByName(name: string): ItemEntry | null {
  */
 export function getTalents(className: string, fixedRoll?: number): { roll: number; talent: string } {
   const cNorm = className.toLowerCase().trim();
+  const page = CLASS_TALENT_PAGES[cNorm];
   const talentTables = masterTables.roll_tables.filter(
-    (t) => t.category === 'Class Talents' && (t.table_name || '').toLowerCase().includes(cNorm)
+    (t) => t.category === 'Class Talents' && (page === undefined || (t.table_name || '').toLowerCase().includes(`p.${page}`))
   );
 
   if (talentTables.length === 0) {
@@ -178,9 +204,60 @@ export function getTreasure(tier: number, fixedRoll?: number): { roll: number; r
     return { roll: 50, result: '10 gp and a polished silver ring (25 gp)' };
   }
 
-  const roll = fixedRoll ?? Math.floor(Math.random() * 100) + 1;
+  const roll = fixedRoll === 0 ? 100 : (fixedRoll ?? Math.floor(Math.random() * 100) + 1);
   const match = treasureTables.find((t) => roll >= t.roll_min && roll <= t.roll_max) || treasureTables[0];
   return { roll, result: match ? match.result_text : '10 gp' };
+}
+
+/** Search the exported rules catalog by topic, category, source, or text. */
+export function getRules(query?: string | { topic?: string; category?: string; source?: string }): RuleCatalogEntry[] {
+  const rules = masterTables.rules_catalog || [];
+  if (!query) return rules;
+  if (typeof query === 'string') {
+    const q = query.toLowerCase();
+    return rules.filter((r) => [r.topic, r.category, r.rule_text, r.source].some((v) => (v || '').toLowerCase().includes(q)));
+  }
+  return rules.filter((r) => {
+    if (query.topic && !r.topic.toLowerCase().includes(query.topic.toLowerCase())) return false;
+    if (query.category && !r.category.toLowerCase().includes(query.category.toLowerCase())) return false;
+    if (query.source && !r.source.toLowerCase().includes(query.source.toLowerCase())) return false;
+    return true;
+  });
+}
+
+/** Query structured equipment fields without losing the original properties. */
+export function getEquipment(query?: string | { category?: string; name?: string; rarity?: string }): ItemEntry[] {
+  const items = masterTables.items || [];
+  if (!query) return items;
+  if (typeof query === 'string') {
+    const q = query.toLowerCase();
+    return items.filter((i) => [i.name, i.category, i.properties, i.item_type, i.rarity].some((v) => (v || '').toLowerCase().includes(q)));
+  }
+  return items.filter((i) => {
+    if (query.category && !(i.category || '').toLowerCase().includes(query.category.toLowerCase())) return false;
+    if (query.name && !(i.name || '').toLowerCase().includes(query.name.toLowerCase())) return false;
+    if (query.rarity && !(i.rarity || '').toLowerCase().includes(query.rarity.toLowerCase())) return false;
+    return true;
+  });
+}
+
+export function getStructuredRows(tableName?: string): StructuredRow[] {
+  const rows = masterTables.structured_rows || [];
+  if (!tableName) return rows;
+  return rows.filter((row) => row.table_name.toLowerCase().includes(tableName.toLowerCase()));
+}
+
+export function getProjectClasses(status?: string): ProjectClass[] {
+  const classes = masterTables.project_classes || [];
+  return status ? classes.filter((c) => c.implementation_status === status) : classes;
+}
+
+export function getProjectAncestries(): ProjectAncestry[] {
+  return masterTables.project_ancestries || [];
+}
+
+export function getSourceManifest(): SourceManifestEntry[] {
+  return masterTables.source_manifest || [];
 }
 
 /**
@@ -229,6 +306,7 @@ export function searchDatabase(query: string): {
   trinkets: TrinketEntry[];
   items: ItemEntry[];
   roll_entries: RollTableEntry[];
+  rules: RuleCatalogEntry[];
 } {
   const q = query.toLowerCase().trim();
   const items = masterTables.items || [];
@@ -240,5 +318,6 @@ export function searchDatabase(query: string): {
     trinkets: masterTables.trinkets.filter((t) => (t.result_text || '').toLowerCase().includes(q)),
     items: items.filter((i) => (i.name || '').toLowerCase().includes(q) || (i.category || '').toLowerCase().includes(q)),
     roll_entries: masterTables.roll_tables.filter((r) => (r.result_text || '').toLowerCase().includes(q)).slice(0, 20)
+    ,rules: getRules(query).slice(0, 20)
   };
 }

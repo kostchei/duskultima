@@ -1,13 +1,18 @@
 {
   "database": "shadowdork.db",
-  "tables_meta_count": 292,
-  "monsters_count": 243,
-  "spells_count": 114,
-  "roll_tables_count": 4624,
-  "ancestry_names_count": 240,
-  "backgrounds_count": 96,
-  "trinkets_count": 416,
-  "items_count": 40,
-  "rules_count": 328,
-  "status": "fully_populated_all_gaps_resolved"
+  "tables_meta_count": 258,
+  "roll_tables_count": 5987,
+  "ancestry_names_count": 160,
+  "backgrounds_count": 116,
+  "trinkets_count": 400,
+  "items_count": 120,
+  "monsters_count": 239,
+  "spells_count": 90,
+  "rules_catalog_count": 328,
+  "structured_rows_count": 5987,
+  "source_manifest_count": 131,
+  "project_classes_count": 17,
+  "project_ancestries_count": 6,
+  "status": "source_manifest_backed",
+  "constraints": "docs/raw_source/Classes_and_ancestry.txt"
 }

@@ -9,8 +9,9 @@ import json
 import sqlite3
 import os
 import random
+from pathlib import Path
 
-DB_PATH = r"d:\Code\DuskUltima\shadowdork.db"
+DB_PATH = Path(__file__).resolve().parents[1] / "shadowdork.db"
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -86,6 +87,18 @@ TOOLS = [
         }
     },
     {
+        "name": "get_equipment",
+        "description": "Query structured equipment fields including weapons, armor, mounts, boats, and siege weapons.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "category": {"type": "string"},
+                "rarity": {"type": "string"}
+            }
+        }
+    },
+    {
         "name": "get_talent",
         "description": "Roll or lookup a class talent.",
         "inputSchema": {
@@ -117,6 +130,18 @@ TOOLS = [
                 "query": {"type": "string", "description": "Search query keyword"}
             },
             "required": ["query"]
+        }
+    },
+    {
+        "name": "get_rule",
+        "description": "Search the read-only rules catalog by topic, category, source, or text.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "category": {"type": "string"},
+                "source": {"type": "string"}
+            }
         }
     },
     {
@@ -230,6 +255,18 @@ def handle_call_tool(name, args):
         rows = [dict(r) for r in cursor.fetchall()]
         return {"items": rows, "count": len(rows)}
 
+    elif name == "get_equipment":
+        query = "SELECT * FROM items WHERE 1=1"
+        params = []
+        for field in ("name", "category", "rarity"):
+            value = args.get(field)
+            if value:
+                query += f" AND LOWER({field}) LIKE LOWER(?)"
+                params.append(f"%{value}%")
+        cursor.execute(query, params)
+        rows = [dict(r) for r in cursor.fetchall()]
+        return {"items": rows, "count": len(rows)}
+
     elif name == "get_talent":
         cname = args.get("class_name", "Fighter")
         roll_val = args.get("roll_val")
@@ -264,7 +301,27 @@ def handle_call_tool(name, args):
         spells = [dict(r) for r in cursor.fetchall()]
         cursor.execute("SELECT table_name, roll_min, roll_max, result_text FROM roll_tables WHERE LOWER(result_text) LIKE LOWER(?) LIMIT 10", (q,))
         roll_entries = [dict(r) for r in cursor.fetchall()]
-        return {"items": items, "monsters": monsters, "spells": spells, "roll_entries": roll_entries}
+        cursor.execute("SELECT topic, category, rule_text, source, page FROM rules_catalog WHERE LOWER(topic) LIKE LOWER(?) OR LOWER(category) LIKE LOWER(?) OR LOWER(rule_text) LIKE LOWER(?) LIMIT 10", (q, q, q))
+        rules = [dict(r) for r in cursor.fetchall()]
+        return {"items": items, "monsters": monsters, "spells": spells, "roll_entries": roll_entries, "rules": rules}
+
+    elif name == "get_rule":
+        query = "SELECT topic, category, rule_text, source, page FROM rules_catalog WHERE 1=1"
+        params = []
+        if args.get("query"):
+            query += " AND (LOWER(topic) LIKE LOWER(?) OR LOWER(category) LIKE LOWER(?) OR LOWER(rule_text) LIKE LOWER(?) OR LOWER(source) LIKE LOWER(?))"
+            value = f"%{args['query']}%"
+            params.extend([value, value, value, value])
+        if args.get("category"):
+            query += " AND LOWER(category) LIKE LOWER(?)"
+            params.append(f"%{args['category']}%")
+        if args.get("source"):
+            query += " AND LOWER(source) LIKE LOWER(?)"
+            params.append(f"%{args['source']}%")
+        query += " ORDER BY source, page LIMIT 50"
+        cursor.execute(query, params)
+        rows = [dict(r) for r in cursor.fetchall()]
+        return {"rules": rows, "count": len(rows)}
 
     elif name == "query_sql":
         sql = args.get("sql", "").strip()
