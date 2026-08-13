@@ -379,4 +379,40 @@ export class SaveRepository {
 
     return true;
   }
+
+  public static recordRun(record: RunRecord): void {
+    if (!this.isAvailable()) return;
+    try {
+      const history = this.getRunHistory();
+      history.unshift(record);
+      if (history.length > 50) history.pop();
+      localStorage.setItem("shadowdork_run_history", JSON.stringify(history));
+    } catch {
+      // Storage quota or unavailable, non-fatal
+    }
+  }
+
+  public static getRunHistory(): RunRecord[] {
+    if (!this.isAvailable()) return [];
+    try {
+      const raw = localStorage.getItem("shadowdork_run_history");
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
 }
+
+export interface RunRecord {
+  timestamp: number;
+  seed: number;
+  dungeonName: string;
+  vaultsCleared: number;
+  coinsBanked: number;
+  kills: number;
+  survivorsCount: number;
+  outcome: "victory" | "gameover";
+}
+

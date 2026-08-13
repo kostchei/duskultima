@@ -33,6 +33,8 @@ import { shouldShowTouchControls } from "../MobilePrefs";
 import { createTouchOverlay as buildTouchOverlay } from "../ui/TouchOverlay";
 import { createPauseSettings } from "../ui/PauseSettings";
 import { RespiteScreen, type RespiteHost } from "../ui/RespiteScreen";
+import { UltimaLayout } from "../ui/UltimaLayout";
+
 
 const UI_STYLE = {
   fontFamily: '"Trebuchet MS", Arial, sans-serif',
@@ -119,6 +121,7 @@ export class HudScene extends Phaser.Scene {
   private lastPartySize = -1;
   /** Where drawChrome last put the log panel, so a resized minimap forces a redraw. */
   private lastLogY = -1;
+  private ultimaLayout!: UltimaLayout;
 
   constructor() {
     super("Hud");
@@ -128,7 +131,9 @@ export class HudScene extends Phaser.Scene {
     this.dungeon = this.scene.get("Dungeon") as DungeonScene;
     this.ctx = this.registry.get("ctx") as GameContext;
     if (!this.ctx) throw new Error("GameContext missing from registry");
+    this.ultimaLayout = new UltimaLayout(this);
     this.overlay = null;
+
     this.biomeCards = [];
     this.startOverlay = null;
     this.pauseOverlay = null;
@@ -1768,6 +1773,11 @@ export class HudScene extends Phaser.Scene {
       if (msg) text.setText(msg.text).setColor(msg.color);
       else text.setText("");
     });
+
+    if (this.ultimaLayout) {
+      this.ultimaLayout.update(this.dungeon, this.ctx);
+    }
+
   }
 
   private updateCompactMobileHud(time: number): void {
