@@ -19,4 +19,9 @@ describe("treasure generation", () => {
     expect(cache.every((finding) => finding.qty >= 1 && finding.def.name.length > 0)).toBe(true);
     expect(bestTreasureQuality([{ quality: "normal" }, { quality: "legendary" }])).toBe("legendary");
   });
+
+  it("does not require a cache to contain magic", () => {
+    const cache = rollTreasureCache(new Dice(7), 1);
+    expect(cache.some((finding) => finding.def.tags.includes("magic"))).toBe(false);
+  });
 });

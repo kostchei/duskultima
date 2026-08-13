@@ -16,7 +16,7 @@ The site goal vocabulary is:
 - `fabled-item`: recover a random fabulous/legendary magical item with at least one benefit; it may also carry a disadvantage.
 - `lift-hex`: break a curse, blight, or zone affliction.
 - `harvest-components`: collect a required number of ritual or alchemical components.
-- `treasure-cache`: open and secure a cache containing 2–5 independently rolled treasure items.
+- `treasure-cache`: open and secure a cache containing 2–5 independently rolled finds. A cache may be entirely gold/currency, mundane valuables, magical items, or any mixture; magic is never mandatory.
 - `exotic-materials`: gather rare materials, usually from dangerous terrain or creatures.
 - `rescue-hostage`: free a hostage without implying party recruitment.
 - `monster-eggs`: recover species-specific eggs; the nest has an ecological guardian that can be fought, distracted, or avoided. Scrag, kobold, spider/wasp, ankheg, crocodile, basilisk, cockatrice, hippogriff, wyvern, dragon, plesiosaurus, remorhaz, chuul, and void-spider clutches are plausible by biome. Purple Worm eggs are rare, epic/legendary targets.
