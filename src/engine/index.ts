@@ -16,6 +16,7 @@ import {
   type ContestedCheckSide,
 } from "./check";
 import { Dice } from "./dice";
+import { gainNaturalTwentyLuck, rerollFailedCheck } from "./luck";
 import { sumMeleeDamageBonus } from "./effects";
 import { EventLog } from "./events";
 import type { ItemDef } from "./inventory";
@@ -54,6 +55,7 @@ export * from "./encounterReaction";
 export * from "./encounterStealth";
 export * from "./events";
 export * from "./inventory";
+export * from "./luck";
 export * from "./hexcrawl";
 export * from "./itemActions";
 export * from "./magicItems";
@@ -216,6 +218,10 @@ export class Engine {
 
   check(input: CheckInput): CheckResult {
     const result = resolveCheck(this.dice, input);
+    if (result.natural === 20) {
+      const gained = gainNaturalTwentyLuck(input.actor, result, Math.max(1, this.characters.size));
+      if (gained) this.log.append(this.clock.elapsedMs, "luck.gained", { who: input.actor.id, natural: 20 });
+    }
     this.log.append(this.clock.elapsedMs, "check", {
       who: input.actor.id,
       kind: input.kind,
@@ -228,6 +234,15 @@ export class Engine {
       fumble: result.fumble,
     });
     return result;
+  }
+
+  /** Spend luck on a failed player-facing check; the caller marks non-gameplay rolls ineligible. */
+  reroll(input: CheckInput, original: CheckResult, gameplayRoll = true): CheckResult {
+    const result = rerollFailedCheck(this.dice, input, original, { gameplayRoll });
+    if (result.spent) {
+      this.log.append(this.clock.elapsedMs, "luck.spent", { who: input.actor.id, kind: input.kind });
+    }
+    return result.result;
   }
 
   contestedCheck(a: ContestedCheckSide, b: ContestedCheckSide): ContestedCheckResult {
