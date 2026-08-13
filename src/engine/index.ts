@@ -68,6 +68,7 @@ export * from "./tables";
 export * from "./trapsHazards";
 export * from "./talents";
 export * from "./treasureXp";
+export * from "./zoneHazards";
 export * from "./time";
 
 export interface AttackInput {
