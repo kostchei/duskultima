@@ -1,8 +1,13 @@
 {
   "database": "shadowdork.db",
+  "tables_meta_count": 292,
   "monsters_count": 243,
-  "spells_count": 98,
-  "roll_tables_count": 5092,
+  "spells_count": 114,
+  "roll_tables_count": 4624,
+  "ancestry_names_count": 240,
+  "backgrounds_count": 96,
+  "trinkets_count": 416,
+  "items_count": 40,
   "rules_count": 328,
-  "status": "populated_with_sdtools"
+  "status": "fully_populated_all_gaps_resolved"
 }
