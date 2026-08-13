@@ -151,8 +151,8 @@ is original paraphrase — the licensing boundary. Unknown table ids throw.
 | XP resets to 0 on level | Excess XP carries over | Friendlier; treasure never wasted |
 | Morale check per monster's own WIS | Same, plus `leader` flag: group exempt while leader lives, mass check on its death | Leader modelling now exists |
 | Priest penance = GP sacrifice by tier | Atonement is free at any shrine (E to kneel) | Cost arrives with the rest-spot economy |
-| Encounter distance/activity/reaction tables | 1-in-6 on the crawling clock, every round in total darkness, themed hunting wave | Reaction tables need social play; v2 |
-| Trained-task auto-success, ancestries, stealth/surprise, swimming | Not implemented | v2 candidates (swimming lands with water volumes) |
-| Luck reroll on any roll | Reroll offered on the leader's just-failed swing/cast/stabilize (L, 2.5 s window) | Mishaps already detonated — no clean undo |
-| Initiative order | Replaced by real-time ~1 s cooldowns (a compressed round) | Real-time platformer combat |
-| Torch = 1 real hour; crawling round = 10 min | Config: 3 min torch, 45 s crawling round for playtests | House-rule config flags per the original design brief |
+| Encounter distance/activity/reaction tables | Implemented in `encounterReaction.ts` with the source d6/2d6 bands; hexcrawl checks are implemented in `hexcrawl.ts` | The real-time dungeon loop may still choose when to call the tables |
+| Trained-task auto-success, ancestries, stealth/surprise, swimming | Implemented in the shared check service, `ancestryRules.ts`, `encounterStealth.ts`, and `movement.ts` | Some presentation flows still need to expose every option in the HUD |
+| Luck reroll on any roll | `Engine.reroll()` rerolls failed gameplay checks, while `soloDark.ts` and table callers remain explicitly ineligible | Natural 20s replenish the bounded SoloDark luck pool |
+| Initiative order | Group initiative and representative checks are implemented in `soloDark.ts`; the platformer still uses its real-time action cadence | This preserves the real-time combat presentation while making the SoloDark rule available to turn-based callers |
+| Torch = 1 real hour; crawling round = 10 min | `time.ts` retains configurable standard durations; `light.ts` adds SoloDark's 10-round torch and 3-torch campfire rules | The app's current HUD remains on the standard 60-minute presentation |

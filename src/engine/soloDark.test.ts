@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Character } from "./character";
 import { Dice } from "./dice";
-import { awardNaturalTwentyLuck, groupInitiative, oracleCheck, prompt } from "./soloDark";
+import { awardNaturalTwentyLuck, ChaosInitiative, groupInitiative, oracleCheck, prompt } from "./soloDark";
 
 function character(id: string, dex = 10): Character {
   return new Character({
@@ -42,5 +42,10 @@ describe("SoloDark rules", () => {
     expect(awardNaturalTwentyLuck(hero, 20, 2)).toBe(false);
     expect(hero.luckTokens).toBe(2);
     expect(awardNaturalTwentyLuck(hero, 19, 2)).toBe(false);
+  });
+
+  it("rerolls group initiative through the explicit chaos-mode API", () => {
+    const chaos = new ChaosInitiative([character("hero")], [character("goblin")]);
+    expect(chaos.rollRound(new Dice(5)).party.group).toBe("party");
   });
 });

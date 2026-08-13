@@ -103,6 +103,20 @@ export interface GroupInitiativeResult {
   enemies: InitiativeCheck;
 }
 
+/** SoloDark Chaos Mode: call rollRound at the start of every combat round. */
+export class ChaosInitiative {
+  constructor(
+    readonly party: readonly Character[],
+    readonly enemies: readonly Character[],
+  ) {
+    if (!party.length || !enemies.length) throw new Error("Both initiative groups need a representative");
+  }
+
+  rollRound(dice: Dice): GroupInitiativeResult {
+    return groupInitiative(dice, this.party, this.enemies);
+  }
+}
+
 /** SoloDark group initiative: one DEX check per side, with ties rerolled. */
 export function groupInitiative(
   dice: Dice,
