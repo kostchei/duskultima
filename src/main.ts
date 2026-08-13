@@ -1,0 +1,516 @@
+/**
+ * Main application entry point for DuskUltima.
+ * Links the Shadowdark OSR rules engine with the Ultima V style renderer, UI, ZoneHazards, and Web Audio API.
+ */
+
+import { Engine } from "./engine/index";
+import { Character } from "./engine/character";
+import { item } from "./data/items";
+import { MapGrid } from "./game/level/MapGrid";
+import { MapRenderer } from "./game/renderer/MapRenderer";
+import { UltimaFrame } from "./game/ui/UltimaFrame";
+import { Modals } from "./game/ui/Modals";
+import { InputHandler } from "./game/input/InputHandler";
+import { TileType } from "./game/renderer/TileSet";
+import { Adventure, SiteDef } from "./game/level/Adventure";
+import { AdventureGenerator } from "./game/level/AdventureGenerator";
+import { ZoneHazards } from "./engine/zoneHazards";
+import { AudioEngine } from "./game/audio/AudioEngine";
+import { resolveCarouse, carouseCost, type CarouseTier } from "./engine/downtime";
+import { treasureQualityXp } from "./engine/treasureXp";
+
+class Game {
+  private engine: Engine;
+  private party: Character[] = [];
+  private leaderIndex = 0;
+  private unrescuedClasses: Array<"thief" | "priest" | "wizard"> = ["thief", "priest", "wizard"];
+  private adventureGenerator: AdventureGenerator;
+  private currentAdventure!: Adventure;
+  private grid: MapGrid;
+  private renderer: MapRenderer;
+  private frame: UltimaFrame;
+  private modals: Modals;
+  private audio: AudioEngine;
+  private round = 1;
+  private torchTimer = 3600; // 60 minutes
+  private isTorchActive = true;
+  private breathRoundsSubmerged = 0;
+  private crtEnabled = true;
+
+  constructor() {
+    this.engine = new Engine();
+    this.adventureGenerator = new AdventureGenerator();
+    this.grid = new MapGrid(28, 28);
+    this.renderer = new MapRenderer("game-canvas");
+    this.frame = new UltimaFrame();
+    this.modals = new Modals();
+    this.audio = new AudioEngine();
+
+    this.setupSoloFighter();
+    this.startNewAdventure();
+    this.setupInput();
+
+    this.grid.updateFov(this.isTorchActive ? 4 : 1);
+    this.updateUi();
+    this.render();
+
+    this.frame.addLog("DuskUltima initialized. You begin your solo journey as Thorin the Fighter!", "system");
+    this.frame.addLog("Use Arrow Keys to move. Press [A]ttack, [C]ast, [T]orch, [I]nventory.", "prompt");
+  }
+
+  private get leader(): Character {
+    return this.party[this.leaderIndex] ?? this.party[0]!;
+  }
+
+  private get currentSite(): SiteDef {
+    return this.currentAdventure.sites[this.currentAdventure.currentSiteIndex]!;
+  }
+
+  private setupSoloFighter(): void {
+    // Solo Start: Thorin the Fighter
+    const fighter = new Character({
+      id: "char-thorin",
+      name: "Thorin",
+      className: "fighter",
+      stats: { STR: 16, DEX: 14, CON: 15, INT: 10, WIS: 10, CHA: 12 },
+      maxHp: 12,
+    });
+    fighter.inventory.add(item("torch"), 3);
+    fighter.inventory.add(item("ration"), 5);
+    fighter.gold = 40;
+
+    this.party = [fighter];
+    this.leaderIndex = 0;
+  }
+
+  private startNewAdventure(): void {
+    this.currentAdventure = this.adventureGenerator.generateAdventure(
+      this.party.length,
+      this.unrescuedClasses
+    );
+    this.loadCurrentSite();
+  }
+
+  private loadCurrentSite(): void {
+    const site = this.currentSite;
+    this.grid.generateSite(site);
+    this.round = 1;
+    this.breathRoundsSubmerged = 0;
+    this.audio.updateBiomeAmbience(site.biome);
+    this.frame.addLog(`Entered Site ${this.currentAdventure.currentSiteIndex + 1}: ${site.name} (${site.sizeCategory.toUpperCase()}, ${site.roomCount} Rooms, Biome: ${site.biome.toUpperCase()}).`, "system");
+    this.frame.addLog(`Site Goal: ${site.goal.description}`, "prompt");
+  }
+
+  private setupInput(): void {
+    new InputHandler({
+      onMove: (dx, dy) => this.handleMove(dx, dy),
+      onAttack: () => this.handleAttack(),
+      onCast: () => this.handleCast(),
+      onLook: () => this.handleLook(),
+      onTorch: () => this.handleTorch(),
+      onUseItem: () => this.handleUseItem(),
+      onInventory: () => this.handleInventory(),
+      onRest: () => this.handleRest(),
+      onPass: () => this.handlePass(),
+      onStats: () => this.handleStats(),
+      onSelectLeader: (idx) => this.selectLeader(idx),
+      onInteract: () => this.handleInteract(),
+      onToggleCrt: () => this.handleToggleCrt(),
+    });
+  }
+
+  private handleToggleCrt(): void {
+    this.crtEnabled = !this.crtEnabled;
+    document.body.classList.toggle("crt-off", !this.crtEnabled);
+    this.frame.addLog(`CRT scanlines ${this.crtEnabled ? "enabled" : "disabled"}.`, "system");
+  }
+
+  private selectLeader(idx: number): void {
+    if (idx >= 0 && idx < this.party.length) {
+      const selected = this.party[idx];
+      if (selected && selected.hp <= 0) {
+        this.frame.addLog(`${selected.name} is fallen and cannot lead!`, "combat");
+        return;
+      }
+      this.leaderIndex = idx;
+      this.frame.addLog(`${this.leader.name} takes the lead.`, "system");
+      this.updateUi();
+    }
+  }
+
+  private handleMove(dx: number, dy: number): void {
+    const targetX = this.grid.playerPos.x + dx;
+    const targetY = this.grid.playerPos.y + dy;
+
+    // Check entity at target (Rescue NPC or Monster)
+    const entityAtTarget = this.grid.getEntityAt(targetX, targetY);
+    if (entityAtTarget) {
+      if (entityAtTarget.rescueClass) {
+        this.rescueHero(entityAtTarget);
+        return;
+      } else if (entityAtTarget.isHostile && entityAtTarget.hp > 0) {
+        this.attackMonsterAt(entityAtTarget);
+        this.endTurn();
+        return;
+      }
+    }
+
+    // Door check -> auto open closed doors
+    const tileAtTarget = this.grid.getTile(targetX, targetY);
+    if (tileAtTarget === TileType.DOOR_CLOSED) {
+      this.grid.setTile(targetX, targetY, TileType.DOOR_OPEN);
+      this.frame.addLog("You open the heavy wooden door.", "item");
+      this.audio.playStepSfx();
+      this.endTurn();
+      return;
+    }
+
+    if (this.grid.isWalkable(targetX, targetY)) {
+      this.grid.playerPos.x = targetX;
+      this.grid.playerPos.y = targetY;
+      this.audio.playStepSfx();
+
+      // Check stairs or features
+      if (tileAtTarget === TileType.STAIRS_DOWN) {
+        if (!this.currentSite.goal.isCompleted) {
+          this.frame.addLog("The stairs down are locked until you fulfill the Site Goal!", "prompt");
+        } else {
+          this.frame.addLog("Press [E]nter to descend to the next site.", "prompt");
+        }
+      } else if (tileAtTarget === TileType.CHEST_CLOSED) {
+        this.grid.setTile(targetX, targetY, TileType.CHEST_OPEN);
+        this.frame.addLog(`${this.leader.name} opens the chest and finds gold & treasure!`, "hit");
+        const xp = treasureQualityXp("normal");
+        this.party.forEach((char) => this.engine.awardXp(char, xp));
+        this.frame.addLog(`${xp} normal-treasure XP awarded to each party member.`, "hit");
+        if (this.currentSite.goal.verb === "Retrieve") {
+          this.completeSiteGoal(null);
+        }
+      }
+
+      this.endTurn();
+    } else {
+      this.frame.addLog("Path blocked.", "prompt");
+    }
+  }
+
+  private rescueHero(npcEntity: any): void {
+    const rescueClass = npcEntity.rescueClass as "thief" | "priest" | "wizard";
+    let newHero: Character;
+
+    if (rescueClass === "thief") {
+      newHero = new Character({
+        id: "char-lyra",
+        name: "Lyra",
+        className: "thief",
+        stats: { STR: 11, DEX: 16, CON: 12, INT: 13, WIS: 10, CHA: 14 },
+        maxHp: 8,
+      });
+      newHero.inventory.add(item("dagger"), 2);
+    } else if (rescueClass === "priest") {
+      newHero = new Character({
+        id: "char-elen",
+        name: "Elen",
+        className: "priest",
+        stats: { STR: 13, DEX: 10, CON: 14, INT: 10, WIS: 16, CHA: 12 },
+        maxHp: 9,
+      });
+      newHero.learnSpell("light");
+      newHero.learnSpell("cure_wounds");
+    } else {
+      newHero = new Character({
+        id: "char-vael",
+        name: "Vael",
+        className: "wizard",
+        stats: { STR: 9, DEX: 14, CON: 11, INT: 17, WIS: 12, CHA: 10 },
+        maxHp: 6,
+      });
+      newHero.learnSpell("magic_missile");
+    }
+
+    // Add to active party & remove from unrescued list
+    this.party.push(newHero);
+    this.unrescuedClasses = this.unrescuedClasses.filter((c) => c !== rescueClass);
+    npcEntity.hp = 0; // Remove entity from grid
+
+    this.audio.playVictoryJingle();
+    this.frame.addLog(`★ RESCUE ACCOMPLISHED! ${newHero.name} the ${rescueClass.toUpperCase()} freed and joins your party!`, "hit");
+    this.completeSiteGoal(`${newHero.name} the ${rescueClass.toUpperCase()}`);
+    this.endTurn();
+  }
+
+  private attackMonsterAt(monster: any): void {
+    const attackRoll = this.engine.dice.roll("1d20");
+    const strMod = this.leader.mod("STR");
+    const totalRoll = attackRoll + strMod;
+
+    this.frame.addLog(`${this.leader.name} attacks ${monster.name}! [1d20+${strMod}=${totalRoll} vs AC ${monster.ac}]`, "combat");
+
+    if (totalRoll >= monster.ac) {
+      const dmg = Math.max(1, this.engine.dice.roll("1d6") + strMod);
+      monster.hp -= dmg;
+      this.audio.playHitSfx();
+      this.frame.addLog(`Hit! Dealt ${dmg} damage to ${monster.name}.`, "hit");
+      if (monster.hp <= 0) {
+        this.frame.addLog(`${monster.name} is slain!`, "hit");
+        if (this.currentSite.goal.verb === "Slay" && monster.name === this.currentSite.goal.target) {
+          this.completeSiteGoal(null);
+        }
+      }
+    } else {
+      this.frame.addLog("Miss!", "combat");
+    }
+  }
+
+  private completeSiteGoal(rescuedHeroName: string | null): void {
+    if (this.currentSite.goal.isCompleted) return;
+    this.currentSite.goal.isCompleted = true;
+
+    this.audio.playVictoryJingle();
+    this.frame.addLog(`★ SITE GOAL COMPLETED: ${this.currentSite.goal.description}! XP comes from treasure and boons.`, "hit");
+
+    const isFinalSite = this.currentAdventure.currentSiteIndex >= this.currentAdventure.sites.length - 1;
+    this.modals.showSiteCompleteModal(
+      this.currentSite.name,
+      this.currentSite.goal.description,
+      rescuedHeroName,
+      isFinalSite,
+      () => this.advanceSite()
+    );
+  }
+
+  private advanceSite(): void {
+    if (this.currentAdventure.currentSiteIndex < this.currentAdventure.sites.length - 1) {
+      this.currentAdventure.currentSiteIndex++;
+      this.loadCurrentSite();
+    } else {
+      this.frame.addLog(`★ ADVENTURE COMPLETED: ${this.currentAdventure.name}! Generating next Adventure campaign...`, "system");
+      this.startNewAdventure();
+    }
+    this.grid.updateFov(this.isTorchActive ? 4 : 1);
+    this.updateUi();
+    this.render();
+  }
+
+  private handleAttack(): void {
+    const px = this.grid.playerPos.x;
+    const py = this.grid.playerPos.y;
+    const adjacent = [
+      this.grid.getEntityAt(px + 1, py),
+      this.grid.getEntityAt(px - 1, py),
+      this.grid.getEntityAt(px, py + 1),
+      this.grid.getEntityAt(px, py - 1),
+    ].find((m) => m && m.isHostile && m.hp > 0);
+
+    if (adjacent) {
+      this.attackMonsterAt(adjacent);
+      this.endTurn();
+    } else {
+      this.frame.addLog("No enemy adjacent to attack.", "prompt");
+    }
+  }
+
+  private handleCast(): void {
+    this.modals.showSpellbook(this.leader, (spellId) => {
+      this.audio.playSpellSfx();
+      this.frame.addLog(`${this.leader.name} casts ${spellId.replace("_", " ")}!`, "spell");
+      if (spellId === "light") {
+        this.isTorchActive = true;
+        this.torchTimer = 3600;
+        this.frame.addLog("A glowing orb of magical light illuminates the corridor!", "spell");
+      } else if (spellId === "cure_wounds") {
+        const heal = this.engine.dice.roll("1d6") + 2;
+        this.leader.hp = Math.min(this.leader.maxHp, this.leader.hp + heal);
+        this.frame.addLog(`${this.leader.name} heals for ${heal} HP!`, "hit");
+      } else {
+        this.frame.addLog("The spell surges with arcane energy!", "spell");
+      }
+      this.endTurn();
+    });
+  }
+
+  private handleLook(): void {
+    const tile = this.grid.getTile(this.grid.playerPos.x, this.grid.playerPos.y);
+    let desc = "You look around. You see stone floor and dark corridor walls.";
+    if (tile === TileType.STAIRS_DOWN) desc = "You see stone stairs descending deeper into the crypts.";
+    if (tile === TileType.CAMPFIRE) desc = "You see a cozy campfire crackling warmly.";
+    this.frame.addLog(desc, "system");
+  }
+
+  private handleTorch(): void {
+    this.isTorchActive = !this.isTorchActive;
+    if (this.isTorchActive) {
+      this.frame.addLog(`${this.leader.name} strikes a match and lights a torch!`, "item");
+    } else {
+      this.frame.addLog(`${this.leader.name} douses the torch. Darkness envelopes you.`, "prompt");
+    }
+    this.updateUi();
+    this.render();
+  }
+
+  private handleUseItem(): void {
+    this.modals.showInventory(this.leader, (defId) => {
+      this.frame.addLog(`${this.leader.name} equips/uses ${defId}.`, "item");
+      this.updateUi();
+    });
+  }
+
+  private handleInventory(): void {
+    this.modals.showInventory(this.leader);
+  }
+
+  private handleStats(): void {
+    this.modals.showCharacterSheet(this.leader);
+  }
+
+  private handleRest(): void {
+    const onConfirmRest = () => {
+      this.party.forEach((char) => {
+        char.hp = char.maxHp;
+        char.knownSpells.forEach((s) => (s.status = "available"));
+      });
+      this.isTorchActive = true;
+      this.torchTimer = 3600;
+      this.frame.addLog("The party rests at camp. HP restored and torches renewed!", "system");
+      this.endTurn();
+    };
+
+    const carouseOptions =
+      this.currentSite.biome === "city-of-masks"
+        ? {
+            gold: this.leader.gold,
+            onCarouse: (tier: CarouseTier) => this.handleCarouse(tier),
+          }
+        : undefined;
+
+    this.modals.showRestScreen(onConfirmRest, carouseOptions);
+  }
+
+  private handleCarouse(tier: CarouseTier): void {
+    if (this.leader.gold < carouseCost(tier)) {
+      this.frame.addLog(`Not enough gold to carouse at the ${tier} tier.`, "prompt");
+      return;
+    }
+    const result = resolveCarouse(this.engine.dice, tier, this.leader.gold);
+    this.leader.gold -= result.cost;
+    this.leader.gold = Math.max(0, this.leader.gold + (result.event.goldDelta ?? 0));
+    this.engine.awardXp(this.leader, result.xp);
+    if (result.event.itemId) this.leader.inventory.add(item(result.event.itemId), 1);
+
+    this.frame.addLog(`★ CAROUSE (${tier.toUpperCase()}): ${result.event.title} — ${result.event.text}`, "item");
+    this.frame.addLog(`Carousing roll ${result.event.roll}+bonus = ${result.event.total}: gained ${result.xp} XP.`, "hit");
+    this.audio.playVictoryJingle();
+    this.updateUi();
+  }
+
+  private handlePass(): void {
+    this.frame.addLog(`${this.leader.name} passes turn.`, "prompt");
+    this.endTurn();
+  }
+
+  private handleInteract(): void {
+    const tile = this.grid.getTile(this.grid.playerPos.x, this.grid.playerPos.y);
+    if (tile === TileType.STAIRS_DOWN) {
+      if (!this.currentSite.goal.isCompleted) {
+        this.frame.addLog("Stairs are locked! Fulfill the Site Goal first.", "prompt");
+      } else {
+        this.frame.addLog("You descend to the next site!", "system");
+        this.advanceSite();
+      }
+    } else {
+      this.frame.addLog("Nothing here to interact with.", "prompt");
+    }
+  }
+
+  private monsterAiTurn(): void {
+    this.grid.entities.forEach((monster) => {
+      if (!monster.isHostile || monster.hp <= 0) return;
+
+      const dx = this.grid.playerPos.x - monster.x;
+      const dy = this.grid.playerPos.y - monster.y;
+      const dist = Math.abs(dx) + Math.abs(dy);
+
+      if (dist === 1) {
+        const roll = this.engine.dice.roll("1d20");
+        this.frame.addLog(`${monster.name} attacks ${this.leader.name}! [1d20=${roll} vs AC ${this.leader.ac}]`, "combat");
+        if (roll >= this.leader.ac) {
+          const dmg = Math.max(1, this.engine.dice.roll("1d4"));
+          this.leader.hp = Math.max(0, this.leader.hp - dmg);
+          this.audio.playHitSfx();
+          this.frame.addLog(`${monster.name} strikes ${this.leader.name} for ${dmg} damage!`, "combat");
+          if (this.leader.hp === 0) {
+            this.frame.addLog(`${this.leader.name} has fallen!`, "combat");
+          }
+        } else {
+          this.frame.addLog(`${monster.name}'s attack missed.`, "prompt");
+        }
+      } else if (dist <= 4) {
+        const stepX = monster.x + Math.sign(dx);
+        const stepY = monster.y + Math.sign(dy);
+        if (this.grid.isWalkable(stepX, stepY) && !this.grid.getEntityAt(stepX, stepY)) {
+          monster.x = stepX;
+          monster.y = stepY;
+        }
+      }
+    });
+  }
+
+  private endTurn(): void {
+    this.round++;
+    if (this.isTorchActive && this.torchTimer > 0) {
+      this.torchTimer -= 10;
+      if (this.torchTimer <= 0) {
+        this.isTorchActive = false;
+        this.frame.addLog("Your torch burns out! Pitch darkness consumes the dungeon.", "combat");
+      }
+    }
+
+    // Resolve environmental zone hazards tick
+    if (this.currentSite.biome === "dwellers-in-the-deep") {
+      this.breathRoundsSubmerged++;
+    } else {
+      this.breathRoundsSubmerged = 0;
+    }
+    const hazardRes = ZoneHazards.resolveEnvironmentalTick(
+      this.leader,
+      this.currentSite.biome,
+      this.engine.dice,
+      this.isTorchActive,
+      this.breathRoundsSubmerged
+    );
+    if (hazardRes.triggered && hazardRes.message) {
+      this.frame.addLog(hazardRes.message, hazardRes.success ? "system" : "combat");
+    }
+
+    this.monsterAiTurn();
+    this.grid.updateFov(this.isTorchActive ? 4 : 1);
+    this.updateUi();
+    this.render();
+  }
+
+  private updateUi(): void {
+    const site = this.currentSite;
+    this.frame.updateHeader(
+      this.currentAdventure.name,
+      site.name,
+      this.currentAdventure.currentSiteIndex + 1,
+      this.currentAdventure.sites.length,
+      site.sizeCategory,
+      site.roomCount,
+      site.goal.description,
+      this.round,
+      this.torchTimer,
+      this.isTorchActive,
+      this.leader.gold
+    );
+    this.frame.updateParty(this.party, this.leaderIndex, (idx) => this.selectLeader(idx));
+  }
+
+  private render(): void {
+    this.renderer.render(this.grid);
+  }
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  new Game();
+});

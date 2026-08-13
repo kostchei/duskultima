@@ -2,9 +2,9 @@ import type { ItemDef, TreasureQuality } from "./inventory";
 
 const QUALITY_XP: Readonly<Record<TreasureQuality, number>> = {
   poor: 0,
-  normal: 1,
+  normal: 2,
   fabulous: 3,
-  legendary: 10,
+  legendary: 4,
 };
 
 /** RAW awards once per treasure find, based on the best item in that find. */
@@ -12,14 +12,13 @@ export function treasureQualityXp(quality: TreasureQuality): number {
   return QUALITY_XP[quality];
 }
 
-/** XP value for newly acquired valuables; mundane bought/recovered gear earns none. */
+/** XP value for newly acquired valuables; quality is contextual, not price-based. */
 export function treasureItemXp(def: ItemDef): number {
   const treasureLike =
     def.tags.includes("treasure") || def.tags.includes("magic") || def.tags.includes("relic");
   if (!treasureLike) return 0;
-  const inferredQuality: TreasureQuality =
-    def.treasureQuality ?? ((def.valueGp ?? 0) < 10 ? "poor" : (def.valueGp ?? 0) >= 300 ? "fabulous" : "normal");
-  return def.xpValue ?? treasureQualityXp(inferredQuality);
+  if (def.xpValue !== undefined) return def.xpValue;
+  return def.treasureQuality === undefined ? 0 : treasureQualityXp(def.treasureQuality);
 }
 
 export function encounterTreasureTableId(level: number):

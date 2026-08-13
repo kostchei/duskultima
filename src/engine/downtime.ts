@@ -1,16 +1,23 @@
 import type { StatName } from "./character";
 import type { Dice } from "./dice";
 
-export type CarouseTier = "humble" | "bold" | "legendary";
+export type CarouseTier =
+  | "worthy-night"
+  | "full-revelry"
+  | "tavern-crawl"
+  | "finest-voyage"
+  | "weeklong-bender"
+  | "ten-day-fete"
+  | "legendary-weeks";
 
 interface CarouseEvent {
   roll: number;
+  total: number;
   title: string;
   text: string;
-  xpBonus?: number;
+  xp: number;
   goldDelta?: number;
-  grantsLuck?: boolean;
-  effect?: "contact" | "debt" | "bruised";
+  treasureQuality?: "fabulous" | "legendary";
   itemId?: "ration" | "potion-healing";
 }
 
@@ -21,34 +28,44 @@ export interface CarouseResult {
   event: CarouseEvent;
 }
 
-const CAROUSE_COST: Record<CarouseTier, number> = { humble: 20, bold: 100, legendary: 500 };
-const CAROUSE_XP: Record<CarouseTier, number> = { humble: 1, bold: 3, legendary: 7 };
+const CAROUSE_OPTIONS: Readonly<Record<CarouseTier, { cost: number; bonus: number }>> = {
+  "worthy-night": { cost: 30, bonus: 0 },
+  "full-revelry": { cost: 100, bonus: 1 },
+  "tavern-crawl": { cost: 300, bonus: 2 },
+  "finest-voyage": { cost: 600, bonus: 3 },
+  "weeklong-bender": { cost: 900, bonus: 4 },
+  "ten-day-fete": { cost: 1_200, bonus: 5 },
+  "legendary-weeks": { cost: 1_800, bonus: 6 },
+};
 
-const EVENTS: readonly Omit<CarouseEvent, "roll">[] = [
-  { title: "The Watch Arrives", text: "A fine follows the revel.", goldDelta: -10 },
-  { title: "A Tab Left Open", text: "A tavern debt will complicate the next negotiation.", effect: "debt" },
-  { title: "Tabletop Brawl", text: "Bruised, but with a story worth experience.", xpBonus: 1, effect: "bruised" },
-  { title: "Shared Provisions", text: "A grateful reveler presses a ration into your hand.", itemId: "ration" },
-  { title: "A Useful Name", text: "A local contact owes you a small favor.", effect: "contact" },
-  { title: "Fortune Smiles", text: "The night leaves you improbably lucky.", grantsLuck: true },
-  { title: "A Delver's Tale", text: "A hard-won secret sharpens your instincts.", xpBonus: 1 },
-  { title: "Friendly Wager", text: "You leave the table richer.", goldDelta: 10 },
-  { title: "Apothecary's Toast", text: "A healer gifts you a restorative draught.", itemId: "potion-healing" },
-  { title: "Hero of the Taproom", text: "Your name carries through town.", xpBonus: 2, effect: "contact" },
-  { title: "Old Map Fragment", text: "A route clue makes the next expedition easier.", xpBonus: 2 },
-  { title: "Night of Legends", text: "The revel becomes a story people will repeat.", xpBonus: 3, grantsLuck: true },
-];
+const EVENTS: Readonly<Record<number, Omit<CarouseEvent, "roll" | "total">>> = {
+  1: { title: "A Blearily Ordinary Morning", text: "You wake up in your bed.", xp: 2 },
+  2: { title: "The Stocks", text: "You are locked in the stocks for 1d4 days and fined for setting a building on fire.", xp: 2 },
+  3: { title: "The Gutter", text: "You wake up in a gutter with half your wealth missing.", xp: 3 },
+  4: { title: "A Charming Priest", text: "You hazily remember donating 40% of your wealth to a charming priest.", xp: 3 },
+  5: { title: "A Full-Tavern Brawl", text: "You are fined 30% of your wealth after instigating a full-tavern brawl.", xp: 3 },
+  6: { title: "A Rigged Bet", text: "The Thieves' Guild bilked you in a rigged bet for 20% of your wealth.", xp: 4 },
+  7: { title: "The Noble's Song", text: "You lead an entire tavern in a wildly insulting song about a disliked noble.", xp: 4 },
+  8: { title: "Blindfolded Knives", text: "You survive a blindfolded knife-throwing demonstration unscathed.", xp: 4 },
+  9: { title: "The Honor Duel", text: "By talent or trickery, you beat a rival adventurer in an honor duel.", xp: 5 },
+  10: { title: "Reflected Sorcery", text: "You reflect an angry wizard's deadly spell off your cup.", xp: 5 },
+  11: { title: "The Merchant's Prank", text: "You perform a humiliating prank on a despised, corrupt merchant.", xp: 5 },
+  12: { title: "The Drinking Contest", text: "You defeat a noble in a highly wagered drinking contest.", xp: 5 },
+  13: { title: "The Sorcerer's Tower", text: "You pull off an ill-advised heist inside a feared sorcerer's tower.", xp: 3, treasureQuality: "fabulous" },
+  14: { title: "The Ruler's Heirloom", text: "You wake inside the local ruler's dwelling holding a priceless heirloom. Gain the legendary treasure's XP if you escape.", xp: 4, treasureQuality: "legendary" },
+};
 
 export function carouseCost(tier: CarouseTier): number {
-  return CAROUSE_COST[tier];
+  return CAROUSE_OPTIONS[tier].cost;
 }
 
 export function resolveCarouse(dice: Pick<Dice, "die">, tier: CarouseTier, availableGold: number): CarouseResult {
   const cost = carouseCost(tier);
   if (availableGold < cost) throw new Error(`Carousing costs ${cost} gold`);
-  const roll = dice.die(12);
-  const event = { roll, ...EVENTS[roll - 1]! };
-  return { tier, cost, xp: CAROUSE_XP[tier] + (event.xpBonus ?? 0), event };
+  const roll = dice.die(8);
+  const total = roll + CAROUSE_OPTIONS[tier].bonus;
+  const event = { roll, total, ...EVENTS[total]! };
+  return { tier, cost, xp: event.xp, event };
 }
 
 export type TrainingSkill = "athletics" | "stealth" | "lore" | "survival";

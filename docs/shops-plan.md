@@ -36,7 +36,7 @@ change correctly, close the shop, and have the result survive save/load.
 ## The central design decision: treasure finds grant XP
 
 Shadowdark awards XP once per treasure find according to the best treasure in
-that find: **Poor 0 XP, Normal 1 XP, Fabulous 3 XP, Legendary 10 XP.** The
+that find: **Poor 0-1 XP, Normal 2 XP, Fabulous 3 XP, Legendary 4 XP.** The
 number of coins, gems, or stacked items does not multiply the award. Spending
 the treasure does not take XP back, and selling recovered gear earns coin but
 never creates a new treasure find.

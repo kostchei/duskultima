@@ -1,7 +1,7 @@
 /**
- * Advancement: XP comes from treasure and boons only. Threshold to next level
- * is (current level x 10), resetting each level. Level-up rolls HP (class hit
- * die + CON) and 2d6 on the class talent table.
+ * Advancement: XP comes from treasure and boons only. The XP requirement is
+ * the value listed for the next level, and XP resets when that level is gained.
+ * Level-up rolls HP (class hit die + CON) and 2d6 on the class talent table.
  */
 
 import type { Character } from "./character";
@@ -11,9 +11,25 @@ import { applyTalentResult, type AppliedTalent } from "./talents";
 
 export const MAX_LEVEL = 10;
 
+/** XP required after resetting to advance from each current level. */
+const XP_TO_NEXT_LEVEL: Readonly<Record<number, number>> = {
+  1: 10,
+  2: 20,
+  3: 20,
+  4: 20,
+  5: 20,
+  6: 20,
+  7: 30,
+  8: 30,
+  9: 30,
+  10: 0,
+};
+
 export function xpToNextLevel(level: number): number {
-  if (level < 1) throw new Error(`Invalid level ${level}`);
-  return level * 10;
+  if (!Number.isInteger(level) || level < 1 || level > MAX_LEVEL) {
+    throw new Error(`Invalid level ${level}`);
+  }
+  return XP_TO_NEXT_LEVEL[level]!;
 }
 
 export interface LevelUpResult {
@@ -53,7 +69,9 @@ export function levelUp(
       `${character.name} has ${character.xp}/${xpToNextLevel(character.level)} XP — cannot level up`,
     );
   }
-  character.xp -= xpToNextLevel(character.level);
+  // Shadowdark resets the running total on every level-up; it does not carry
+  // excess XP into the next level.
+  character.xp = 0;
   character.level++;
 
   const hpRolled = character.ancestry === "dwarf"
@@ -71,8 +89,8 @@ export function levelUp(
 }
 
 /**
- * XP needed to reach the next level from the character's current progress — the
- * descent reward tops this up so a normal level-up fires. Zero at the level cap.
+ * XP needed to reach the next level from the character's current progress.
+ * Zero at the level cap.
  */
 export function xpToReachNextLevel(character: Character): number {
   if (character.level >= MAX_LEVEL) return 0;

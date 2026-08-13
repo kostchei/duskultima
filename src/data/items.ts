@@ -66,14 +66,15 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   },
   { id: "shield", name: "Shield", slotCost: 1, bundleSize: 1, tags: ["armor"], shield: true, valueGp: 10 },
 
-  // Treasure — treasure IS XP (minor 1, major 2-3, legendary 10)
+  // Treasure — treasure quality is contextual XP: poor 0-1, normal 2,
+  // fabulous 3, legendary 4. The find is rated once, not per coin bundle.
   // First 100 coins ride free; every 100 after costs a slot. XP is rated once
   // for the treasure find that produced them, never per 100 coins.
   // valueGp lets loose treasure be sold at a shop; "coins" is money already, so it has none.
-  { id: "coins", name: "Coins", slotCost: 0, bundleSize: 100, freeQty: 100, tags: ["treasure"], xpValue: 1, treasureQuality: "normal" },
-  { id: "gem", name: "Gem", slotCost: 0, bundleSize: 10, tags: ["treasure"], xpValue: 1, valueGp: 10, treasureQuality: "normal" },
+  { id: "coins", name: "Coins", slotCost: 0, bundleSize: 100, freeQty: 100, tags: ["treasure"], xpValue: 2, treasureQuality: "normal" },
+  { id: "gem", name: "Gem", slotCost: 0, bundleSize: 10, tags: ["treasure"], xpValue: 2, valueGp: 10, treasureQuality: "normal" },
   { id: "jeweled-idol", name: "Jeweled Idol", slotCost: 0, bundleSize: 1, tags: ["treasure"], xpValue: 3, valueGp: 50, treasureQuality: "fabulous" },
-  { id: "crown-of-the-deep", name: "Crown of the Deep", slotCost: 0, bundleSize: 1, tags: ["treasure"], xpValue: 10, treasureQuality: "legendary" },
+  { id: "crown-of-the-deep", name: "Crown of the Deep", slotCost: 0, bundleSize: 1, tags: ["treasure"], xpValue: 4, treasureQuality: "legendary" },
 
   // Potions & Consumables
   { id: "potion-healing", name: "Potion of Healing", slotCost: 1, bundleSize: 1, tags: ["potion", "magic"], valueGp: 75, treasureQuality: "normal", benefits: ["Restores hit points based on the drinker's level."], description: "Restore 1d6/2d8/3d10/4d12 HP at levels 0-3/4-6/7-9/10+.", use: { actions: ["consume", "inspect"], target: "ally" } },
@@ -185,7 +186,7 @@ const CORE_TREASURE_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.map((sp
     bundleSize: pouchSized ? 10 : (base?.bundleSize ?? 1),
     slotGroup: pouchSized ? "small-treasure" : base?.slotGroup,
     treasureQuality: spec.treasureQuality,
-    xpValue: { poor: 0, normal: 1, fabulous: 3, legendary: 10 }[spec.treasureQuality],
+    xpValue: { poor: 0, normal: 2, fabulous: 3, legendary: 4 }[spec.treasureQuality],
     magicBonus: spec.magicBonus ?? base?.magicBonus,
     benefitRolls: spec.benefitRolls ?? base?.benefitRolls,
     curseRolls: spec.curseRolls ?? base?.curseRolls,
