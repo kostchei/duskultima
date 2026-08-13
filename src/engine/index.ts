@@ -55,6 +55,7 @@ export * from "./encounterReaction";
 export * from "./encounterStealth";
 export * from "./events";
 export * from "./inventory";
+export * from "./light";
 export * from "./luck";
 export * from "./hexcrawl";
 export * from "./itemActions";
