@@ -112,10 +112,14 @@ No slots. Casting = spell check: d20 + INT (wizard) / WIS (priest) vs **DC 10 + 
 
 - **XP comes from treasure only.** Gems/idols/crowns carry `xpValue`; coins bank
   toward 100-coin thresholds (1 XP per full 100, tracked by the game context).
-- Threshold: `(current level × 10)` XP; excess carries over. Max level 10.
+- Authoritative XP formula: the current level multiplied by 10 is required to
+  reach the next level. XP resets to zero on level-up; excess is discarded.
+- Threshold: `(current level x 10)` XP to reach the next level; max level 10.
+  XP resets to zero when the level is gained, and excess XP is discarded.
 - Level-up rolls HP (class hit die + CON, min 1), **heals to full** (pulling a
   dying character back up), and rolls **2d6 on the class talent table**, whose
-  structured effects mutate the character's hooks.
+  structured effects mutate the character's hooks. Talent rolls occur at levels
+  1, 3, 5, 7, and 9; level 1 is handled during character creation.
 
 ## 9. Random Tables — `tables.ts`
 
@@ -146,9 +150,9 @@ is original paraphrase — the licensing boundary. Unknown table ids throw.
 
 | RAW (pseudocode doc) | As built | Why |
 |---|---|---|
-| Talent rolls at levels 3/5/7/9 | Talent roll **every** level | Ratified house rule: the slot-machine moment is the platformer's level-up payoff |
+| Talent rolls at levels 3/5/7/9 | Talent rolls at levels 1/3/5/7/9 | Source advancement schedule; level 1 is handled during character creation |
 | Reroll stats if no 14+ | Reroll until ≥2 stats 15+ and ≤1 under 6 | Ratified heroic house rule |
-| XP resets to 0 on level | Excess XP carries over | Friendlier; treasure never wasted |
+| XP resets to 0 on level | XP resets to 0 on level | Source advancement rule; excess XP is not carried |
 | Morale check per monster's own WIS | Same, plus `leader` flag: group exempt while leader lives, mass check on its death | Leader modelling now exists |
 | Priest penance = GP sacrifice by tier | Atonement is free at any shrine (E to kneel) | Cost arrives with the rest-spot economy |
 | Encounter distance/activity/reaction tables | Implemented in `encounterReaction.ts` with the source d6/2d6 bands; hexcrawl checks are implemented in `hexcrawl.ts` | The real-time dungeon loop may still choose when to call the tables |

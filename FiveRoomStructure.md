@@ -132,7 +132,9 @@ toward 1 XP per full 100 collected (each living party member carries 100 free co
 in the shared party purse, e.g. 4 members = 400 free coins; beyond that, every 100 coins
 costs 1 slot in the party leader's gear). Level-up rolls HP and a live 2d6 class talent — a
 slot-machine moment the whole party shares, since treasure XP is awarded
-party-wide.
+party-wide. XP follows the normal advancement formula: a character at level N
+needs N x 10 XP to reach the next level, and XP resets to zero when that level
+is gained. Talent rolls occur at levels 1, 3, 5, 7, and 9.
 
 **Cursed Scroll Expeditions**: Entering a Cursed Scroll Destination rolls **1d6 vaults (1 to 6)**
 to play consecutively within that destination, with each of its 3 biomes appearing a maximum of 2 times.

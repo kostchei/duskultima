@@ -1,6 +1,6 @@
 /**
  * Advancement: XP comes from treasure and boons only. The XP requirement is
- * the value listed for the next level, and XP resets when that level is gained.
+ * the current level multiplied by 10, and XP resets when that level is gained.
  * Level-up rolls HP (class hit die + CON) and 2d6 on the class talent table.
  */
 
@@ -11,25 +11,11 @@ import { applyTalentResult, type AppliedTalent } from "./talents";
 
 export const MAX_LEVEL = 10;
 
-/** XP required after resetting to advance from each current level: level x 10. */
-const XP_TO_NEXT_LEVEL: Readonly<Record<number, number>> = {
-  1: 10,
-  2: 20,
-  3: 30,
-  4: 40,
-  5: 50,
-  6: 60,
-  7: 70,
-  8: 80,
-  9: 90,
-  10: 0,
-};
-
 export function xpToNextLevel(level: number): number {
   if (!Number.isInteger(level) || level < 1 || level > MAX_LEVEL) {
     throw new Error(`Invalid level ${level}`);
   }
-  return XP_TO_NEXT_LEVEL[level]!;
+  return level === MAX_LEVEL ? 0 : level * 10;
 }
 
 export interface LevelUpResult {

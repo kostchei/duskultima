@@ -14,7 +14,7 @@ function hero(): Character {
 }
 
 describe("Shadowdark advancement XP", () => {
-  it("uses the published per-level requirements: level x 10", () => {
+  it("uses the published formula: current level x 10 to reach the next level", () => {
     expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(xpToNextLevel)).toEqual([
       10, 20, 30, 40, 50, 60, 70, 80, 90, 0,
     ]);
@@ -37,5 +37,22 @@ describe("Shadowdark advancement XP", () => {
     expect(character.level).toBe(2);
     expect(character.xp).toBe(0);
     expect(xpToNextLevel(character.level)).toBe(20);
+  });
+
+  it("does not carry excess XP through a level-up", () => {
+    const character = hero();
+    const tables = new TableRegistry();
+    tables.register({
+      id: "fighter-talent-excess",
+      name: "Fighter Talent",
+      dice: "2d6",
+      entries: [{ min: 2, max: 12, text: "A talent" }],
+    });
+
+    awardXp(character, 25);
+    levelUp(new Dice(7), tables, character, "1d6", "fighter-talent-excess");
+
+    expect(character.level).toBe(2);
+    expect(character.xp).toBe(0);
   });
 });
