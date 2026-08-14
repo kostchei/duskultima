@@ -685,8 +685,13 @@ export class Character {
       }
       return h;
     });
-    this.effects.push({ ...effect, hooks: resolvedHooks });
-    for (const hook of resolvedHooks) {
+    this.addResolvedEffect({ ...effect, hooks: resolvedHooks });
+  }
+
+  /** Add an effect whose hooks have already had their player choices resolved. */
+  addResolvedEffect(effect: Effect): void {
+    this.effects.push(effect);
+    for (const hook of effect.hooks) {
       if (hook.kind === "resourceBonus") {
         this.classState.resourceUses[hook.resource] = (this.classState.resourceUses[hook.resource] ?? 0) + hook.bonus;
         if (hook.resource === "omen") this.classState.omenUses = this.classState.resourceUses.omen ?? 0;

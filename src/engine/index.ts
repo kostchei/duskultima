@@ -419,7 +419,7 @@ export class Engine {
       who: character.id,
       level: result.newLevel,
       hpGained: result.hpGained,
-      talent: result.talent.entry.text,
+      talent: result.talent?.entry.text ?? null,
     });
     return result;
   }

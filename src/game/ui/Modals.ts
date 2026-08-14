@@ -4,6 +4,7 @@ import type { Engine } from "../../engine";
 import type { MonsterBiome } from "../../engine/monster";
 import type { CarouseTier } from "../../engine/downtime";
 import type { LevelUpResult } from "../../engine/advancement";
+import { applyTalentChoice } from "../../engine/talents";
 import { sellPrice, type ItemDef } from "../../engine/inventory";
 import { classDef } from "../../data/classes";
 import { ALL_CREATION_CLASSES, BIOME_DISPLAY_NAMES, zoneLockedBiomeForClass } from "../../data/biomeOrigins";
@@ -816,6 +817,10 @@ export class Modals {
     // character's level-up modal (or a follow-up modal), and hiding after it
     // opens would close that modal instead of this one.
     (window as any).onModalProceedLevelUp = () => {
+      result.pendingChoices.forEach((choice, index) => {
+        const select = document.getElementById(`level-up-choice-${index}`) as HTMLSelectElement | null;
+        if (select?.value) applyTalentChoice(char, choice, select.value);
+      });
       onProceed();
     };
 
@@ -830,7 +835,8 @@ export class Modals {
         <div><strong>Hit Points:</strong> +${result.hpGained} (rolled ${result.hpRolled}) — now ${char.hp}/${char.maxHp}</div>
       </div>
       <hr style="margin: 16px 0; border-color: #4a3810;" />
-      <div style="margin-bottom: 16px;">${talentsHtml}</div>
+      <div style="margin-bottom: 16px;">${talentsHtml || "<div>No talent roll this level.</div>"}</div>
+      ${result.pendingChoices.length === 0 ? "" : `<hr style="margin: 16px 0; border-color: #4a3810;" /><div style="margin-bottom: 12px; color: #f1c40f;">Choose level-up benefits</div>${result.pendingChoices.map((choice, index) => `<label style="display: block; margin: 8px 0;"><span style="display: block; margin-bottom: 4px;">${choice.label}</span><select id="level-up-choice-${index}" class="cmd-btn" style="width: 100%;">${choice.options.map((option) => `<option value="${option.value}">${option.label}</option>`).join("")}</select></label>`).join("")}`}
       <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalProceedLevelUp()">Continue</button>
     `;
   }

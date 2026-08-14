@@ -7,7 +7,7 @@
 import type { Character } from "./character";
 import type { Dice } from "./dice";
 import type { TableRegistry, TableRollResult } from "./tables";
-import { applyTalentResult, type AppliedTalent } from "./talents";
+import { applyTalentResultForLevelUp, type AppliedTalent, type TalentChoice } from "./talents";
 
 export const MAX_LEVEL = 10;
 
@@ -22,9 +22,11 @@ export interface LevelUpResult {
   newLevel: number;
   hpRolled: number;
   hpGained: number;
-  talent: TableRollResult;
+  talent: TableRollResult | null;
   /** Primary roll plus any chained/rerolled talents actually applied. */
   talents: AppliedTalent[];
+  /** Player decisions that must be resolved before the level-up flow continues. */
+  pendingChoices: TalentChoice[];
 }
 
 export interface XpAward {
@@ -68,10 +70,13 @@ export function levelUp(
   // Leveling restores the character to full (and pulls a dying one back up).
   character.heal(character.maxHp);
 
-  const talent = tables.roll(dice, talentTableId);
-  const talents = applyTalentResult(dice, tables, character, talent, `talent-L${character.level}`);
+  const talentLevel = [3, 5, 7, 9].includes(character.level);
+  const application = talentLevel
+    ? applyTalentResultForLevelUp(dice, tables, character, tables.roll(dice, talentTableId), `talent-L${character.level}`)
+    : { talents: [], pendingChoices: [] };
+  const talent = application.talents[0]?.result ?? null;
 
-  return { newLevel: character.level, hpRolled, hpGained, talent, talents };
+  return { newLevel: character.level, hpRolled, hpGained, talent, talents: application.talents, pendingChoices: application.pendingChoices };
 }
 
 /**

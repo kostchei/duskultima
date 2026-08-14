@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Character, xpToNextLevel, awardXp, canLevelUp, levelUp } from "./index";
 import { Dice } from "./dice";
 import { TableRegistry } from "./tables";
+import { applyTalentChoice } from "./talents";
 
 function hero(): Character {
   return new Character({
@@ -54,5 +55,34 @@ describe("Shadowdark advancement XP", () => {
 
     expect(character.level).toBe(2);
     expect(character.xp).toBe(0);
+  });
+
+  it("only rolls talents on the source advancement levels and defers choices", () => {
+    const character = hero();
+    const tables = new TableRegistry();
+    tables.register({
+      id: "fighter-talents-schedule",
+      name: "Fighter Talents",
+      dice: "2d6",
+      entries: [{
+        min: 2,
+        max: 12,
+        text: "+2 to Strength or Dexterity",
+        effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX"], bonus: 2 }],
+      }],
+    });
+
+    awardXp(character, 10);
+    const levelTwo = levelUp(new Dice(11), tables, character, "1d6", "fighter-talents-schedule");
+    expect(levelTwo.talent).toBeNull();
+    expect(levelTwo.pendingChoices).toHaveLength(0);
+
+    awardXp(character, 20);
+    const levelThree = levelUp(new Dice(12), tables, character, "1d6", "fighter-talents-schedule");
+    expect(levelThree.talent).not.toBeNull();
+    expect(levelThree.pendingChoices).toHaveLength(1);
+    expect(character.stats.STR).toBe(14);
+    applyTalentChoice(character, levelThree.pendingChoices[0]!, "DEX");
+    expect(character.stats.DEX).toBe(14);
   });
 });
