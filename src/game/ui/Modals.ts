@@ -810,7 +810,7 @@ export class Modals {
     `;
   }
 
-  public showLevelUpModal(char: Character, result: LevelUpResult, onProceed: () => void): void {
+  public showLevelUpModal(char: Character, result: LevelUpResult, onProceed: () => void, engine?: Engine): void {
     this.overlay.classList.remove("hidden");
 
     // No auto-hide here: onProceed may synchronously open the next queued
@@ -819,7 +819,7 @@ export class Modals {
     (window as any).onModalProceedLevelUp = () => {
       result.pendingChoices.forEach((choice, index) => {
         const select = document.getElementById(`level-up-choice-${index}`) as HTMLSelectElement | null;
-        if (select?.value) applyTalentChoice(char, choice, select.value);
+        if (select?.value) applyTalentChoice(char, choice, select.value, engine?.dice, engine?.tables);
       });
       onProceed();
     };

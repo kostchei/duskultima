@@ -18,6 +18,19 @@ function fighter(): Character {
   return character;
 }
 
+function thief(): Character {
+  const character = new Character({
+    id: "thief",
+    name: "Thief",
+    className: "thief",
+    stats: { STR: 10, DEX: 16, CON: 10, INT: 10, WIS: 10, CHA: 10 },
+    maxHp: 4,
+  });
+  character.level = 3;
+  character.equipWeapon(item("shortsword"));
+  return character;
+}
+
 describe("Shadowdark combat resolution", () => {
   it("uses the equipped weapon, applies the attack stat, and doubles dice on a critical", () => {
     const engine = new Engine({ seed: 1 });
@@ -50,6 +63,30 @@ describe("Shadowdark combat resolution", () => {
     expect(result.check.fumble).toBe(true);
     expect(result.check.success).toBe(false);
     expect(result.damage).toBe(0);
+  });
+
+  it("adds the source Backstab weapon dice only against an unaware target", () => {
+    const engine = new Engine({ seed: 1 });
+    engine.dice.d20 = () => ({ natural: 20, rolls: [20], mode: "normal" });
+    engine.dice.roll = () => 4;
+
+    const backstab = engine.attack({
+      attacker: thief(),
+      targetAc: 1,
+      damage: "1d6",
+      weapon: item("shortsword"),
+      targetUnaware: true,
+    });
+    const ordinary = engine.attack({
+      attacker: thief(),
+      targetAc: 1,
+      damage: "1d6",
+      weapon: item("shortsword"),
+      targetUnaware: false,
+    });
+
+    expect(backstab.damage).toBe(27); // 4 x 6 dice, +3 DEX, crit doubles the Backstab dice too
+    expect(ordinary.damage).toBe(11); // 4 x 2 dice, +3 DEX, critical doubles the weapon die
   });
 
   it("resolves monster attack bonus, weapon damage, and critical damage dice", () => {

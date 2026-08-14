@@ -23,7 +23,8 @@ export type TalentInstruction =
   | { kind: "learnSpell"; spells: readonly { id: string; tier: number }[] }
   | { kind: "advantageKnownSpell" }
   | { kind: "rollTable"; tableId: string; count: number }
-  | { kind: "gainHitDie"; dice: string };
+  | { kind: "gainHitDie"; dice: string }
+  | { kind: "chooseTalent"; tableId: string };
 
 export interface RollableTable {
   id: string;

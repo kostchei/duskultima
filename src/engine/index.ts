@@ -85,6 +85,8 @@ export interface AttackInput {
   weapon?: ItemDef;
   /** Extra weapon damage dice on a hit (thief backstab: 1 + half level). */
   extraDamageDice?: number;
+  /** Whether the target is unaware for class features such as Backstab. */
+  targetUnaware?: boolean;
   advantage?: readonly string[];
   disadvantage?: readonly string[];
 }
@@ -309,7 +311,10 @@ export class Engine {
     });
     let damage = 0;
     if (check.success) {
-      const diceRolls = 1 + (input.extraDamageDice ?? 0);
+      const featureDice = a.effects.flatMap((effect) => effect.hooks).reduce((sum, hook) =>
+        hook.kind === "extraWeaponDamageDice" && (!hook.unawareOnly || input.targetUnaware) ? sum + hook.count : sum, 0);
+      const backstabDice = a.className === "thief" && input.targetUnaware ? 1 + Math.floor(a.level / 2) : 0;
+      const diceRolls = 1 + (input.extraDamageDice ?? 0) + featureDice + backstabDice;
       for (let i = 0; i < diceRolls; i++) damage += this.dice.roll(input.damage);
       for (const effect of a.effects) {
         for (const hook of effect.hooks) {

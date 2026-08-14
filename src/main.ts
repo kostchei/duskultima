@@ -5,7 +5,7 @@
 
 import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ClassName, type ConditionKind, type MonsterBiome, type StatGenerationMethod, type TreasureQuality } from "./engine/index";
 import { Character, type Stats } from "./engine/character";
-import { classDef, createCharacter, item, registerTables } from "./data/index";
+import { advanceKnownSpells, classDef, createCharacter, item, registerTables } from "./data/index";
 import { bestTreasureQuality, rollFabledItem, rollTreasureCache, rollTreasureFind } from "./data/treasureGeneration";
 import { MapGrid } from "./game/level/MapGrid";
 import { MapRenderer } from "./game/renderer/MapRenderer";
@@ -667,11 +667,13 @@ class Game {
     }
     const def = classDef(char.className);
     const result = this.engine.levelUp(char, def.hitDie, def.talentTableId);
+    const learnedSpells = advanceKnownSpells(char);
+    if (learnedSpells.length > 0) this.frame.addLog(`${char.name} learns: ${learnedSpells.join(", ")}.`, "system");
     this.frame.addLog(`★ ${char.name} reaches Level ${result.newLevel}! +${result.hpGained} HP.`, "system");
     this.modals.showLevelUpModal(char, result, () => {
       this.updateUi();
       this.processNextLevelUp();
-    });
+    }, this.engine);
   }
 
   private handleCarouse(tier: CarouseTier): void {

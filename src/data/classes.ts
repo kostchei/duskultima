@@ -13,6 +13,8 @@ export interface ClassDef {
   talentTableId: string;
   castStat?: StatName;
   startingSpellIds: readonly string[];
+  /** Number of known spells by tier for each character level, when applicable. */
+  spellsKnownByLevel?: readonly (readonly number[])[];
   /** Baseline class features as permanent effect hooks. */
   features: readonly Effect[];
 }
@@ -71,6 +73,7 @@ const CLASS_LIST: readonly ClassDef[] = [
     talentTableId: "priest-talents",
     castStat: "WIS",
     startingSpellIds: ["cure-wounds", "turn-undead"],
+    spellsKnownByLevel: [[2], [3], [3, 1], [3, 2], [3, 2, 1], [3, 2, 2], [3, 3, 2, 1], [3, 3, 2, 2], [3, 3, 2, 2, 1], [3, 3, 3, 2, 2]],
     features: [],
   },
   {
@@ -82,7 +85,8 @@ const CLASS_LIST: readonly ClassDef[] = [
     startsWithShield: false,
     talentTableId: "wizard-talents",
     castStat: "INT",
-    startingSpellIds: ["magic-missile", "mage-armor"],
+    startingSpellIds: ["magic-missile", "mage-armor", "burning-hands"],
+    spellsKnownByLevel: [[3], [4], [4, 1], [4, 2], [4, 2, 1], [4, 3, 2], [4, 3, 2, 1], [4, 4, 2, 2], [4, 4, 3, 2, 1], [4, 4, 4, 2, 2]],
     features: [],
   },
   {
@@ -198,6 +202,7 @@ const CLASS_LIST: readonly ClassDef[] = [
     talentTableId: "priest-talents",
     castStat: "WIS",
     startingSpellIds: ["cure-wounds", "turn-undead"],
+    spellsKnownByLevel: [[2], [3], [3, 1], [3, 2], [3, 2, 1], [3, 2, 2], [3, 3, 2, 1], [3, 3, 2, 2], [3, 3, 2, 2, 1], [3, 3, 3, 2, 2]],
     features: [],
   },
   {
@@ -210,7 +215,8 @@ const CLASS_LIST: readonly ClassDef[] = [
     startsWithShield: false,
     talentTableId: "wizard-talents",
     castStat: "INT",
-    startingSpellIds: ["magic-missile", "mage-armor"],
+    startingSpellIds: ["magic-missile", "mage-armor", "burning-hands"],
+    spellsKnownByLevel: [[3], [4], [4, 1], [4, 2], [4, 2, 1], [4, 3, 2], [4, 3, 2, 1], [4, 4, 2, 2], [4, 4, 3, 2, 1], [4, 4, 4, 2, 2]],
     features: [],
   },
   {

@@ -21,6 +21,7 @@ import { classDef } from "./classes";
 import { item, namedBlade } from "./items";
 import { statPriorityForClass } from "./statPriority";
 import { getBackground, getTrinket } from "../engine/tableService";
+import { spellsForClass } from "./spells";
 import { ALL_CAROUSE_TABLES } from "./tables/carousing";
 import { ALL_MISHAP_TABLES } from "./tables/mishaps";
 import {
@@ -74,6 +75,25 @@ export {
 export { ITEM_BENEFITS, ITEM_CURSES, ITEM_FLAWS, ITEM_VIRTUES, type MagicItemTrait } from "./tables/magicItemTraits";
 export { monster } from "./monsters";
 export { CLASS_SPELL_ROSTER, highestAvailableSpellIndex, highestAvailableDamagingSpellIndex, magicItemSpell, spell, spellForMagicItem, spellsForClass, unlockClassSpellsForLevel } from "./spells";
+
+/** Fills a class's known-spell counts from the implemented class list. */
+export function advanceKnownSpells(character: Character): string[] {
+  const progression = classDef(character.className).spellsKnownByLevel?.[character.level - 1];
+  if (!progression) return [];
+  const spellClass = character.className === "cleric" || character.className === "priest" ? "priest" : "wizard";
+  const candidates = spellsForClass(spellClass);
+  const learned: string[] = [];
+  progression.forEach((target, tierIndex) => {
+    const current = character.knownSpells.filter((known) => candidates.find((candidate) => candidate.id === known.spellId)?.tier === tierIndex + 1).length;
+    for (const candidate of candidates) {
+      if (candidate.tier !== tierIndex + 1 || character.knownSpells.some((known) => known.spellId === candidate.id)) continue;
+      if (current + learned.filter((id) => candidates.find((entry) => entry.id === id)?.tier === tierIndex + 1).length >= target) break;
+      character.learnSpell(candidate.id);
+      learned.push(candidate.id);
+    }
+  });
+  return learned;
+}
 export { isPlebName, plebNameForSeed, randomPlebName } from "./names";
 export {
   ALL_TREASURE_TABLES,
@@ -236,6 +256,7 @@ export function createCharacter(
   }
 
   for (const spellId of def.startingSpellIds) c.learnSpell(spellId);
+  advanceKnownSpells(c);
   if (cls === "ras-godai") {
     const blackLotus = engine.tables.roll(engine.dice, "black-lotus-talents");
     applyTalentResult(engine.dice, engine.tables, c, blackLotus, "talent-black-lotus-start");

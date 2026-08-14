@@ -32,6 +32,7 @@ export type EffectHook =
   /** A temporary floor for a stat score (giant strength, polymorph, etc.). */
   | { kind: "statMinimum"; stat: StatName; value: number }
   | { kind: "statBonusChoice"; stats: StatName[]; bonus: number }
+  | { kind: "statOrCheckChoice"; stat: StatName; statBonus: number; applies: CheckKind; checkBonus: number }
   | { kind: "acBonus"; bonus: number }
   | { kind: "acMinimum"; value: number }
   | { kind: "armorAcBonusChoice"; bonus: number }
@@ -57,6 +58,7 @@ export type EffectHook =
   | { kind: "obscured" }
   | { kind: "moraleImmune" }
   | { kind: "extraDamageDice"; dice: string }
+  | { kind: "extraWeaponDamageDice"; count: number; unawareOnly?: boolean }
   | { kind: "speedBonus"; bonus: number }
   | { kind: "focusSpell"; spellId: string; tier: number }
   | { kind: "focusTarget"; targetId: string }
