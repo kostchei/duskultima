@@ -99,7 +99,16 @@ export function rollLuxuryItem(dice: Dice): TreasureFind {
 /** A cache contains a small handful of independent treasure finds, never one lump reward. */
 export function rollTreasureCache(dice: Dice, partyLevel: number): readonly TreasureFind[] {
   const count = dice.between(2, 5);
-  return Array.from({ length: count }, () => rollTreasureFind(dice, partyLevel));
+  return Array.from({ length: count }, () => {
+    // Each find chooses a source family independently. The level-based core
+    // tables provide currency, mundane valuables, and magic; the two
+    // supplemental families add the dedicated gemstone and luxury tables.
+    switch (dice.die(3)) {
+      case 1: return rollTreasureFind(dice, partyLevel);
+      case 2: return rollGemstoneFind(dice);
+      default: return rollLuxuryItem(dice);
+    }
+  });
 }
 
 /**

@@ -26,9 +26,18 @@ describe("treasure generation", () => {
     expect(bestTreasureQuality([{ quality: "normal" }, { quality: "legendary" }])).toBe("legendary");
   });
 
+  it("draws cache finds from core, gemstone, and luxury source families", () => {
+    const kinds = new Set<string>();
+    for (let seed = 1; seed <= 100; seed += 1) {
+      for (const finding of rollTreasureCache(new Dice(seed), 1)) kinds.add(finding.kind ?? "unknown");
+    }
+    expect(kinds).toEqual(new Set(["core", "gemstone", "luxury"]));
+  });
+
   it("does not require a cache to contain magic", () => {
-    const cache = rollTreasureCache(new Dice(7), 1);
-    expect(cache.some((finding) => finding.def.tags.includes("magic"))).toBe(false);
+    const mundaneOnlyCache = Array.from({ length: 100 }, (_, index) => rollTreasureCache(new Dice(index + 1), 1))
+      .find((cache) => !cache.some((finding) => finding.def.tags.includes("magic")));
+    expect(mundaneOnlyCache).toBeDefined();
   });
 
   it("rolls the page 222 gemstone values and applies giant gem x2", () => {
