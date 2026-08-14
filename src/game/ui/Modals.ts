@@ -9,6 +9,8 @@ import { classDef } from "../../data/classes";
 import { ALL_CREATION_CLASSES, BIOME_DISPLAY_NAMES, zoneLockedBiomeForClass } from "../../data/biomeOrigins";
 import { createCharacter, isClassQualified, item, CLASS_STAT_REQUIREMENTS, NAMED_BLADE_SWORD_IDS } from "../../data/index";
 import { generateAncestryName } from "../../engine/tableService";
+import { evaluateRenown } from "../../engine/renown";
+import { resolveSpiritualism, resolveSkulduggery, resolveMartialTraining, resolveMagicalResearch, resolveMountTraining, type DowntimeCheckResult } from "../../engine/downtime";
 
 const ANCESTRY_DISPLAY_NAMES: Readonly<Record<Ancestry, string>> = {
   human: "Human",
@@ -205,12 +207,163 @@ export class Modals {
       `;
     }
 
+    let downtimeHubHtml = "";
+    if ((carouseOptions as any)?.onOpenDowntimeHub) {
+      (window as any).onModalOpenDowntimeHub = () => (carouseOptions as any).onOpenDowntimeHub();
+      downtimeHubHtml = `
+        <hr style="margin: 16px 0; border-color: #4a3810;" />
+        <button class="cmd-btn" style="font-size: 18px; width: 100%; padding: 8px; background-color: #4a3810; color: #ffd700;" onclick="window.onModalOpenDowntimeHub()">★ Advanced Downtime Hub (Western Reaches)</button>
+      `;
+    }
+
     this.body.innerHTML = `
       <div class="modal-title">Camp & Respite</div>
       <p style="margin-bottom: 16px;">Resting at camp restores full Hit Points to all party members, recovers lost spells, and provides fresh torches.</p>
       <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalRest()">Make Camp & Rest</button>
       ${shopHtml}
+      ${downtimeHubHtml}
       ${carouseHtml}
+    `;
+  }
+
+  public showDowntimeHub(
+    char: Character,
+    engine: Engine,
+    onLogResult: (msg: string, type: "prompt" | "item" | "combat") => void,
+    onBack: () => void
+  ): void {
+    this.overlay.classList.remove("hidden");
+    const renownInfo = evaluateRenown(char.renown);
+
+    (window as any).onModalDowntimeBack = () => onBack();
+
+    (window as any).onModalDowntimeSpiritualism = (option: any) => {
+      try {
+        const res = resolveSpiritualism(engine.dice, char, option);
+        onLogResult(`★ DOWNTIME: ${res.logText}`, res.success ? "item" : "prompt");
+        this.showDowntimeHub(char, engine, onLogResult, onBack);
+      } catch (err: any) {
+        onLogResult(`Downtime failed: ${err.message}`, "prompt");
+      }
+    };
+
+    (window as any).onModalDowntimeSkulduggery = (option: any) => {
+      try {
+        const res = resolveSkulduggery(engine.dice, char, option);
+        onLogResult(`★ DOWNTIME: ${res.logText}`, res.success ? "item" : "prompt");
+        this.showDowntimeHub(char, engine, onLogResult, onBack);
+      } catch (err: any) {
+        onLogResult(`Downtime failed: ${err.message}`, "prompt");
+      }
+    };
+
+    (window as any).onModalDowntimeMartial = (stat: any, option: any) => {
+      try {
+        const res = resolveMartialTraining(engine.dice, char, stat, option);
+        onLogResult(`★ DOWNTIME: ${res.logText}`, res.success ? "item" : "prompt");
+        this.showDowntimeHub(char, engine, onLogResult, onBack);
+      } catch (err: any) {
+        onLogResult(`Downtime failed: ${err.message}`, "prompt");
+      }
+    };
+
+    (window as any).onModalDowntimeMagical = (option: any) => {
+      try {
+        const res = resolveMagicalResearch(engine.dice, char, option);
+        onLogResult(`★ DOWNTIME: ${res.logText}`, res.success ? "item" : "prompt");
+        this.showDowntimeHub(char, engine, onLogResult, onBack);
+      } catch (err: any) {
+        onLogResult(`Downtime failed: ${err.message}`, "prompt");
+      }
+    };
+
+    (window as any).onModalDowntimeMount = () => {
+      try {
+        const res = resolveMountTraining(engine.dice, char);
+        onLogResult(`★ DOWNTIME: ${res.logText}`, res.success ? "item" : "prompt");
+        this.showDowntimeHub(char, engine, onLogResult, onBack);
+      } catch (err: any) {
+        onLogResult(`Downtime failed: ${err.message}`, "prompt");
+      }
+    };
+
+    const spFavorDc = char.getDowntimeDc("spiritualism-sp-favor", 9);
+    const spStrengthDc = char.getDowntimeDc("spiritualism-sp-strengthening", 12);
+    const spInsightDc = char.getDowntimeDc("spiritualism-sp-insight", 15);
+    const spCleanseDc = char.getDowntimeDc("spiritualism-sp-cleansing", 18);
+
+    const skRumorDc = char.getDowntimeDc("skulduggery-sk-rumor", 9);
+    const skLayLowDc = char.getDowntimeDc("skulduggery-sk-lay-low", 12);
+    const skExtortDc = char.getDowntimeDc("skulduggery-sk-extortion", 15);
+    const skHideDc = char.getDowntimeDc("skulduggery-sk-hide-out", 18);
+    const skMinorDc = char.getDowntimeDc("skulduggery-sk-minor-crime", 15);
+    const skMajorDc = char.getDowntimeDc("skulduggery-sk-major-crime", 18);
+
+    const canMount = char.className === "desert-rider" || char.className === "kyzian-archer" || char.className === "paladin";
+    const mountDc = char.getDowntimeDc("mount-training", 15);
+
+    this.body.innerHTML = `
+      <div class="modal-title">Downtime Hub — ${char.name}</div>
+      <div style="font-size: 16px; color: #ffd700; margin-bottom: 12px;">
+        Gold: <strong>${char.gold} gp</strong> | Renown: <strong>${char.renown} (${renownInfo.title})</strong> | Carouse Bonus: <strong>+${renownInfo.carouseBonus}</strong>
+      </div>
+      <p style="font-size: 13px; color: #aaa; margin-bottom: 12px;">${renownInfo.description}</p>
+      
+      <div style="display: flex; flex-direction: column; gap: 12px; max-height: 400px; overflow-y: auto; text-align: left; font-size: 14px;">
+        
+        <div style="border: 1px solid #4a3810; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.3);">
+          <strong style="color: #ffd700;">1. Spiritualism (WIS Check)</strong>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeSpiritualism('sp-favor')">Church Favor (DC ${spFavorDc}) — +1 Renown</button>
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeSpiritualism('sp-strengthening')">Strengthening (DC ${spStrengthDc}) — +2 XP</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeSpiritualism('sp-insight')">Insight* (DC ${spInsightDc}, 50gp) — +1 Luck</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeSpiritualism('sp-cleansing')">Cleansing* (DC ${spCleanseDc}, 50gp) — End Curses</button>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #4a3810; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.3);">
+          <strong style="color: #ffd700;">2. Skulduggery (CHA/DEX Check)</strong>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeSkulduggery('sk-rumor')">Rumor CHA (DC ${skRumorDc}) — +1 Renown</button>
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeSkulduggery('sk-lay-low')">Lay Low CHA (DC ${skLayLowDc}) — Clear Crime</button>
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeSkulduggery('sk-extortion')">Extortion CHA (DC ${skExtortDc}) — +50 gp</button>
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeSkulduggery('sk-hide-out')">Hide Out CHA (DC ${skHideDc}) — Escape Major</button>
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeSkulduggery('sk-minor-crime')">Petty Theft DEX (DC ${skMinorDc}) — +30 gp</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeSkulduggery('sk-major-crime')">Major Heist* DEX (DC ${skMajorDc}, 50gp) — +150 gp</button>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #4a3810; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.3);">
+          <strong style="color: #ffd700;">3. Martial Training (STR/DEX/INT Check, 50 gp*)</strong>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeMartial('${char.mod("STR") >= char.mod("DEX") ? "STR" : "DEX"}', 'mt-bonus')">Weapon Bonus (+1 Hit/Dmg)</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeMartial('${char.mod("STR") >= char.mod("DEX") ? "STR" : "DEX"}', 'mt-learn')">Learn Weapon / Armor</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeMartial('${char.mod("STR") >= char.mod("DEX") ? "STR" : "DEX"}', 'mt-increase-die')">Increase Damage Die Step</button>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #4a3810; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.3);">
+          <strong style="color: #ffd700;">4. Magical Research (Spellcasting Check)</strong>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 6px;">
+            <button class="cmd-btn" style="font-size: 13px;" onclick="window.onModalDowntimeMagical('mr-scroll-adv')">Scroll / Spell Advantage (DC 12)</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeMagical('mr-create-scroll')">Create Scroll* (DC 15, 50gp)</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeMagical('mr-potion')">Brew Potion* (DC 15, 50gp)</button>
+            <button class="cmd-btn" style="font-size: 13px;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeMagical('mr-wand')">Craft Wand* (DC 20, 50gp)</button>
+          </div>
+        </div>
+
+        ${canMount ? `
+        <div style="border: 1px solid #4a3810; padding: 8px; border-radius: 4px; background: rgba(0,0,0,0.3);">
+          <strong style="color: #ffd700;">5. Mount Training (CHA Check, 50 gp*)</strong>
+          <div style="margin-top: 6px;">
+            <button class="cmd-btn" style="font-size: 13px; width: 100%;" ${char.gold < 50 ? "disabled" : ""} onclick="window.onModalDowntimeMount()">Acquire & Train Mount (DC ${mountDc}, 50gp)</button>
+          </div>
+        </div>` : ""}
+
+      </div>
+
+      <hr style="margin: 16px 0; border-color: #4a3810;" />
+      <button class="cmd-btn" style="font-size: 16px; width: 100%; padding: 8px;" onclick="window.onModalDowntimeBack()">Back to Respite Menu</button>
     `;
   }
 

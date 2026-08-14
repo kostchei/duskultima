@@ -41,7 +41,9 @@ export type ClassName =
   | "duelist"
   | "pit-fighter"
   | "witch"
-  | "seer";
+  | "seer"
+  | "desert-rider"
+  | "kyzian-archer";
 
 /** The stat a class leans on, and where a free stat bonus goes once nothing is deficient. */
 export const PRIMARY_STAT: Record<ClassName, StatName> = {
@@ -67,6 +69,8 @@ export const PRIMARY_STAT: Record<ClassName, StatName> = {
   wizard: "INT",
   witch: "CHA",
   seer: "WIS",
+  "desert-rider": "DEX",
+  "kyzian-archer": "DEX",
 };
 
 export function getBaseRole(className: ClassName): BaseClassName {
@@ -84,6 +88,7 @@ export function getBaseRole(className: ClassName): BaseClassName {
     case "duelist":
     case "roustabout":
     case "delver":
+    case "kyzian-archer":
       return "thief";
     case "monk":
     case "paladin":
@@ -92,6 +97,7 @@ export function getBaseRole(className: ClassName): BaseClassName {
     case "sea-wolf":
     case "pit-fighter":
     case "basilisk-warrior":
+    case "desert-rider":
       return "fighter";
     default:
       return className;
@@ -362,7 +368,7 @@ export class Character {
   }
   gainLuckTokens(amount = 1, cap = Number.POSITIVE_INFINITY): number {
     if (!Number.isInteger(amount) || amount < 0) throw new Error("Luck amount must be non-negative");
-    if (!Number.isInteger(cap) || cap < 1) throw new Error("Luck cap must be positive");
+    if (typeof cap !== "number" || cap < 1) throw new Error("Luck cap must be positive");
     const gained = Math.max(0, Math.min(cap, this.luckTokens + amount) - this.luckTokens);
     this.luckTokens += gained;
     return gained;
@@ -373,6 +379,8 @@ export class Character {
     return true;
   }
   gold = 0;
+  renown = 0;
+  readonly downtimeFailures: Record<string, number> = {};
   classState: ClassState = { ...DEFAULT_CLASS_STATE, resourceUses: {}, oldGods: [], cauldronItems: [] };
 
   /** Set while at 0 HP; cleared by stabilization or healing. */
@@ -393,12 +401,29 @@ export class Character {
     for (const s of STAT_NAMES) statModifier(this.stats[s]); // validate
     this.baseMaxHp = init.maxHp;
     this.hp = this.maxHp;
+    this.renown = statModifier(this.stats.CHA);
     // Gear slots = max(STR, 10); fighters haul + CON mod extra (Hauler).
     let capacity = Math.max(this.stats.STR, 10);
     if (init.className === "fighter") {
       capacity += Math.max(0, statModifier(this.stats.CON));
     }
     this.inventory = new Inventory(capacity);
+  }
+
+  /** Gets effective DC for a downtime activity applying failure step-down rules. */
+  getDowntimeDc(activityKey: string, baseDc: number): number {
+    const fails = this.downtimeFailures[activityKey] ?? 0;
+    return Math.max(9, baseDc - fails * 3);
+  }
+
+  /** Record a failure for a downtime activity (lowers future DC one step). */
+  recordDowntimeFailure(activityKey: string): void {
+    this.downtimeFailures[activityKey] = (this.downtimeFailures[activityKey] ?? 0) + 1;
+  }
+
+  /** Reset failure count for a downtime activity upon success. */
+  resetDowntimeFailure(activityKey: string): void {
+    delete this.downtimeFailures[activityKey];
   }
 
   mod(stat: StatName): number {

@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { carouseCost, carouseEffectsForText, resolveCarouse, resolveGroupCarouse, groupCarouseCost, type CarouseTier } from "./downtime";
+import {
+  carouseCost,
+  carouseEffectsForText,
+  resolveCarouse,
+  resolveGroupCarouse,
+  groupCarouseCost,
+  resolveSpiritualism,
+  resolveSkulduggery,
+  resolveMartialTraining,
+  type CarouseTier,
+} from "./downtime";
+import { Character } from "./character";
 import { Dice } from "./dice";
 import { TableRegistry } from "./tables";
 import { ALL_CAROUSE_TABLES } from "../data/tables/carousing";
@@ -75,3 +86,73 @@ describe("Shadowdark carousing XP", () => {
       .toEqual([{ kind: "removeGear", count: "1d4" }]);
   });
 });
+
+describe("Advanced Downtime Activities (Western Reaches)", () => {
+  it("applies step-down DC reduction on failure and resets on success", () => {
+    const char = new Character({
+      id: "hero1",
+      name: "Thorin",
+      className: "fighter",
+      stats: { STR: 16, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 10 },
+      maxHp: 10,
+    });
+    char.gold = 200;
+
+    const baseDc = 15;
+    expect(char.getDowntimeDc("spiritualism-sp-insight", baseDc)).toBe(15);
+
+    // Fail check
+    const failDice = { die: () => 1 } as unknown as Dice;
+    const res1 = resolveSpiritualism(failDice, char, "sp-insight");
+    expect(res1.success).toBe(false);
+    expect(char.getDowntimeDc("spiritualism-sp-insight", baseDc)).toBe(12);
+
+    // Fail again
+    const res2 = resolveSpiritualism(failDice, char, "sp-insight");
+    expect(res2.success).toBe(false);
+    expect(char.getDowntimeDc("spiritualism-sp-insight", baseDc)).toBe(9);
+
+    // Success resets DC back to base
+    const passDice = { die: () => 20 } as unknown as Dice;
+    const res3 = resolveSpiritualism(passDice, char, "sp-insight");
+    expect(res3.success).toBe(true);
+    expect(char.getDowntimeDc("spiritualism-sp-insight", baseDc)).toBe(15);
+  });
+
+  it("resolves Skulduggery and deducts costs / adjusts renown", () => {
+    const char = new Character({
+      id: "rogue1",
+      name: "Shadow",
+      className: "thief",
+      stats: { STR: 10, DEX: 16, CON: 12, INT: 10, WIS: 10, CHA: 14 },
+      maxHp: 8,
+    });
+    char.gold = 100;
+    const initialRenownVal = char.renown;
+
+    const passDice = { die: () => 20 } as unknown as Dice;
+    const res = resolveSkulduggery(passDice, char, "sk-rumor", 1);
+    expect(res.success).toBe(true);
+    expect(char.renown).toBe(initialRenownVal + 1);
+  });
+
+  it("resolves Martial Training and requires 50 gp cost", () => {
+    const char = new Character({
+      id: "fighter1",
+      name: "Grim",
+      className: "fighter",
+      stats: { STR: 16, DEX: 12, CON: 14, INT: 10, WIS: 10, CHA: 10 },
+      maxHp: 10,
+    });
+    char.gold = 20;
+
+    const passDice = { die: () => 20 } as unknown as Dice;
+    expect(() => resolveMartialTraining(passDice, char, "STR", "mt-bonus")).toThrow();
+
+    char.gold = 100;
+    const res = resolveMartialTraining(passDice, char, "STR", "mt-bonus");
+    expect(res.success).toBe(true);
+    expect(char.gold).toBe(50);
+  });
+});
+

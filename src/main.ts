@@ -601,6 +601,17 @@ class Game {
       partySize: this.livingParty().length,
       tavernName: this.currentAdventure.tavernName,
       onCarouse: (tier: CarouseTier) => this.handleCarouse(tier),
+      onOpenDowntimeHub: () => {
+        this.modals.showDowntimeHub(
+          this.leader,
+          this.engine,
+          (msg, type) => {
+            this.frame.addLog(msg, type);
+            this.updateUi();
+          },
+          () => this.handleRest()
+        );
+      },
     };
 
     this.modals.showRestScreen(onConfirmRest, carouseOptions, () => this.handleShop());

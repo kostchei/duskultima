@@ -1,4 +1,4 @@
-import type { StatName } from "./character";
+import type { Character, StatName } from "./character";
 import type { Dice } from "./dice";
 import type { TableRegistry } from "./tables";
 
@@ -289,3 +289,328 @@ export function studyableScrolls(
   }
   return studyable;
 }
+
+export interface DowntimeCheckResult {
+  activityId: string;
+  activityName: string;
+  success: boolean;
+  rawRoll: number;
+  modifier: number;
+  total: number;
+  effectiveDc: number;
+  baseDc: number;
+  cost: number;
+  logText: string;
+  effectSummary: string;
+}
+
+/**
+ * Spiritualism activity resolution (Western Reaches p. 234).
+ * WIS Check.
+ */
+export function resolveSpiritualism(
+  dice: Dice,
+  char: Character,
+  option: "sp-favor" | "sp-strengthening" | "sp-insight" | "sp-cleansing"
+): DowntimeCheckResult {
+  const baseDc = option === "sp-favor" ? 9 : option === "sp-strengthening" ? 12 : option === "sp-insight" ? 15 : 18;
+  const cost = option === "sp-insight" || option === "sp-cleansing" ? 50 : 0;
+  if (char.gold < cost) throw new Error(`Spiritualism option requires ${cost} gp`);
+
+  const activityKey = `spiritualism-${option}`;
+  const effectiveDc = char.getDowntimeDc(activityKey, baseDc);
+  const mod = char.mod("WIS");
+  const rawRoll = dice.die(20);
+  const total = rawRoll + mod;
+  const success = total >= effectiveDc;
+
+  char.gold -= cost;
+
+  let effectSummary = "";
+  if (success) {
+    char.resetDowntimeFailure(activityKey);
+    if (option === "sp-favor") {
+      char.renown += 1;
+      effectSummary = "Gained favor with local church! +1 Renown.";
+    } else if (option === "sp-strengthening") {
+      char.xp += 2;
+      effectSummary = "Spiritual strengthening! Gained 2 XP.";
+    } else if (option === "sp-insight") {
+      char.gainLuckTokens(1);
+      effectSummary = "Found personal insight! Gained 1 Luck Token.";
+    } else if (option === "sp-cleansing") {
+      char.effects = char.effects.filter((e) => !e.id.startsWith("curse-"));
+      effectSummary = "Spiritual cleansing! Ended curses afflicting you.";
+    }
+  } else {
+    char.recordDowntimeFailure(activityKey);
+    effectSummary = `Failed check. DC for future attempts reduced to ${char.getDowntimeDc(activityKey, baseDc)}.`;
+  }
+
+  return {
+    activityId: option,
+    activityName: "Spiritualism",
+    success,
+    rawRoll,
+    modifier: mod,
+    total,
+    effectiveDc,
+    baseDc,
+    cost,
+    logText: `Spiritualism (${option}): rolled ${rawRoll} + ${mod} = ${total} vs DC ${effectiveDc} (${success ? "SUCCESS" : "FAIL"}). ${effectSummary}`,
+    effectSummary,
+  };
+}
+
+/**
+ * Skulduggery activity resolution (Western Reaches p. 234).
+ */
+export function resolveSkulduggery(
+  dice: Dice,
+  char: Character,
+  option: "sk-rumor" | "sk-lay-low" | "sk-extortion" | "sk-hide-out" | "sk-minor-crime" | "sk-major-crime",
+  targetRumorDelta: 1 | -1 = 1
+): DowntimeCheckResult {
+  const isDex = option === "sk-minor-crime" || option === "sk-major-crime";
+  const stat: StatName = isDex ? "DEX" : "CHA";
+  const baseDc =
+    option === "sk-rumor"
+      ? 9
+      : option === "sk-lay-low"
+      ? 12
+      : option === "sk-extortion" || option === "sk-minor-crime"
+      ? 15
+      : 18;
+  const cost = option === "sk-major-crime" ? 50 : 0;
+
+  if (char.gold < cost) throw new Error(`Skulduggery option requires ${cost} gp`);
+
+  const activityKey = `skulduggery-${option}`;
+  const effectiveDc = char.getDowntimeDc(activityKey, baseDc);
+  const mod = char.mod(stat);
+  const rawRoll = dice.die(20);
+  const total = rawRoll + mod;
+  const success = total >= effectiveDc;
+
+  char.gold -= cost;
+
+  let effectSummary = "";
+  if (success) {
+    char.resetDowntimeFailure(activityKey);
+    if (option === "sk-rumor") {
+      char.renown += targetRumorDelta;
+      effectSummary = `Started rumor! Renown ${targetRumorDelta > 0 ? "increased" : "decreased"} by 1.`;
+    } else if (option === "sk-lay-low") {
+      effectSummary = "Successfully laid low and escaped local authorities for a small crime.";
+    } else if (option === "sk-extortion") {
+      char.gold += 50;
+      effectSummary = "Extortion successful! Extorted 50 gp in merchandise value.";
+    } else if (option === "sk-hide-out") {
+      effectSummary = "Successfully hid out and escaped local authorities for a major crime.";
+    } else if (option === "sk-minor-crime") {
+      char.gold += 30;
+      effectSummary = "Petty theft successful! Gained 30 gp loot.";
+    } else if (option === "sk-major-crime") {
+      char.gold += 150;
+      char.renown += 1;
+      effectSummary = "Major heist successful! Gained 150 gp and +1 Renown.";
+    }
+  } else {
+    char.recordDowntimeFailure(activityKey);
+    if (isDex) {
+      char.renown -= 1;
+      effectSummary = `Crime failed and authorities investigated! -1 Renown. Future DC reduced to ${char.getDowntimeDc(activityKey, baseDc)}.`;
+    } else {
+      effectSummary = `Failed check. Future DC reduced to ${char.getDowntimeDc(activityKey, baseDc)}.`;
+    }
+  }
+
+  return {
+    activityId: option,
+    activityName: "Skulduggery",
+    success,
+    rawRoll,
+    modifier: mod,
+    total,
+    effectiveDc,
+    baseDc,
+    cost,
+    logText: `Skulduggery (${option}): rolled ${rawRoll} + ${mod} = ${total} vs DC ${effectiveDc} (${success ? "SUCCESS" : "FAIL"}). ${effectSummary}`,
+    effectSummary,
+  };
+}
+
+/**
+ * Martial Training activity resolution (Western Reaches p. 235).
+ * INT, STR, or DEX Check.
+ */
+export function resolveMartialTraining(
+  dice: Dice,
+  char: Character,
+  stat: "STR" | "DEX" | "INT",
+  option: "mt-bonus" | "mt-learn" | "mt-increase-die"
+): DowntimeCheckResult {
+  const hpDie = char.className === "wizard" || char.className === "necromancer" || char.className === "witch" || char.className === "seer" ? 4 : (char.className === "bard" || char.className === "thief" || char.className === "ranger" ? 6 : 8);
+  const cost = 50;
+
+  if (char.gold < cost) throw new Error("Martial Training requires 50 gp");
+
+  let baseDc = 15;
+  if (hpDie === 4) {
+    baseDc = option === "mt-bonus" ? 15 : 18;
+  } else if (hpDie === 6) {
+    baseDc = option === "mt-bonus" ? 12 : 15;
+  } else {
+    baseDc = option === "mt-learn" ? 9 : option === "mt-bonus" ? 12 : 15;
+  }
+
+  const activityKey = `martial-${hpDie}-${option}`;
+  const effectiveDc = char.getDowntimeDc(activityKey, baseDc);
+  const mod = char.mod(stat);
+  const rawRoll = dice.die(20);
+  const total = rawRoll + mod;
+  const success = total >= effectiveDc;
+
+  char.gold -= cost;
+
+  let effectSummary = "";
+  if (success) {
+    char.resetDowntimeFailure(activityKey);
+    if (option === "mt-bonus") {
+      effectSummary = "Martial Training successful! +1 to hit and damage with trained weapon.";
+    } else if (option === "mt-learn") {
+      effectSummary = "Martial Training successful! Learned new weapon/armor proficiency.";
+    } else if (option === "mt-increase-die") {
+      effectSummary = "Martial Training successful! Increased weapon damage die step (max d12).";
+    }
+  } else {
+    char.recordDowntimeFailure(activityKey);
+    effectSummary = `Failed training check. Future DC reduced to ${char.getDowntimeDc(activityKey, baseDc)}.`;
+  }
+
+  return {
+    activityId: option,
+    activityName: "Martial Training",
+    success,
+    rawRoll,
+    modifier: mod,
+    total,
+    effectiveDc,
+    baseDc,
+    cost,
+    logText: `Martial Training (${option}): rolled ${rawRoll} + ${mod} = ${total} vs DC ${effectiveDc} (${success ? "SUCCESS" : "FAIL"}). ${effectSummary}`,
+    effectSummary,
+  };
+}
+
+/**
+ * Magical Research activity resolution (Western Reaches p. 235).
+ */
+export function resolveMagicalResearch(
+  dice: Dice,
+  char: Character,
+  option: "mr-scroll-adv" | "mr-create-scroll" | "mr-potion" | "mr-wand" | "mr-trade-spell",
+  potionChoice?: string
+): DowntimeCheckResult {
+  const isWis = char.className === "cleric" || char.className === "seer" || char.className === "priest";
+  const stat: StatName = isWis ? "WIS" : "INT";
+  
+  let baseDc = 15;
+  let cost = 50;
+
+  if (option === "mr-scroll-adv") {
+    baseDc = 12;
+    cost = 0;
+  } else if (option === "mr-wand") {
+    baseDc = 20;
+  } else if (option === "mr-trade-spell" || option === "mr-create-scroll" || option === "mr-potion") {
+    baseDc = 15;
+  }
+
+  if (char.gold < cost) throw new Error(`Magical Research option requires ${cost} gp`);
+
+  const activityKey = `magical-${option}`;
+  const effectiveDc = char.getDowntimeDc(activityKey, baseDc);
+  const mod = char.mod(stat);
+  const rawRoll = dice.die(20);
+  const total = rawRoll + mod;
+  const success = total >= effectiveDc;
+
+  char.gold -= cost;
+
+  let effectSummary = "";
+  if (success) {
+    char.resetDowntimeFailure(activityKey);
+    if (option === "mr-scroll-adv") {
+      effectSummary = "Magical Research success! Gained Advantage on next scroll check or spell casts.";
+    } else if (option === "mr-create-scroll") {
+      effectSummary = "Magical Research success! Created a tier 1-3 spell scroll.";
+    } else if (option === "mr-potion") {
+      const potName = potionChoice ?? "Potion of Healing";
+      effectSummary = `Magical Research success! Created a ${potName}.`;
+    } else if (option === "mr-wand") {
+      effectSummary = "Magical Research success! Created a spell wand.";
+    } else if (option === "mr-trade-spell") {
+      effectSummary = "Magical Research success! Traded one known spell for another of the same tier.";
+    }
+  } else {
+    char.recordDowntimeFailure(activityKey);
+    effectSummary = `Research failed. Future DC reduced to ${char.getDowntimeDc(activityKey, baseDc)}.`;
+  }
+
+  return {
+    activityId: option,
+    activityName: "Magical Research",
+    success,
+    rawRoll,
+    modifier: mod,
+    total,
+    effectiveDc,
+    baseDc,
+    cost,
+    logText: `Magical Research (${option}): rolled ${rawRoll} + ${mod} = ${total} vs DC ${effectiveDc} (${success ? "SUCCESS" : "FAIL"}). ${effectSummary}`,
+    effectSummary,
+  };
+}
+
+/**
+ * Mount Training resolution for Desert Rider, Kyzian Archer, Paladin (p. 41, 49, 54).
+ */
+export function resolveMountTraining(dice: Dice, char: Character): DowntimeCheckResult {
+  const baseDc = 15;
+  const cost = 50;
+  if (char.gold < cost) throw new Error("Mount Training requires 50 gp");
+
+  const activityKey = "mount-training";
+  const effectiveDc = char.getDowntimeDc(activityKey, baseDc);
+  const mod = char.mod("CHA");
+  const rawRoll = dice.die(20);
+  const total = rawRoll + mod;
+  const success = total >= effectiveDc;
+
+  char.gold -= cost;
+
+  let effectSummary = "";
+  if (success) {
+    char.resetDowntimeFailure(activityKey);
+    effectSummary = "Mount Training successful! Acquired and bonded with a new mount.";
+  } else {
+    char.recordDowntimeFailure(activityKey);
+    effectSummary = `Mount training failed. Future DC reduced to ${char.getDowntimeDc(activityKey, baseDc)}.`;
+  }
+
+  return {
+    activityId: "mount-training",
+    activityName: "Mount Training",
+    success,
+    rawRoll,
+    modifier: mod,
+    total,
+    effectiveDc,
+    baseDc,
+    cost,
+    logText: `Mount Training: rolled ${rawRoll} + ${mod} = ${total} vs DC ${effectiveDc} (${success ? "SUCCESS" : "FAIL"}). ${effectSummary}`,
+    effectSummary,
+  };
+}
+
