@@ -52,12 +52,29 @@ export {
   item,
 } from "./items";
 export { resolveFoundItem, rollItemTraits, type RolledItemTraits } from "./magicItemTraitRoll";
-export { bestTreasureQuality, rollFabledItem, rollTreasureCache, rollTreasureFind, type FabledItemFind, type TreasureFind } from "./treasureGeneration";
+export {
+  bestTreasureQuality,
+  rollFabledItem,
+  rollGemstoneFind,
+  rollLuxuryItem,
+  rollTreasureCache,
+  rollTreasureFind,
+  type FabledItemFind,
+  type TreasureFind,
+  type TreasureFindKind,
+} from "./treasureGeneration";
 export { ITEM_BENEFITS, ITEM_CURSES, ITEM_FLAWS, ITEM_VIRTUES, type MagicItemTrait } from "./tables/magicItemTraits";
 export { monster } from "./monsters";
 export { CLASS_SPELL_ROSTER, highestAvailableSpellIndex, highestAvailableDamagingSpellIndex, magicItemSpell, spell, spellForMagicItem, spellsForClass, unlockClassSpellsForLevel } from "./spells";
 export { isPlebName, plebNameForSeed, randomPlebName } from "./names";
-export { ALL_TREASURE_TABLES } from "./tables/treasure";
+export {
+  ALL_TREASURE_TABLES,
+  GEMSTONE_TABLE,
+  GEMSTONE_ITEM_SPECS,
+  LUXURY_FEATURE_TABLE,
+  LUXURY_FEATURES,
+  LUXURY_ITEM_SPECS,
+} from "./tables/treasure";
 
 /** Register all data tables with an engine instance. Call once at boot. */
 export function registerTables(engine: Engine): void {

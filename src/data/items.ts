@@ -1,5 +1,5 @@
 import type { ItemDef } from "../engine";
-import { CORE_TREASURE_ITEM_SPECS } from "./tables/treasure";
+import { CORE_TREASURE_ITEM_SPECS, GEMSTONE_ITEM_SPECS, LUXURY_ITEM_SPECS } from "./tables/treasure";
 import { magicItemSpell } from "./spells";
 
 /** All item definitions, keyed by id. Unknown lookups throw via item(). */
@@ -205,6 +205,33 @@ const CORE_TREASURE_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.map((sp
   };
 });
 
+const GEMSTONE_ITEMS: readonly ItemDef[] = GEMSTONE_ITEM_SPECS.map((spec) => ({
+  id: `gemstone-${spec.id}`,
+  name: spec.name,
+  slotCost: 0,
+  bundleSize: 10,
+  slotGroup: "small-treasure",
+  tags: ["treasure", "gem"],
+  valueGp: spec.valueGp,
+  xpValue: 2,
+  treasureQuality: "normal",
+}));
+
+const LUXURY_ITEMS: readonly ItemDef[] = LUXURY_ITEM_SPECS.map((spec) => {
+  const pouchSized = isPouchSizedTreasure(spec.name);
+  return {
+    id: spec.id,
+    name: spec.name,
+    description: spec.description,
+    slotCost: 1,
+    bundleSize: pouchSized ? 10 : 1,
+    slotGroup: pouchSized ? "small-treasure" : undefined,
+    tags: ["treasure", "luxury"],
+    xpValue: 2,
+    treasureQuality: "normal",
+  };
+});
+
 const GENERATED_SPELL_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.flatMap((spec) => {
   if (!spec.spellTier || !spec.spellContainer) return [];
   const base = CORE_TREASURE_ITEMS.find((candidate) => candidate.id === spec.id)!;
@@ -265,6 +292,8 @@ const GENERATED_ARMOR_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.flatM
 const ITEM_LIST: readonly ItemDef[] = [
   ...BASE_ITEM_LIST,
   ...CORE_TREASURE_ITEMS,
+  ...GEMSTONE_ITEMS,
+  ...LUXURY_ITEMS,
   ...GENERATED_SPELL_ITEMS,
   ...GENERATED_ARMOR_ITEMS,
 ];

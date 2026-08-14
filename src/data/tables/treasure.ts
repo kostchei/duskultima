@@ -27,6 +27,19 @@ export interface CoreTreasureItemSpec {
   benefits?: readonly string[];
 }
 
+export interface GemstoneItemSpec {
+  id: string;
+  name: string;
+  valueGp: number;
+}
+
+export interface LuxuryItemSpec {
+  id: string;
+  name: string;
+  /** The source table gives no gp value; appraisal/economy rules can add one later. */
+  description: string;
+}
+
 interface TreasureCraftsmanship {
   slotCost?: number;
   magicBonus?: number;
@@ -417,6 +430,91 @@ export const TREASURE_4_6 = table("4-6", "Treasure 4-6");
 export const TREASURE_7_9 = table("7-9", "Treasure 7-9");
 export const TREASURE_10_PLUS = table("10-plus", "Treasure 10+");
 
+/**
+ * Mundane gemstones from the core gemstone table. Giant gems are represented
+ * as the same stone with twice the listed value, rather than as a separate
+ * untyped "gem" item.
+ */
+export const GEMSTONE_ITEM_SPECS: readonly GemstoneItemSpec[] = [
+  { id: "pearl", name: "Pearl", valueGp: 40 },
+  { id: "emerald", name: "Emerald", valueGp: 120 },
+  { id: "ruby", name: "Ruby", valueGp: 200 },
+  { id: "sapphire", name: "Sapphire", valueGp: 280 },
+  { id: "diamond", name: "Diamond", valueGp: 360 },
+  { id: "giant-pearl", name: "Giant Pearl", valueGp: 80 },
+  { id: "giant-emerald", name: "Giant Emerald", valueGp: 240 },
+  { id: "giant-ruby", name: "Giant Ruby", valueGp: 400 },
+  { id: "giant-sapphire", name: "Giant Sapphire", valueGp: 560 },
+  { id: "giant-diamond", name: "Giant Diamond", valueGp: 720 },
+];
+
+export const GEMSTONE_TABLE: RollableTable = {
+  id: "gemstones",
+  name: "Gemstones",
+  dice: "1d5",
+  entries: GEMSTONE_ITEM_SPECS.slice(0, 5).map((gemstone, index) => ({
+    min: index + 1,
+    max: index + 1,
+    text: `${gemstone.name} (${gemstone.valueGp} gp; giant gem x2)`,
+    data: { gemstoneId: gemstone.id, valueGp: gemstone.valueGp },
+  })),
+};
+
+export interface LuxuryFeature {
+  id: string;
+  feature: string;
+  subtypes: readonly string[];
+}
+
+/**
+ * Source page 223 is a two-stage table: roll d20 for the feature, then roll
+ * the indicated subtype die for that feature. The source uses d4 sublists;
+ * rows with fewer than four printed choices use the last choice for the
+ * remaining face(s), matching its printed 1-2/3/4 notation.
+ */
+export const LUXURY_FEATURES: readonly LuxuryFeature[] = [
+  { id: "golden-humanoid", feature: "Golden life-sized", subtypes: ["humanoid figure"] },
+  { id: "etched-copper", feature: "Etched-copper", subtypes: ["tusk", "horn", "fang", "skull"] },
+  { id: "dragonscaled-altar", feature: "Dragonscaled", subtypes: ["altar of Memnon", "altar of Ord", "altar of Madeera", "altar of Madeera"] },
+  { id: "gilded-statuette", feature: "Gilded", subtypes: ["statuette of a fox", "statuette of a cat", "statuette of a dog", "statuette of an owl"] },
+  { id: "bone-carved", feature: "Bone-carved", subtypes: ["chest", "table", "lockbox", "chair"] },
+  { id: "amber-icon", feature: "Amber-encased", subtypes: ["icon of Chaos", "icon of Neutrality", "icon of Law", "icon of Law"] },
+  { id: "painted-bust", feature: "Painting of a bust of a", subtypes: ["god", "ruler", "hero", "bard"] },
+  { id: "silver-egg", feature: "Silver", subtypes: ["egg of a dragon", "egg of a basilisk", "egg of a griffon", "egg of a griffon"] },
+  { id: "jade-jewelry", feature: "Jade", subtypes: ["charm", "amulet", "locket", "signet"] },
+  { id: "masked-tapestry", feature: "Tapestry of a mask of a", subtypes: ["crow", "jester", "thief", "god"] },
+  { id: "white-marble", feature: "White marble", subtypes: ["mirror", "vase", "pottery", "ewer"] },
+  { id: "ivory", feature: "Ivory", subtypes: ["chalice", "plate", "cutlery", "mug"] },
+  { id: "crystal", feature: "Crystal", subtypes: ["circlet", "ring", "chain", "torc"] },
+  { id: "golden-bottle", feature: "Golden bottle of", subtypes: ["wine", "grog", "mead", "ale"] },
+  { id: "dragonbone", feature: "Dragonbone", subtypes: ["scroll case", "scroll case", "ink pot", "quill"] },
+  { id: "holy-relic", feature: "Holy relic", subtypes: ["shield", "helm", "bracers", "greaves"] },
+  { id: "meteorite", feature: "Meteorite", subtypes: ["lute", "viol", "harp", "flute"] },
+  { id: "masterwork", feature: "Masterwork", subtypes: ["urn", "coffin", "bier", "sarcophagus"] },
+  { id: "silk-wrapped", feature: "Silk-wrapped", subtypes: ["crown", "scepter", "orb", "throne"] },
+  { id: "stained-glass", feature: "Stained glass", subtypes: ["beetle", "beetle", "butterfly", "spider"] },
+];
+
+export const LUXURY_FEATURE_TABLE: RollableTable = {
+  id: "luxury-features",
+  name: "Luxury Items (feature)",
+  dice: "1d20",
+  entries: LUXURY_FEATURES.map((feature, index) => ({
+    min: index + 1,
+    max: index + 1,
+    text: `${feature.feature} [${feature.subtypes.length === 1 ? "fixed item" : "roll d4 for the item"}]`,
+    data: { featureId: feature.id, feature: feature.feature, subtypeCount: feature.subtypes.length },
+  })),
+};
+
+export const LUXURY_ITEM_SPECS: readonly LuxuryItemSpec[] = LUXURY_FEATURES.flatMap((feature) =>
+  feature.subtypes.map((subtype, index) => ({
+    id: `luxury-${feature.id}-${index + 1}`,
+    name: `${feature.feature} ${subtype}`,
+    description: `Mundane luxury treasure generated from the page 223 feature table: ${feature.feature} ${subtype}.`,
+  })),
+);
+
 export const DIABOLICAL_TREASURE: RollableTable = {
   id: "diabolical-treasure",
   name: "Diabolical Treasure (CS1)",
@@ -467,4 +565,6 @@ export const ALL_TREASURE_TABLES: readonly RollableTable[] = [
   DIABOLICAL_TREASURE,
   DESERT_PLUNDER,
   SEAWOLF_PLUNDER,
+  GEMSTONE_TABLE,
+  LUXURY_FEATURE_TABLE,
 ];

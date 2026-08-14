@@ -102,6 +102,7 @@ Systematically implement the complete mechanics, flavour, quirks, visual aesthet
 - [x] Source-correct encounter distance, activity, and reaction bands (`src/engine/encounterReaction.ts`).
 - [x] Shared check resolution for all six zone environmental hazard families (`src/engine/zoneHazards.ts`).
 - [x] Gameplay luck rerolls, natural-20 accrual, and light-source durations/campfires (`src/engine/luck.ts`, `src/engine/light.ts`).
+- [x] Core mundane gemstone values and the source-correct two-stage luxury-item table (`src/data/tables/treasure.ts`, `src/data/treasureGeneration.ts`).
 - [x] Pure-engine regression tests and production/browser boot verification completed after each rule slice.
 
 ---

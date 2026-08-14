@@ -2,7 +2,9 @@ import { TableRegistry, type Dice, type ItemDef, type TreasureQuality } from "..
 import { encounterTreasureTableId } from "../engine/treasureXp";
 import { allItems, item } from "./items";
 import { resolveFoundItem } from "./magicItemTraitRoll";
-import { ALL_TREASURE_TABLES } from "./tables/treasure";
+import { ALL_TREASURE_TABLES, LUXURY_FEATURES } from "./tables/treasure";
+
+export type TreasureFindKind = "core" | "gemstone" | "luxury";
 
 export interface TreasureFind {
   def: ItemDef;
@@ -11,6 +13,8 @@ export interface TreasureFind {
   tableId: string;
   roll: number;
   text: string;
+  kind?: TreasureFindKind;
+  secondaryRoll?: number;
 }
 
 export interface FabledItemFind {
@@ -48,6 +52,47 @@ export function rollTreasureFind(dice: Dice, partyLevel: number): TreasureFind {
     tableId,
     roll: result.roll,
     text: result.entry.text,
+    kind: "core",
+  };
+}
+
+/** Roll one gemstone type from page 222. Pass true for the listed giant-gem x2 result. */
+export function rollGemstoneFind(dice: Dice, giant = false): TreasureFind {
+  const result = TREASURE_TABLES.roll(dice, "gemstones");
+  const gemstoneId = result.entry.data?.gemstoneId;
+  if (typeof gemstoneId !== "string") throw new Error(`Gemstone entry ${result.roll} has no gemstoneId`);
+  const itemId = `gemstone-${giant ? `giant-${gemstoneId}` : gemstoneId}`;
+  const def = item(itemId);
+  return {
+    def,
+    qty: 1,
+    quality: "normal",
+    tableId: "gemstones",
+    roll: result.roll,
+    text: `${result.entry.text}${giant ? " [giant gem x2]" : ""}`,
+    kind: "gemstone",
+  };
+}
+
+/** Roll page 223 as two stages: feature d20, then that feature's subtype d4. */
+export function rollLuxuryItem(dice: Dice): TreasureFind {
+  const featureResult = TREASURE_TABLES.roll(dice, "luxury-features");
+  const featureId = featureResult.entry.data?.featureId;
+  if (typeof featureId !== "string") throw new Error(`Luxury entry ${featureResult.roll} has no featureId`);
+  const feature = LUXURY_FEATURES.find((candidate) => candidate.id === featureId);
+  if (!feature) throw new Error(`Unknown luxury feature "${featureId}"`);
+  const secondaryRoll = feature.subtypes.length === 1 ? 1 : dice.die(4);
+  const itemId = `luxury-${featureId}-${secondaryRoll}`;
+  const def = item(itemId);
+  return {
+    def,
+    qty: 1,
+    quality: "normal",
+    tableId: "luxury-features",
+    roll: featureResult.roll,
+    secondaryRoll,
+    text: `${feature.feature} ${feature.subtypes[secondaryRoll - 1]}`,
+    kind: "luxury",
   };
 }
 

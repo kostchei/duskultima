@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { Dice } from "../engine";
-import { bestTreasureQuality, rollFabledItem, rollTreasureCache } from "./treasureGeneration";
+import {
+  bestTreasureQuality,
+  rollFabledItem,
+  rollGemstoneFind,
+  rollLuxuryItem,
+  rollTreasureCache,
+} from "./treasureGeneration";
 
 describe("treasure generation", () => {
   it("rolls fabled items from magical treasure with at least one benefit", () => {
@@ -23,5 +29,27 @@ describe("treasure generation", () => {
   it("does not require a cache to contain magic", () => {
     const cache = rollTreasureCache(new Dice(7), 1);
     expect(cache.some((finding) => finding.def.tags.includes("magic"))).toBe(false);
+  });
+
+  it("rolls the page 222 gemstone values and applies giant gem x2", () => {
+    const normal = rollGemstoneFind(new Dice(11));
+    const giant = rollGemstoneFind(new Dice(11), true);
+    expect(normal.def.tags).toContain("gem");
+    expect([40, 120, 200, 280, 360]).toContain(normal.def.valueGp);
+    expect(giant.def.name).toMatch(/^Giant /);
+    expect(giant.def.valueGp).toBe((normal.def.valueGp ?? 0) * 2);
+  });
+
+  it("rolls luxury items in two stages instead of summing 2d20", () => {
+    for (let seed = 1; seed <= 40; seed += 1) {
+      const found = rollLuxuryItem(new Dice(seed));
+      expect(found.kind).toBe("luxury");
+      expect(found.roll).toBeGreaterThanOrEqual(1);
+      expect(found.roll).toBeLessThanOrEqual(20);
+      expect(found.secondaryRoll).toBeGreaterThanOrEqual(1);
+      expect(found.secondaryRoll).toBeLessThanOrEqual(4);
+      expect(found.def.tags).toContain("luxury");
+      expect(found.def.description).toContain("page 223");
+    }
   });
 });
