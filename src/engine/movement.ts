@@ -65,14 +65,13 @@ export function resolveSwimming(
     return { safe: true, canProgress: true, drowning: false, damage: 0 };
   }
 
-  const armor = character.wornArmor?.armorVisual;
-  const plate = armor === "plate";
-  const chain = armor === "chain";
+  const plate = character.wornArmor?.armorVisual === "plate";
+  const swimDisadvantaged = character.wornArmor?.armor?.swimDisadvantage ?? false;
   const advantage = [
     ...(getBaseRole(character.className) === "thief" ? ["thief swimming"] : []),
     ...(hasHook(character.effects, "seafarer") ? ["seafarer"] : []),
   ];
-  const disadvantage = chain ? ["chainmail"] : undefined;
+  const disadvantage = swimDisadvantaged ? [character.wornArmor!.name] : undefined;
 
   let swimCheck: CheckResult | undefined;
   let canProgress = !plate;

@@ -60,15 +60,17 @@ class Game {
     this.audio = new AudioEngine();
     this.setupInput();
 
-    this.modals.showCharacterCreation((choice) => {
-      this.setupCharacter(choice);
+    this.modals.showCharacterCreation(this.engine, ({ character, biome }) => {
+      character.gold = 40;
+      this.party = [character];
+      this.leaderIndex = 0;
       this.startNewAdventure();
 
       this.grid.updateFov(this.isTorchActive ? 4 : 1);
       this.updateUi();
       this.render();
 
-      this.frame.addLog(`DuskUltima initialized. You begin your journey as ${choice.name} the ${this.leader.ancestry.toUpperCase()} ${classDef(choice.className).displayName.toUpperCase()}, of ${choice.biome}!`, "system");
+      this.frame.addLog(`DuskUltima initialized. You begin your journey as ${character.name} the ${character.ancestry.toUpperCase()} ${classDef(character.className).displayName.toUpperCase()}, of ${biome}!`, "system");
       this.frame.addLog("Use Arrow Keys to move. Press [A]ttack, [C]ast, [T]orch, [I]nventory.", "prompt");
       this.frame.addLog("Move near + act, or hold Shift to move double near and end the round.", "prompt");
     });
@@ -85,30 +87,6 @@ class Game {
   /** Classes already spoken for by the party, so they never turn up again as a rescue target. */
   private recruitedClasses(): ClassName[] {
     return this.party.map((member) => member.className);
-  }
-
-  private setupCharacter(choice: {
-    name: string;
-    biome: MonsterBiome;
-    className: ClassName;
-    method: StatGenerationMethod;
-    stats?: Stats;
-  }): void {
-    const hero = createCharacter(
-      this.engine,
-      "char-hero",
-      choice.name,
-      choice.className,
-      undefined,
-      undefined,
-      choice.biome,
-      choice.method,
-      choice.stats
-    );
-    hero.gold = 40;
-
-    this.party = [hero];
-    this.leaderIndex = 0;
   }
 
   private startNewAdventure(): void {
@@ -386,7 +364,7 @@ class Game {
     const result = this.engine.attack({
       attacker,
       targetAc: monster.ac,
-      damage: weapon.damage,
+      damage: attacker.effectiveWeaponDamage ?? weapon.damage,
       weapon,
     });
     const sign = result.check.modifier >= 0 ? "+" : "";

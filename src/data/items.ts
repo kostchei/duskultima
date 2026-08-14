@@ -20,15 +20,23 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   { id: "longsword", name: "Longsword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d8", reachTiles: 1.8, weaponVisual: "longsword", valueGp: 9 },
   { id: "dagger", name: "Dagger", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", finesse: true, reachTiles: 1.6, weaponVisual: "dagger", valueGp: 5 },
   { id: "mace", name: "Mace", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", reachTiles: 1.6, weaponVisual: "mace", valueGp: 5 },
+  { id: "club", name: "Club", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", reachTiles: 1.6, weaponVisual: "mace", valueGp: 1 },
   { id: "staff", name: "Staff", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", twoHanded: true, reachTiles: 2.0, weaponVisual: "staff", valueGp: 2 },
   { id: "shortsword", name: "Shortsword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 1.7, weaponVisual: "dagger", valueGp: 7 },
   { id: "spear", name: "Spear", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 2.4, weaponVisual: "spear", valueGp: 5 },
+  // Grave-tool reskins used by the Necromancer's Named Blade-style weapon choice —
+  // same stats as their mundane counterpart, different silhouette and flavor.
+  { id: "scythe", name: "Scythe", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 2.4, weaponVisual: "spear", valueGp: 6 },
+  { id: "flail", name: "Flail", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", reachTiles: 1.6, weaponVisual: "mace", valueGp: 8 },
+  { id: "shovel", name: "Shovel", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d6", finesse: true, reachTiles: 1.7, weaponVisual: "dagger", valueGp: 1 },
+  { id: "stave", name: "Stave", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d4", twoHanded: true, reachTiles: 2.0, weaponVisual: "staff", valueGp: 2 },
   // Thrown, so no reachTiles: a javelin is loosed at range like a bow, not swung.
   { id: "javelin", name: "Javelin", slotCost: 1, bundleSize: 1, tags: ["weapon", "ranged"], damage: "1d4", finesse: true, weaponVisual: "javelin", valueGp: 1 },
   { id: "warhammer", name: "Warhammer", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d8", reachTiles: 1.7, weaponVisual: "mace", valueGp: 10 },
-  { id: "bastard-sword", name: "Bastard Sword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d10", twoHanded: true, reachTiles: 1.9, weaponVisual: "longsword", valueGp: 10 },
+  // Versatile: damage is the two-handed die, versatileDamage is the lighter one-handed die.
+  { id: "bastard-sword", name: "Bastard Sword", slotCost: 1, bundleSize: 1, tags: ["weapon"], damage: "1d10", versatileDamage: "1d8", reachTiles: 1.9, weaponVisual: "longsword", valueGp: 10 },
   { id: "greatsword", name: "Greatsword", slotCost: 2, bundleSize: 1, tags: ["weapon"], damage: "1d12", twoHanded: true, reachTiles: 2.0, weaponVisual: "longsword", valueGp: 12 },
-  { id: "greataxe", name: "Greataxe", slotCost: 2, bundleSize: 1, tags: ["weapon"], damage: "1d10", twoHanded: true, reachTiles: 2.0, weaponVisual: "mace", valueGp: 9 },
+  { id: "greataxe", name: "Greataxe", slotCost: 2, bundleSize: 1, tags: ["weapon"], damage: "1d10", versatileDamage: "1d8", reachTiles: 2.0, weaponVisual: "mace", valueGp: 9 },
   // Ranged only: no reachTiles, so it can never be wielded for melee.
   { id: "shortbow", name: "Shortbow", slotCost: 1, bundleSize: 1, tags: ["weapon", "ranged"], damage: "1d4", finesse: true, valueGp: 6 },
   { id: "longbow", name: "Longbow", slotCost: 2, bundleSize: 1, tags: ["weapon", "ranged"], damage: "1d8", finesse: true, twoHanded: true, valueGp: 10 },
@@ -42,12 +50,17 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   // Armor — AC = acBase + DEX (capped); class permissions are RAW.
   {
     id: "leather-armor", name: "Leather Armor", slotCost: 1, bundleSize: 1, tags: ["armor"],
-    armor: { acBase: 11, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "bard", "ranger", "seawolf", "warlock", "roustabout", "delver", "duelist"] }, armorVisual: "leather", valueGp: 10,
+    armor: { acBase: 11, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "bard", "ranger", "seawolf", "warlock", "roustabout", "delver", "duelist", "paladin"] }, armorVisual: "leather", valueGp: 10,
+  },
+  {
+    id: "padded-armor", name: "Padded Armor", slotCost: 1, bundleSize: 1, tags: ["armor"],
+    description: "Disadvantage on stealth and swimming checks.",
+    armor: { acBase: 11, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "bard", "ranger", "seawolf", "warlock", "roustabout", "delver", "duelist", "paladin"], stealthDisadvantage: true, swimDisadvantage: true }, armorVisual: "padded", valueGp: 20,
   },
   {
     id: "chainmail", name: "Chainmail", slotCost: 2, bundleSize: 1, tags: ["armor"],
     description: "Disadvantage on stealth checks.",
-    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf", "cleric", "paladin", "seawolf", "basilisk-warrior"], stealthDisadvantage: true }, armorVisual: "chain", valueGp: 60,
+    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf", "cleric", "paladin", "seawolf", "basilisk-warrior"], stealthDisadvantage: true, swimDisadvantage: true }, armorVisual: "chain", valueGp: 60,
   },
   {
     id: "plate-mail", name: "Plate Mail", slotCost: 3, bundleSize: 1, tags: ["armor"],
@@ -65,6 +78,7 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
     armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "thief", "wizard", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "magic-user", "bard", "monk", "necromancer", "paladin", "ranger", "seawolf", "warlock", "basilisk-warrior", "roustabout", "delver", "duelist"] }, armorVisual: "mithral",
   },
   { id: "shield", name: "Shield", slotCost: 1, bundleSize: 1, tags: ["armor"], shield: true, valueGp: 10 },
+  { id: "round-shield", name: "Round Shield", slotCost: 1, bundleSize: 1, tags: ["armor"], shield: true, valueGp: 10 },
 
   // Treasure — treasure quality is contextual XP: poor 0-1, normal 2,
   // fabulous 3, legendary 4. The find is rated once, not per coin bundle.
@@ -289,6 +303,26 @@ const GENERATED_ARMOR_ITEMS: readonly ItemDef[] = CORE_TREASURE_ITEM_SPECS.flatM
   });
 });
 
+/**
+ * Sword-type base weapons a Paladin's Named Blade can be minted from — their
+ * 1st-level feature grants a sword of their choice as a +0 magic weapon.
+ */
+export const NAMED_BLADE_SWORD_IDS: readonly string[] = ["shortsword", "longsword", "bastard-sword", "greatsword"];
+
+/** One "Named Blade" per sword type: the mundane sword, reforged as a +0 magic weapon. */
+const NAMED_BLADE_ITEMS: readonly ItemDef[] = NAMED_BLADE_SWORD_IDS.map((swordId) => {
+  const swordDef = BASE_ITEMS.get(swordId);
+  if (!swordDef) throw new Error(`Named Blade base "${swordId}" is not a known weapon`);
+  return {
+    ...swordDef,
+    id: `named-blade--${swordId}`,
+    tags: [...swordDef.tags, "magic"],
+    name: `Named Blade (${swordDef.name})`,
+    description: "A +0 magic sword bonded to its Paladin at 1st level.",
+    magicBonus: 0,
+  };
+});
+
 const ITEM_LIST: readonly ItemDef[] = [
   ...BASE_ITEM_LIST,
   ...CORE_TREASURE_ITEMS,
@@ -296,6 +330,7 @@ const ITEM_LIST: readonly ItemDef[] = [
   ...LUXURY_ITEMS,
   ...GENERATED_SPELL_ITEMS,
   ...GENERATED_ARMOR_ITEMS,
+  ...NAMED_BLADE_ITEMS,
 ];
 
 const ITEMS = new Map(ITEM_LIST.map((i) => [i.id, i]));
@@ -317,6 +352,12 @@ export function generatedMagicItem(baseItemId: string, d12: number): ItemDef {
   if (!spec?.spellTier || !spec.spellContainer) return item(baseItemId);
   const contained = magicItemSpell(spec.spellTier, d12);
   return item(`${baseItemId}--${contained.id}`);
+}
+
+/** Resolve a Paladin's chosen sword type to its Named Blade (+0 magic weapon) form. */
+export function namedBlade(swordId: string): ItemDef {
+  if (!NAMED_BLADE_SWORD_IDS.includes(swordId)) throw new Error(`"${swordId}" is not a sword a Named Blade can be minted from`);
+  return item(`named-blade--${swordId}`);
 }
 
 /** Resolve a generic "+N magic armor" find as a specific suit of armor. */

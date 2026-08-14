@@ -18,6 +18,7 @@ import {
 const ANCESTRY_ALIASES: Record<string, string> = {
   gnome: 'Kobold',
   'tiefling/deva': 'Human',
+  'tiefling-deva': 'Human',
   tiefling: 'Human',
   deva: 'Human'
 };

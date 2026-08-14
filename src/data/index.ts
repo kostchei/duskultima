@@ -18,8 +18,9 @@ import {
   type MonsterBiome,
 } from "../engine";
 import { classDef } from "./classes";
-import { item } from "./items";
+import { item, namedBlade } from "./items";
 import { statPriorityForClass } from "./statPriority";
+import { getBackground, getTrinket } from "../engine/tableService";
 import { ALL_CAROUSE_TABLES } from "./tables/carousing";
 import { ALL_MISHAP_TABLES } from "./tables/mishaps";
 import {
@@ -50,11 +51,13 @@ import { ALL_TREASURE_TABLES } from "./tables/treasure";
 export { classDef, type ClassDef } from "./classes";
 export {
   MAGIC_ARMOR_BASE_IDS,
+  NAMED_BLADE_SWORD_IDS,
   allItems,
   generatedMagicArmor,
   generatedMagicItem,
   isGenericMagicArmorId,
   item,
+  namedBlade,
 } from "./items";
 export { resolveFoundItem, rollItemTraits, type RolledItemTraits } from "./magicItemTraitRoll";
 export {
@@ -194,10 +197,12 @@ export function createCharacter(
   homeBiome?: MonsterBiome,
   method: StatGenerationMethod = "unearthed-arcana",
   customStats?: Stats,
+  namedBladeSwordId?: string,
 ): Character {
   const def = classDef(cls);
   const resolvedAncestry = ancestry ?? rollAncestry(engine.dice);
   const stats = customStats ?? rollStatsForClass(engine.dice, cls, method);
+  const background = getBackground();
 
   const conMod = Math.floor((stats.CON - 10) / 2);
   const hitDieSides = parseInt(def.hitDie.split("d")[1] || "8", 10);
@@ -212,6 +217,7 @@ export function createCharacter(
     alignment: alignment ?? rollAlignment(engine.dice),
     homeBiome,
     method,
+    background: background.name,
   });
   for (const f of def.features) c.addEffect(bindMastery(structuredClone(f), def.startingWeaponId));
   initializeClassState(c);
@@ -234,10 +240,10 @@ export function createCharacter(
     const blackLotus = engine.tables.roll(engine.dice, "black-lotus-talents");
     applyTalentResult(engine.dice, engine.tables, c, blackLotus, "talent-black-lotus-start");
   }
-  let startingWeapon = item(def.startingWeaponId);
-  if (resolvedAncestry === "dwarf" && startingWeapon.finesse) {
-    startingWeapon = item("spear");
-  }
+  // Named Blade: a Paladin's 1st-level feature grants a sword of their choice as a
+  // +0 magic weapon. Dwarves can wield finesse weapons same as anyone — they just
+  // fight with STR instead of DEX (see Engine.attack) — so no weapon gets swapped out.
+  const startingWeapon = cls === "paladin" ? namedBlade(namedBladeSwordId ?? def.startingWeaponId) : item(def.startingWeaponId);
   c.inventory.add(startingWeapon, 1, true);
   c.equipWeapon(startingWeapon);
   if (def.armorId) {
@@ -246,24 +252,36 @@ export function createCharacter(
     c.equipArmor(armor);
   }
   if (def.startsWithShield) {
-    const shield = item("shield");
+    // Seawolves carry a round shield instead of the standard kite shield.
+    const shield = item(cls === "seawolf" ? "round-shield" : "shield");
     c.inventory.add(shield, 1, true);
     c.equipShield(shield);
   }
 
-  if (cls === "fighter" || cls === "pit-fighter" || cls === "sea-wolf" || cls === "seawolf") {
+  // Universal starting kit.
+  c.inventory.add(item("backpack"), 1, true);
+  c.inventory.add(item("torch"), 2, true);
+  c.inventory.add(item("ration"), 3, true);
+
+  // A trinket from before the adventuring life — free to carry, no coin value.
+  const trinket = getTrinket(resolvedAncestry);
+  c.inventory.add(
+    { id: `trinket-${c.id}`, name: trinket.result_text, slotCost: 0, bundleSize: 1, tags: ["gear", "trinket"] },
+    1,
+    true,
+  );
+
+  if (def.secondaryWeaponId) c.inventory.add(item(def.secondaryWeaponId), 1, true);
+
+  // Bonus field gear for the classes that live off the land.
+  if (cls === "pit-fighter" || cls === "sea-wolf" || cls === "seawolf") {
     c.inventory.add(item("javelin"), 3, true);
-    c.inventory.add(item("backpack"), 1, true);
     c.inventory.add(item("flint-and-steel"), 1, true);
-    c.inventory.add(item("torch"), 2, true);
-    c.inventory.add(item("ration"), 3, true);
-  } else {
-    c.inventory.add(item("torch"), 2, true);
-    c.inventory.add(item("ration"), 2, true);
   }
-  // Class sidearms: thieves & ras-godai shoot from the shadows, wizards & witches keep knives.
-  if (cls === "thief" || cls === "ras-godai") c.inventory.add(item("shortbow"), 1, true);
-  if (cls === "wizard" || cls === "witch" || cls === "magic-user") c.inventory.add(item("dagger"), 2, true);
+  // Class sidearms outside the standard secondary-weapon slot: ras-godai shoots from the
+  // shadows like a thief, wizards & witches keep an extra knife.
+  if (cls === "ras-godai") c.inventory.add(item("shortbow"), 1, true);
+  if (cls === "wizard" || cls === "witch") c.inventory.add(item("dagger"), 2, true);
 
   // Roll starting talents (1 + 1 extra if human/ambitious)
   const talentCount = resolvedAncestry === "human" ? 2 : 1;

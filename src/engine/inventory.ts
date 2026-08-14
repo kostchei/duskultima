@@ -7,7 +7,7 @@
  */
 
 export type WeaponVisual = "longsword" | "dagger" | "mace" | "staff" | "spear" | "javelin";
-export type ArmorVisual = "leather" | "chain" | "plate" | "mithral";
+export type ArmorVisual = "leather" | "chain" | "plate" | "mithral" | "padded";
 export type TreasureQuality = "poor" | "normal" | "fabulous" | "legendary";
 
 export interface MagicItemPersonality {
@@ -183,11 +183,14 @@ export interface ItemDef {
   /** Base coin value. Buy price = valueGp; sell price = floor(valueGp * SELL_RATE).
    * Items without a valueGp are neither stocked nor sellable. */
   valueGp?: number;
-  /** Damage dice for weapons, e.g. "1d8". */
+  /** Damage dice for weapons, e.g. "1d8". The two-handed die for a versatile weapon. */
   damage?: string;
   /** Melee reach in tiles — required for weapons. Monsters strike at 1.6. */
   reachTiles?: number;
+  /** Always requires both hands (staff, greatsword, longbow...). Mutually exclusive with versatileDamage. */
   twoHanded?: boolean;
+  /** Present on a versatile weapon: the lighter one-handed die, wielded via Character.setWeaponWieldMode. */
+  versatileDamage?: string;
   /** Finesse weapons attack with the better of STR or DEX. */
   finesse?: boolean;
   /** Pixel-art silhouette used independently of the item's rules identity. */
@@ -201,6 +204,8 @@ export interface ItemDef {
     classes: readonly string[];
     /** Noisy, restrictive armor imposes disadvantage on stealth checks. */
     stealthDisadvantage?: boolean;
+    /** Heavy or waterlogging armor imposes disadvantage on swimming checks. */
+    swimDisadvantage?: boolean;
   };
   /** Pixel-art material used independently of the item's rules identity. */
   armorVisual?: ArmorVisual;

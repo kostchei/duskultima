@@ -1,12 +1,23 @@
-import { Character, STAT_NAMES, rollStatsIronMan, Dice } from "../../engine/character";
-import type { ClassName, StatGenerationMethod, Stats, StatName } from "../../engine/character";
+import { ANCESTRIES, Character, STAT_NAMES, rollAncestry, rollStatsIronMan, Dice } from "../../engine/character";
+import type { Ancestry, ClassName, StatGenerationMethod, Stats, StatName } from "../../engine/character";
+import type { Engine } from "../../engine";
 import type { MonsterBiome } from "../../engine/monster";
 import type { CarouseTier } from "../../engine/downtime";
 import type { LevelUpResult } from "../../engine/advancement";
-import { sellPrice } from "../../engine/inventory";
+import { sellPrice, type ItemDef } from "../../engine/inventory";
 import { classDef } from "../../data/classes";
 import { ALL_CREATION_CLASSES, BIOME_DISPLAY_NAMES, zoneLockedBiomeForClass } from "../../data/biomeOrigins";
-import { isClassQualified, CLASS_STAT_REQUIREMENTS } from "../../data/index";
+import { createCharacter, isClassQualified, item, CLASS_STAT_REQUIREMENTS, NAMED_BLADE_SWORD_IDS } from "../../data/index";
+import { generateAncestryName } from "../../engine/tableService";
+
+const ANCESTRY_DISPLAY_NAMES: Readonly<Record<Ancestry, string>> = {
+  human: "Human",
+  dwarf: "Dwarf",
+  elf: "Elf",
+  "half-orc": "Half-Orc",
+  gnome: "Gnome",
+  "tiefling-deva": "Tiefling/Deva",
+};
 
 export class Modals {
   private overlay: HTMLElement;
@@ -34,6 +45,22 @@ export class Modals {
     this.overlay.classList.add("hidden");
   }
 
+  /** Equip-state badge for a carried item: what's wielded/worn/readied vs just carried. */
+  private equipBadge(char: Character, def: ItemDef): string {
+    if (char.wieldedWeapon?.id === def.id && def.tags.includes("weapon")) {
+      return `<span style="color: #2ecc71; font-size: 11px; margin-left: 6px;">● Equipped</span>`;
+    }
+    if (char.wornArmor?.id === def.id) {
+      return `<span style="color: #2ecc71; font-size: 11px; margin-left: 6px;">● Worn</span>`;
+    }
+    if (char.carriedShield?.id === def.id) {
+      return char.shieldStowed
+        ? `<span style="color: #e0a72e; font-size: 11px; margin-left: 6px;">◐ Stowed</span>`
+        : `<span style="color: #2ecc71; font-size: 11px; margin-left: 6px;">● Readied</span>`;
+    }
+    return `<span style="color: #666; font-size: 11px; margin-left: 6px;">Carried</span>`;
+  }
+
   public showInventory(char: Character, onUseItem?: (itemDefId: string) => void): void {
     this.overlay.classList.remove("hidden");
     const maxSlots = char.inventory.capacity;
@@ -44,7 +71,7 @@ export class Modals {
     stacks.forEach((stack, idx) => {
       itemsHtml += `
         <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px; border-bottom: 1px solid #333;">
-          <span>${idx + 1}. ${stack.def.name} (${stack.qty}x)</span>
+          <span>${idx + 1}. ${stack.def.name} (${stack.qty}x)${this.equipBadge(char, stack.def)}</span>
           <button class="cmd-btn" style="font-size: 14px; padding: 2px 8px;" onclick="window.onModalUseItem('${stack.def.id}')">Use/Equip</button>
         </div>
       `;
@@ -246,22 +273,22 @@ export class Modals {
   }
 
   public showCharacterCreation(
-    onCreate: (choice: { name: string; biome: MonsterBiome; className: ClassName; method: StatGenerationMethod; stats?: Stats }) => void
-  ): void {
-    this.showCreateCharacterModal(onCreate);
-  }
-
-  public showCreateCharacterModal(
-    onCreate: (choice: { name: string; biome: MonsterBiome; className: ClassName; method: StatGenerationMethod; stats?: Stats }) => void
+    engine: Engine,
+    onCreate: (result: { character: Character; biome: MonsterBiome }) => void
   ): void {
     this.blockDismiss = true;
     this.closeBtn.style.display = "none";
     this.overlay.classList.remove("hidden");
 
     const allBiomes = Object.keys(BIOME_DISPLAY_NAMES) as MonsterBiome[];
-    let step: "method" | "details" = "method";
+    let step: "method" | "details" | "results" = "method";
     let selectedMethod: StatGenerationMethod = "iron-man";
     let ironmanStats: Stats | null = null;
+    let selectedAncestry: Ancestry = "human";
+    let selectedNamedBladeSword = "longsword";
+    let suggestedName = generateAncestryName(ANCESTRY_DISPLAY_NAMES.human).name;
+    let userEditedName = false;
+    let builtCharacter: Character | null = null;
 
     const getFirstQualifiedClass = (stats: Stats): ClassName => {
       for (const c of ALL_CREATION_CLASSES) {
@@ -272,6 +299,76 @@ export class Modals {
 
     let selectedClass: ClassName = ALL_CREATION_CLASSES[0]!;
     let selectedBiome: MonsterBiome = zoneLockedBiomeForClass(selectedClass) ?? allBiomes[0]!;
+
+    const statBoxesHtml = (stats: Stats) =>
+      STAT_NAMES.map((s) => {
+        const val = stats[s];
+        const mod = Math.floor((val - 10) / 2);
+        const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
+        return `
+          <div style="border: 1px solid #4a3810; border-radius: 3px; padding: 4px 2px; background: rgba(0,0,0,0.5); text-align: center;">
+            <div style="font-size: 11px; color: #8b8f9c; letter-spacing: 0.05em;">${s}</div>
+            <div style="font-weight: bold; color: ${val >= 14 ? "#f1c40f" : "#ffffff"}; font-size: 16px;">${val}</div>
+            <div style="font-size: 10px; color: #aaa;">(${modStr})</div>
+          </div>
+        `;
+      }).join("");
+
+    const renderResults = () => {
+      const c = builtCharacter!;
+      const fontClass = selectedMethod === "iron-man" ? "font-ironman" : "font-unearthed-arcana";
+
+      const talentEffects = c.effects.filter(
+        (e) => e.id.startsWith("talent-start-") || e.id.startsWith("talent-black-lotus-start")
+      );
+      const talentsHtml = talentEffects.length
+        ? talentEffects.map((e) => `<div style="padding: 4px 0; border-bottom: 1px solid #2a2010;">${e.name}</div>`).join("")
+        : `<div style="color: #888;">None</div>`;
+
+      const gearLines: string[] = [];
+      if (c.wieldedWeapon) gearLines.push(`Wielding: ${c.wieldedWeapon.name}`);
+      if (c.wornArmor) gearLines.push(`Wearing: ${c.wornArmor.name}`);
+      if (c.carriedShield) gearLines.push(`Shield: ${c.carriedShield.name}${c.shieldStowed ? " (stowed)" : ""}`);
+      const inventoryHtml = c.inventory
+        .all()
+        .map((stack) => `<div>${stack.def.name}${stack.qty > 1 ? ` x${stack.qty}` : ""}${this.equipBadge(c, stack.def)}</div>`)
+        .join("");
+
+      this.body.innerHTML = `
+        <div style="text-align: center; margin-bottom: 14px;">
+          <div class="modal-title" style="font-size: 22px; letter-spacing: 0.18em; border-bottom: none; margin-bottom: 4px;">CHARACTER CREATION</div>
+          <div style="color: #8b8f9c; font-size: 12px; letter-spacing: 0.16em; margin-bottom: 6px;">${selectedMethod === "iron-man" ? "IRONMAN" : "UNEARTHED ARCANA"}</div>
+          <p style="color: #d8d5cd; font-size: 15px; margin: 0;">Your Results</p>
+        </div>
+
+        <div style="background: #191210; border: 1px solid #4a3810; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span class="${fontClass}" style="font-size: 20px;">${c.name}</span>
+            <span style="color: #aaa; font-size: 13px;">${classDef(c.className).displayName} — ${ANCESTRY_DISPLAY_NAMES[c.ancestry]}</span>
+          </div>
+          ${c.background ? `<div style="margin-top: 6px; color: #ccc; font-size: 13px;">Background: <strong style="color: #f1c40f;">${c.background}</strong></div>` : ""}
+        </div>
+
+        <div style="background: #191210; border: 1px solid #4a3810; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px;">
+          <div style="margin-bottom: 8px; color: #f1c40f; font-weight: bold;">STATS &amp; HIT POINTS</div>
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-bottom: 8px;">${statBoxesHtml(c.stats)}</div>
+          <div style="color: #ddd;">HP: <strong style="color: #f1c40f;">${c.hp} / ${c.maxHp}</strong></div>
+        </div>
+
+        <div style="background: #191210; border: 1px solid #4a3810; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px;">
+          <div style="margin-bottom: 8px; color: #f1c40f; font-weight: bold;">TALENTS${c.ancestry === "human" ? ` <span style="color: #888; font-weight: normal; font-size: 12px;">(Human: 2 rolls)</span>` : ""}</div>
+          ${talentsHtml}
+        </div>
+
+        <div style="background: #191210; border: 1px solid #4a3810; border-radius: 4px; padding: 10px 14px; margin-bottom: 18px;">
+          <div style="margin-bottom: 8px; color: #f1c40f; font-weight: bold;">STARTING GEAR</div>
+          ${gearLines.map((line) => `<div>${line}</div>`).join("")}
+          ${inventoryHtml}
+        </div>
+
+        <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalCreateCharacter()">Begin the Journey</button>
+      `;
+    };
 
     const render = () => {
       if (step === "method") {
@@ -294,33 +391,24 @@ export class Modals {
         return;
       }
 
+      if (step === "results") {
+        renderResults();
+        return;
+      }
+
       const currentInput = (document.getElementById("char-name-input") as HTMLInputElement | null)?.value;
-      const nameValue = currentInput !== undefined ? currentInput : "Thorin";
+      const nameValue = userEditedName && currentInput !== undefined ? currentInput : suggestedName;
       const lockedBiome = zoneLockedBiomeForClass(selectedClass);
 
       let ironmanCardHtml = "";
       if (selectedMethod === "iron-man" && ironmanStats) {
-        const statBoxes = STAT_NAMES.map((s) => {
-          const val = ironmanStats![s];
-          const mod = Math.floor((val - 10) / 2);
-          const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
-          return `
-            <div style="border: 1px solid #4a3810; border-radius: 3px; padding: 4px 2px; background: rgba(0,0,0,0.5); text-align: center;">
-              <div style="font-size: 11px; color: #8b8f9c; letter-spacing: 0.05em;">${s}</div>
-              <div style="font-weight: bold; color: ${val >= 14 ? "#f1c40f" : "#ffffff"}; font-size: 16px;">${val}</div>
-              <div style="font-size: 10px; color: #aaa;">(${modStr})</div>
-            </div>
-          `;
-        }).join("");
-
         ironmanCardHtml = `
           <div style="background: #191210; border: 1px solid #c1440e; border-radius: 4px; padding: 10px 14px; margin-bottom: 14px; box-shadow: inset 0 0 10px rgba(62,18,3,0.5);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="margin-bottom: 8px;">
               <span class="font-ironman" style="font-size: 15px;">IRONMAN ROLLED STATS (3d6 in order)</span>
-              <button class="cmd-btn" style="font-size: 13px; padding: 3px 10px; color: #ffd45f; border-color: #c1440e;" onclick="window.onModalRerollIronman()">🎲 Reroll Stats</button>
             </div>
             <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;">
-              ${statBoxes}
+              ${statBoxesHtml(ironmanStats)}
             </div>
           </div>
         `;
@@ -372,11 +460,42 @@ export class Modals {
             )
             .join("")}</div>`;
 
+      const ancestryChoices: readonly Ancestry[] = selectedMethod === "iron-man" ? ["human"] : ANCESTRIES;
+      const ancestrySection = `
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+          ${ancestryChoices
+            .map(
+              (a) => `
+            <button class="cmd-btn" style="font-size: 13px; padding: 6px 10px; ${a === selectedAncestry ? "border-color: #f1c40f;" : ""}" onclick="window.onModalPickAncestry('${a}')">${ANCESTRY_DISPLAY_NAMES[a]}</button>
+          `
+            )
+            .join("")}
+          <button class="cmd-btn" style="font-size: 13px; padding: 6px 10px; color: #ffd45f;" onclick="window.onModalRollAncestry()">🎲 Roll</button>
+          ${!ancestryChoices.includes(selectedAncestry) ? `<span style="color: #f1c40f; font-size: 13px;">Rolled: ${ANCESTRY_DISPLAY_NAMES[selectedAncestry]}</span>` : ""}
+        </div>
+      `;
+
+      const namedBladeSection = selectedClass === "paladin"
+        ? `
+          <div style="margin-bottom: 14px;">
+            <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 6px;">Named Blade (choose your sword):</label>
+            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+              ${NAMED_BLADE_SWORD_IDS
+                .map(
+                  (swordId) => `
+                <button class="cmd-btn" style="font-size: 13px; padding: 6px 10px; ${swordId === selectedNamedBladeSword ? "border-color: #f1c40f;" : ""}" onclick="window.onModalPickNamedBladeSword('${swordId}')">${item(swordId).name}</button>
+              `
+                )
+                .join("")}
+            </div>
+          </div>
+        `
+        : "";
+
       const fontClass = selectedMethod === "iron-man" ? "font-ironman" : "font-unearthed-arcana";
 
       this.body.innerHTML = `
-        <div style="text-align: center; margin-bottom: 14px; position: relative;">
-          <button class="cmd-btn" style="position: absolute; left: 0; top: 0; font-size: 12px; padding: 4px 8px;" onclick="window.onModalBackToMethod()">&larr; Back</button>
+        <div style="text-align: center; margin-bottom: 14px;">
           <div class="modal-title" style="font-size: 22px; letter-spacing: 0.18em; border-bottom: none; margin-bottom: 4px;">CHARACTER CREATION</div>
           <div style="color: #8b8f9c; font-size: 12px; letter-spacing: 0.16em; margin-bottom: 6px;">${selectedMethod === "iron-man" ? "IRONMAN" : "UNEARTHED ARCANA"}</div>
           <p style="color: #d8d5cd; font-size: 15px; margin: 0;">${selectedMethod === "iron-man" ? "The dice choose your class" : "Choose your class"}</p>
@@ -392,26 +511,34 @@ export class Modals {
         </div>
 
         <div style="margin-bottom: 14px;">
+          <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 6px;">Ancestry:</label>
+          ${ancestrySection}
+        </div>
+
+        ${namedBladeSection}
+
+        <div style="margin-bottom: 14px;">
           <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 6px;">Home Region:</label>
           ${regionSection}
         </div>
 
         <div style="margin-bottom: 18px;">
           <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 6px;">Character Name:</label>
-          <input id="char-name-input" type="text" value="${nameValue}" placeholder="Thorin" oninput="window.onModalNameInput(this.value)" style="width: 100%; box-sizing: border-box; padding: 8px; font-family: inherit; font-size: 16px; background: #111; color: #f1c40f; border: 1px solid #4a3810;" />
+          <input id="char-name-input" type="text" value="${nameValue}" placeholder="${suggestedName}" oninput="window.onModalNameInput(this.value)" style="width: 100%; box-sizing: border-box; padding: 8px; font-family: inherit; font-size: 16px; background: #111; color: #f1c40f; border: 1px solid #4a3810;" />
           <div style="margin-top: 6px; font-size: 15px; color: #aaa; display: flex; align-items: center; gap: 8px;">
             <span>Name Preview:</span>
-            <span id="char-name-preview" class="${fontClass}" style="font-size: 22px;">${nameValue || "Thorin"}</span>
+            <span id="char-name-preview" class="${fontClass}" style="font-size: 22px;">${nameValue || suggestedName}</span>
           </div>
         </div>
 
-        <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalCreateCharacter()">Begin the Journey</button>
+        <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalRollCharacter()">🎲 Roll My Character</button>
       `;
     };
 
     (window as any).onModalNameInput = (val: string) => {
+      userEditedName = true;
       const preview = document.getElementById("char-name-preview");
-      if (preview) preview.textContent = val.trim() || "Thorin";
+      if (preview) preview.textContent = val.trim() || suggestedName;
     };
     (window as any).onModalPickClass = (className: string) => {
       if (selectedMethod === "iron-man" && ironmanStats && !isClassQualified(ironmanStats, className as ClassName)) {
@@ -427,15 +554,31 @@ export class Modals {
       selectedBiome = biome as MonsterBiome;
       render();
     };
-    (window as any).onModalRerollIronman = () => {
-      ironmanStats = rollStatsIronMan(new Dice(Date.now()));
-      if (!isClassQualified(ironmanStats, selectedClass)) {
-        selectedClass = getFirstQualifiedClass(ironmanStats);
-      }
+    const refreshSuggestedName = () => {
+      if (userEditedName) return;
+      suggestedName = generateAncestryName(ANCESTRY_DISPLAY_NAMES[selectedAncestry]).name;
+    };
+    (window as any).onModalPickAncestry = (ancestry: string) => {
+      if (selectedMethod === "iron-man" && ancestry !== "human") return;
+      selectedAncestry = ancestry as Ancestry;
+      refreshSuggestedName();
+      render();
+    };
+    (window as any).onModalRollAncestry = () => {
+      selectedAncestry = rollAncestry(engine.dice);
+      refreshSuggestedName();
+      render();
+    };
+    (window as any).onModalPickNamedBladeSword = (swordId: string) => {
+      selectedNamedBladeSword = swordId;
       render();
     };
     (window as any).onModalPickMethod = (method: string) => {
       selectedMethod = method as StatGenerationMethod;
+      selectedAncestry = "human";
+      selectedNamedBladeSword = "longsword";
+      userEditedName = false;
+      refreshSuggestedName();
       if (selectedMethod === "iron-man") {
         ironmanStats = rollStatsIronMan(new Dice(Date.now()));
         selectedClass = getFirstQualifiedClass(ironmanStats);
@@ -448,22 +591,28 @@ export class Modals {
       step = "details";
       render();
     };
-    (window as any).onModalBackToMethod = () => {
-      step = "method";
+    (window as any).onModalRollCharacter = () => {
+      const input = document.getElementById("char-name-input") as HTMLInputElement | null;
+      const name = input?.value?.trim() || suggestedName;
+      builtCharacter = createCharacter(
+        engine,
+        "char-hero",
+        name,
+        selectedClass,
+        selectedAncestry,
+        undefined,
+        selectedBiome,
+        selectedMethod,
+        selectedMethod === "iron-man" ? ironmanStats! : undefined,
+        selectedClass === "paladin" ? selectedNamedBladeSword : undefined
+      );
+      step = "results";
       render();
     };
     (window as any).onModalCreateCharacter = () => {
-      const input = document.getElementById("char-name-input") as HTMLInputElement | null;
-      const name = input?.value?.trim() || "Thorin";
       this.blockDismiss = false;
       this.closeBtn.style.display = "";
-      onCreate({
-        name,
-        biome: selectedBiome,
-        className: selectedClass,
-        method: selectedMethod,
-        stats: selectedMethod === "iron-man" ? ironmanStats! : undefined,
-      });
+      onCreate({ character: builtCharacter!, biome: selectedBiome });
       this.hide();
     };
 

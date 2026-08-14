@@ -312,6 +312,8 @@ export interface CharacterInit {
    * have started as, and which biome's captives they can be rescued from. */
   homeBiome?: MonsterBiome;
   method?: StatGenerationMethod;
+  /** Life before adventuring, rolled from the background table at creation. */
+  background?: string;
 }
 
 export class Character {
@@ -324,6 +326,7 @@ export class Character {
   readonly voiceRegister: VoiceRegister;
   readonly homeBiome: MonsterBiome | null;
   readonly method: StatGenerationMethod;
+  readonly background: string | null;
   readonly trainedSkills = new Set<string>();
 
   level = 1;
@@ -346,6 +349,8 @@ export class Character {
   carriedShield: ItemDef | null = null;
   /** Shield slung on the back (e.g. to carry a torch): hand free, no AC bonus. */
   shieldStowed = false;
+  /** Only meaningful while wielding a versatile weapon (one with versatileDamage). */
+  weaponWieldMode: "1h" | "2h" = "2h";
 
   /** SoloDark luck pool. The boolean accessor below preserves old UI/API callers. */
   luckTokens = 1;
@@ -384,6 +389,7 @@ export class Character {
     this.voiceRegister = init.voiceRegister ?? voiceRegisterForIdentity(init.id, init.name);
     this.homeBiome = init.homeBiome ?? null;
     this.method = init.method ?? "unearthed-arcana";
+    this.background = init.background ?? null;
     for (const s of STAT_NAMES) statModifier(this.stats[s]); // validate
     this.baseMaxHp = init.maxHp;
     this.hp = this.maxHp;
@@ -479,6 +485,11 @@ export class Character {
     if (def.requiredAlignment && def.requiredAlignment !== this.alignment) throw new Error(`${def.name} requires ${def.requiredAlignment} alignment`);
     if (def.forbiddenAlignment === this.alignment) throw new Error(`${def.name} cannot be wielded by a ${this.alignment} being`);
     this.wieldedWeapon = def;
+    // A versatile weapon defaults to its heavier two-handed die until re-gripped.
+    this.weaponWieldMode = "2h";
+    // A two-handed weapon fills both hands: any readied shield slings to the
+    // back (no AC bonus) until a one-handed weapon frees a hand for it again.
+    if (this.carriedShield) this.shieldStowed = this.effectiveTwoHanded;
   }
 
   /** The active weapon; combat cannot proceed without one. */
@@ -487,11 +498,33 @@ export class Character {
     return this.wieldedWeapon;
   }
 
-  /** Ready a shield (+2 AC, occupies a hand). */
+  /** Whether the wielded weapon currently fills both hands — static for fixed 2H weapons, chosen for versatile ones. */
+  get effectiveTwoHanded(): boolean {
+    const w = this.wieldedWeapon;
+    if (!w) return false;
+    if (w.versatileDamage) return this.weaponWieldMode === "2h";
+    return w.twoHanded === true;
+  }
+
+  /** The damage die the wielded weapon actually swings for, honoring a versatile weapon's chosen grip. */
+  get effectiveWeaponDamage(): string | undefined {
+    const w = this.wieldedWeapon;
+    if (!w) return undefined;
+    return w.versatileDamage && this.weaponWieldMode === "1h" ? w.versatileDamage : w.damage;
+  }
+
+  /** Re-grip a versatile weapon one- or two-handed, re-applying the shield-stow rule. */
+  setWeaponWieldMode(mode: "1h" | "2h"): void {
+    if (!this.wieldedWeapon?.versatileDamage) throw new Error(`${this.wieldedWeapon?.name ?? "This weapon"} cannot be wielded one- or two-handed`);
+    this.weaponWieldMode = mode;
+    if (this.carriedShield) this.shieldStowed = this.effectiveTwoHanded;
+  }
+
+  /** Ready a shield (+2 AC, occupies a hand). A two-handed weapon leaves no hand free for it. */
   equipShield(def: ItemDef): void {
     if (!def.shield) throw new Error(`${def.name} is not a shield`);
     this.carriedShield = def;
-    this.shieldStowed = false;
+    this.shieldStowed = this.effectiveTwoHanded;
   }
 
   /** A hand is free unless a readied shield fills it. */
@@ -522,7 +555,8 @@ export class Character {
     const weapon = this.wieldedWeapon;
     if (!weapon || !weapon.damage) return null;
     const ranged = weapon.tags.includes("ranged");
-    const stat: StatName = ranged || (weapon.finesse === true && this.mod("DEX") > this.mod("STR"))
+    const finesse = weapon.finesse === true && this.ancestry !== "dwarf";
+    const stat: StatName = ranged || (finesse && this.mod("DEX") > this.mod("STR"))
       ? "DEX"
       : "STR";
     const kind: CheckKind = ranged ? "attack" : "meleeAttack";
@@ -531,7 +565,7 @@ export class Character {
       weapon,
       stat,
       toHit: this.mod(stat) + sumCheckBonus(this.effects, kind, this.level, weapon.id, stat) + magic,
-      damageDice: weapon.damage,
+      damageDice: this.effectiveWeaponDamage ?? weapon.damage,
       damageBonus: this.mod(stat) + this.damageBonusWith(weapon.id) + magic
         + (!ranged && this.ancestry === "half-orc" ? 1 : 0)
         + (!ranged ? sumMeleeDamageBonus(this.effects) : 0),
