@@ -24,6 +24,8 @@ export interface AncestryNameEntry {
   type: 'standalone' | 'part1' | 'part2' | string;
   name_part: string;
   source: string;
+  /** Optional region key for future/source datasets with regional naming tables. */
+  region?: string | null;
 }
 
 export interface BackgroundEntry {

@@ -286,7 +286,10 @@ export class Modals {
     let ironmanStats: Stats | null = null;
     let selectedAncestry: Ancestry = "human";
     let selectedNamedBladeSword = "longsword";
-    let suggestedName = generateAncestryName(ANCESTRY_DISPLAY_NAMES.human).name;
+    let selectedClass: ClassName = ALL_CREATION_CLASSES[0]!;
+    let selectedBiome: MonsterBiome = zoneLockedBiomeForClass(selectedClass) ?? allBiomes[0]!;
+    let suggestedName = generateAncestryName(ANCESTRY_DISPLAY_NAMES.human, BIOME_DISPLAY_NAMES[selectedBiome]).name;
+    let suggestedNameSource = generateAncestryName(ANCESTRY_DISPLAY_NAMES.human, BIOME_DISPLAY_NAMES[selectedBiome]).source;
     let userEditedName = false;
     let builtCharacter: Character | null = null;
 
@@ -296,9 +299,6 @@ export class Modals {
       }
       return ALL_CREATION_CLASSES[0]!;
     };
-
-    let selectedClass: ClassName = ALL_CREATION_CLASSES[0]!;
-    let selectedBiome: MonsterBiome = zoneLockedBiomeForClass(selectedClass) ?? allBiomes[0]!;
 
     const statBoxesHtml = (stats: Stats) =>
       STAT_NAMES.map((s) => {
@@ -525,6 +525,7 @@ export class Modals {
         <div style="margin-bottom: 18px;">
           <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 6px;">Character Name:</label>
           <input id="char-name-input" type="text" value="${nameValue}" placeholder="${suggestedName}" oninput="window.onModalNameInput(this.value)" style="width: 100%; box-sizing: border-box; padding: 8px; font-family: inherit; font-size: 16px; background: #111; color: #f1c40f; border: 1px solid #4a3810;" />
+          <div style="margin-top: 5px; color: #888; font-size: 12px;">Suggested from ${suggestedNameSource === "region" ? "this region" : suggestedNameSource === "ancestry" ? "this ancestry" : "the common name pool"}; edit freely.</div>
           <div style="margin-top: 6px; font-size: 15px; color: #aaa; display: flex; align-items: center; gap: 8px;">
             <span>Name Preview:</span>
             <span id="char-name-preview" class="${fontClass}" style="font-size: 22px;">${nameValue || suggestedName}</span>
@@ -547,16 +548,23 @@ export class Modals {
       selectedClass = className as ClassName;
       const locked = zoneLockedBiomeForClass(selectedClass);
       if (locked) selectedBiome = locked;
+      refreshSuggestedName();
       render();
     };
     (window as any).onModalPickBiome = (biome: string) => {
       if (zoneLockedBiomeForClass(selectedClass)) return;
       selectedBiome = biome as MonsterBiome;
+      refreshSuggestedName();
       render();
     };
     const refreshSuggestedName = () => {
       if (userEditedName) return;
-      suggestedName = generateAncestryName(ANCESTRY_DISPLAY_NAMES[selectedAncestry]).name;
+      const generated = generateAncestryName(
+        ANCESTRY_DISPLAY_NAMES[selectedAncestry],
+        BIOME_DISPLAY_NAMES[selectedBiome],
+      );
+      suggestedName = generated.name;
+      suggestedNameSource = generated.source;
     };
     (window as any).onModalPickAncestry = (ancestry: string) => {
       if (selectedMethod === "iron-man" && ancestry !== "human") return;
@@ -717,4 +725,3 @@ export class Modals {
     `;
   }
 }
-

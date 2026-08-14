@@ -48,8 +48,25 @@ export interface CarouseRollResult {
   /** 1d8 + tier bonus, clamped into the Outcome table's covered range. */
   total: number;
   xp: number;
-  benefits: readonly string[];
-  mishaps: readonly string[];
+  benefits: readonly CarouseEvent[];
+  mishaps: readonly CarouseEvent[];
+}
+
+export type CarouseEffect =
+  | { kind: "goldDelta"; amount: number }
+  | { kind: "goldPercent"; percent: number }
+  | { kind: "gainLuck"; amount: number }
+  | { kind: "loseAllLuck" }
+  | { kind: "addItem"; itemId: string; quantity: number }
+  | { kind: "addRandomPotion"; quantity: number }
+  | { kind: "addTrinket" }
+  | { kind: "treasureRoll" }
+  | { kind: "increaseMaxHp"; amount: number }
+  | { kind: "removeGear"; count: number | "1d4" };
+
+export interface CarouseEvent {
+  text: string;
+  effects: readonly CarouseEffect[];
 }
 
 export interface CarouseResult {
@@ -99,17 +116,54 @@ export function generateShopName(dice: Pick<Dice, "die">): string {
  * mechanics this codebase doesn't model (renown, allies, temporary stat
  * bonuses); those stay flavor-only, same as the old table's wealth-% lines.
  */
+export function carouseEffectsForText(text: string, category: "benefit" | "mishap"): readonly CarouseEffect[] {
+  const lower = text.toLowerCase();
+  const effects: CarouseEffect[] = [];
+
+  if (lower.includes("gain a luck token")) effects.push({ kind: "gainLuck", amount: 1 });
+  if (lower.includes("lose all luck tokens")) effects.push({ kind: "loseAllLuck" });
+  if (lower.includes("roll an ancestry trinket")) effects.push({ kind: "addTrinket" });
+  if (lower.includes("potion of polymorph")) effects.push({ kind: "addItem", itemId: "potion-polymorph", quantity: 1 });
+  if (lower.includes("potion of healing")) effects.push({ kind: "addItem", itemId: "potion-healing", quantity: 1 });
+  if (lower.includes("two random magic potions")) effects.push({ kind: "addRandomPotion", quantity: 2 });
+  if (lower.includes("permanently gain 1 hp")) effects.push({ kind: "increaseMaxHp", amount: 1 });
+  if (category === "benefit" && /roll on .*treasure table/.test(lower)) effects.push({ kind: "treasureRoll" });
+
+  const wealthPercent = lower.includes("half your wealth")
+    ? 50
+    : Number(lower.match(/(?:lose|lost|fined|missing|burgled|stole) (\d+)%/)?.[1] ?? 0);
+  if (wealthPercent > 0) effects.push({ kind: "goldPercent", percent: -wealthPercent });
+
+  const goldMatch = lower.match(/(?:win|won|lose|lost|for|gave|spent|pay|paid|borrowed) (\d+) gp/);
+  if (goldMatch) {
+    const amount = Number(goldMatch[1]);
+    const isGain = category === "benefit" && /(?:win|won) \d+ gp/.test(lower);
+    effects.push({ kind: "goldDelta", amount: isGain ? amount : -amount });
+  }
+
+  if (lower.includes("1d4 pieces of your gear")) effects.push({ kind: "removeGear", count: "1d4" });
+  else if (lower.includes("random piece of your gear")) effects.push({ kind: "removeGear", count: 1 });
+
+  return effects;
+}
+
 export function resolveCarouseRoll(dice: Dice, tables: TableRegistry, tier: CarouseTier): CarouseRollResult {
   const bonus = CAROUSE_OPTIONS[tier].bonus;
   const outcome = tables.roll(dice, "carouse-outcome", bonus);
   const data = outcome.entry.data as unknown as CarouseOutcomeData;
   const benefits = Array.from(
     { length: data.benefitRolls },
-    () => tables.roll(dice, "carouse-benefit", data.modifier).entry.text,
+    () => {
+      const text = tables.roll(dice, "carouse-benefit", data.modifier).entry.text;
+      return { text, effects: carouseEffectsForText(text, "benefit") };
+    },
   );
   const mishaps = Array.from(
     { length: data.mishapRolls },
-    () => tables.roll(dice, "carouse-mishap", data.modifier).entry.text,
+    () => {
+      const text = tables.roll(dice, "carouse-mishap", data.modifier).entry.text;
+      return { text, effects: carouseEffectsForText(text, "mishap") };
+    },
   );
   return { total: outcome.roll, xp: data.xp, benefits, mishaps };
 }

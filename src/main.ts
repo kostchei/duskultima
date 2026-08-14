@@ -5,8 +5,8 @@
 
 import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ClassName, type ConditionKind, type MonsterBiome, type StatGenerationMethod, type TreasureQuality } from "./engine/index";
 import { Character, type Stats } from "./engine/character";
-import { classDef, createCharacter, registerTables } from "./data/index";
-import { bestTreasureQuality, rollFabledItem, rollTreasureCache } from "./data/treasureGeneration";
+import { classDef, createCharacter, item, registerTables } from "./data/index";
+import { bestTreasureQuality, rollFabledItem, rollTreasureCache, rollTreasureFind } from "./data/treasureGeneration";
 import { MapGrid } from "./game/level/MapGrid";
 import { MapRenderer } from "./game/renderer/MapRenderer";
 import { UltimaFrame } from "./game/ui/UltimaFrame";
@@ -17,8 +17,9 @@ import { Adventure, goalUsesChest, SiteDef } from "./game/level/Adventure";
 import { AdventureGenerator } from "./game/level/AdventureGenerator";
 import { ZoneHazards } from "./engine/zoneHazards";
 import { AudioEngine } from "./game/audio/AudioEngine";
-import { groupCarouseCost, resolveGroupCarouse, type CarouseTier } from "./engine/downtime";
+import { groupCarouseCost, resolveGroupCarouse, type CarouseEffect, type CarouseTier } from "./engine/downtime";
 import { treasureQualityXp } from "./engine/treasureXp";
+import { getTrinket } from "./engine/tableService";
 import { chooseAutoSupportAction, type LeaderIntent } from "./engine/partyAutomation";
 import { gridDistance, movementTiles, RANGE_BAND_TILES } from "./engine/rangeBands";
 import { spell } from "./data/spells";
@@ -543,14 +544,43 @@ class Game {
   }
 
   private handleUseItem(): void {
-    this.modals.showInventory(this.leader, (defId) => {
-      this.frame.addLog(`${this.leader.name} equips/uses ${defId}.`, "item");
-      this.updateUi();
-    });
+    this.handleInventory();
   }
 
   private handleInventory(): void {
-    this.modals.showInventory(this.leader);
+    this.modals.showInventory(this.leader, (defId) => this.equipInventoryItem(defId));
+  }
+
+  private equipInventoryItem(defId: string): void {
+    const stack = this.leader.inventory.all().find((candidate) => candidate.def.id === defId);
+    if (!stack) {
+      this.frame.addLog(`That item is no longer in ${this.leader.name}'s inventory.`, "prompt");
+      return;
+    }
+
+    const def = stack.def;
+    try {
+      if (def.shield) {
+        // A versatile weapon can be re-gripped to make room for a readied shield.
+        if (this.leader.wieldedWeapon?.versatileDamage) this.leader.setWeaponWieldMode("1h");
+        this.leader.equipShield(def);
+        const shieldState = this.leader.shieldStowed ? "stowed" : "readied";
+        this.frame.addLog(`${this.leader.name} equips ${def.name} (${shieldState}; AC ${this.leader.ac}).`, "item");
+      } else if (def.tags.includes("weapon")) {
+        this.leader.equipWeapon(def);
+        this.frame.addLog(`${this.leader.name} equips ${def.name} (AC ${this.leader.ac}).`, "item");
+      } else if (def.armor) {
+        this.leader.equipArmor(def);
+        this.frame.addLog(`${this.leader.name} wears ${def.name} (AC ${this.leader.ac}).`, "item");
+      } else {
+        this.frame.addLog(`${def.name} has no implemented inventory action yet.`, "prompt");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.frame.addLog(message, "prompt");
+    }
+    this.updateUi();
+    this.render();
   }
 
   private handleStats(): void {
@@ -648,12 +678,103 @@ class Game {
       const result = group.results[i]!;
       this.engine.awardXp(char, result.xp);
       this.frame.addLog(`${char.name} rolls ${result.total} on the Carousing Outcome table: +${result.xp} XP.`, "hit");
-      for (const benefit of result.benefits) this.frame.addLog(`${char.name} — Benefit: ${benefit}`, "hit");
-      for (const mishap of result.mishaps) this.frame.addLog(`${char.name} — Mishap: ${mishap}`, "combat");
+      for (const benefit of result.benefits) {
+        this.frame.addLog(`${char.name} — Benefit: ${benefit.text}`, "hit");
+        this.applyCarouseEffects(char, benefit.effects);
+      }
+      for (const mishap of result.mishaps) {
+        this.frame.addLog(`${char.name} — Mishap: ${mishap.text}`, "combat");
+        this.applyCarouseEffects(char, mishap.effects);
+      }
     });
     this.audio.playVictoryJingle();
     this.updateUi();
     this.queueLevelUps(participants);
+  }
+
+  private applyCarouseEffects(char: Character, effects: readonly CarouseEffect[]): void {
+    for (const effect of effects) {
+      switch (effect.kind) {
+        case "goldDelta": {
+          char.gold = Math.max(0, char.gold + effect.amount);
+          this.frame.addLog(`${char.name} ${effect.amount >= 0 ? "gains" : "loses"} ${Math.abs(effect.amount)} gp.`, "item");
+          break;
+        }
+        case "goldPercent": {
+          const amount = Math.floor(char.gold * Math.abs(effect.percent) / 100);
+          char.gold = Math.max(0, char.gold + (effect.percent < 0 ? -amount : amount));
+          this.frame.addLog(`${char.name} loses ${amount} gp (${Math.abs(effect.percent)}% of current wealth).`, "combat");
+          break;
+        }
+        case "gainLuck": {
+          const gained = char.gainLuckTokens(effect.amount, Math.max(1, this.party.length));
+          if (gained > 0) this.frame.addLog(`${char.name} gains ${gained} luck token${gained === 1 ? "" : "s"}.`, "hit");
+          break;
+        }
+        case "loseAllLuck": {
+          const lost = char.luckTokens;
+          char.luckTokens = 0;
+          if (lost > 0) this.frame.addLog(`${char.name} loses all ${lost} luck token${lost === 1 ? "" : "s"}.`, "combat");
+          break;
+        }
+        case "addItem": {
+          const def = item(effect.itemId);
+          char.inventory.add(def, effect.quantity, true);
+          this.frame.addLog(`${char.name} receives ${effect.quantity > 1 ? `${effect.quantity}x ` : ""}${def.name}.`, "hit");
+          break;
+        }
+        case "addRandomPotion": {
+          const potionIds = ["potion-healing", "potion-invisibility", "potion-water-breathing", "potion-flying", "potion-polymorph"];
+          for (let i = 0; i < effect.quantity; i++) {
+            const def = item(potionIds[this.engine.dice.die(potionIds.length) - 1]!);
+            char.inventory.add(def, 1, true);
+            this.frame.addLog(`${char.name} receives ${def.name}.`, "hit");
+          }
+          break;
+        }
+        case "addTrinket": {
+          const trinket = getTrinket(char.ancestry, this.engine.dice.die(100));
+          const def = {
+            id: `trinket-carouse-${char.id}-${this.round}-${this.engine.dice.die(1_000_000)}`,
+            name: trinket.result_text,
+            slotCost: 0,
+            bundleSize: 1,
+            tags: ["gear", "trinket"] as const,
+          };
+          char.inventory.add(def, 1, true);
+          this.frame.addLog(`${char.name} receives a trinket: ${def.name}.`, "hit");
+          break;
+        }
+        case "treasureRoll": {
+          const finding = rollTreasureFind(this.engine.dice, Math.min(3, char.level));
+          char.inventory.add(finding.def, finding.qty, true);
+          this.frame.addLog(`${char.name} receives treasure: ${finding.qty > 1 ? `${finding.qty}x ` : ""}${finding.def.name}.`, "hit");
+          break;
+        }
+        case "increaseMaxHp": {
+          char.increaseMaxHp(effect.amount);
+          this.frame.addLog(`${char.name} permanently gains ${effect.amount} maximum HP.`, "hit");
+          break;
+        }
+        case "removeGear": {
+          const count = effect.count === "1d4" ? this.engine.dice.roll("1d4") : effect.count;
+          for (let i = 0; i < count; i++) {
+            const carried = [...char.inventory.all()];
+            if (carried.length === 0) break;
+            const stack = carried[this.engine.dice.die(carried.length) - 1]!;
+            if (char.wieldedWeapon?.id === stack.def.id) char.wieldedWeapon = null;
+            if (char.wornArmor?.id === stack.def.id) char.wornArmor = null;
+            if (char.carriedShield?.id === stack.def.id) {
+              char.carriedShield = null;
+              char.shieldStowed = false;
+            }
+            char.inventory.remove(stack.def.id, 1);
+            this.frame.addLog(`${char.name} loses 1x ${stack.def.name}.`, "combat");
+          }
+          break;
+        }
+      }
+    }
   }
 
   private handlePass(): void {

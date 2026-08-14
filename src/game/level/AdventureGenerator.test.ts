@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { AdventureGenerator, EGG_GUARDIANS_BY_BIOME, GOAL_TEMPLATES } from "./AdventureGenerator";
 import type { GoalKind } from "./Adventure";
+import { isPlebName } from "../../data/names";
 
 const STANDARD_GOALS: readonly GoalKind[] = [
   "fabled-item",
@@ -39,6 +40,21 @@ describe("AdventureGenerator goals", () => {
       for (const site of adventure.sites) generatedKinds.add(site.goal.kind);
     }
     expect(generatedKinds).toContain("rescue-companion");
+  });
+
+  it("uses the database-backed name pool for generated companions", () => {
+    const generatedNames: string[] = [];
+    for (let seed = 1; seed <= 24; seed += 1) {
+      const adventure = new AdventureGenerator(seed).generateAdventure(1, ["thief"]);
+      for (const site of adventure.sites) {
+        if (site.goal.kind === "rescue-companion" && site.goal.rescueHeroName) {
+          generatedNames.push(site.goal.rescueHeroName);
+        }
+      }
+    }
+
+    expect(generatedNames.length).toBeGreaterThan(0);
+    expect(generatedNames.every((name) => isPlebName(name))).toBe(true);
   });
 
   it("models egg goals as species-specific nests with appropriately scaled guardians", () => {
@@ -122,4 +138,3 @@ describe("AdventureGenerator goals", () => {
     });
   });
 });
-

@@ -33,6 +33,12 @@ const CLASS_TALENT_PAGES: Record<string, number> = {
   wyrdling: 72, necromancer: 53
 };
 
+export type NameAssignmentSource = 'region' | 'ancestry' | 'fallback';
+
+function nameKey(value: string): string {
+  return value.toLowerCase().trim().replace(/[ _]+/g, '-');
+}
+
 /**
  * List all available roll tables, optionally filtered by category or source.
  */
@@ -81,17 +87,30 @@ export function rollOnTable(
  * Generate a lore-accurate name for a given ancestry.
  * Supports both compound 2-part name generators (Part 1 + Part 2) and standalone name lists.
  */
-export function generateAncestryName(ancestry: string): { name: string; ancestry: string; method: string } {
+export function generateAncestryName(
+  ancestry: string,
+  region?: string,
+): { name: string; ancestry: string; method: string; source: NameAssignmentSource } {
   const ancNorm = ancestry.toLowerCase().trim();
   const sourceAncestry = ANCESTRY_ALIASES[ancNorm] || ancestry;
   const sourceNorm = sourceAncestry.toLowerCase().trim();
-  
-  const part1s = masterTables.ancestry_names.filter(
-    (n) => (n.ancestry || '').toLowerCase() === sourceNorm && n.type === 'part1'
+  const regionNorm = region ? nameKey(region) : undefined;
+
+  const ancestryEntries = masterTables.ancestry_names.filter(
+    (n) => (n.ancestry || '').toLowerCase() === sourceNorm,
   );
-  const part2s = masterTables.ancestry_names.filter(
-    (n) => (n.ancestry || '').toLowerCase() === sourceNorm && n.type === 'part2'
-  );
+  const regionalEntries = regionNorm
+    ? masterTables.ancestry_names.filter((n) => n.region && nameKey(n.region) === regionNorm)
+    : [];
+  const nameEntries = regionalEntries.length > 0 ? regionalEntries : ancestryEntries;
+  const nameSource: NameAssignmentSource = regionalEntries.length > 0
+    ? 'region'
+    : ancestryEntries.length > 0
+      ? 'ancestry'
+      : 'fallback';
+
+  const part1s = nameEntries.filter((n) => n.type === 'part1');
+  const part2s = nameEntries.filter((n) => n.type === 'part2');
 
   if (part1s.length > 0 && part2s.length > 0) {
     const p1Item = part1s[Math.floor(Math.random() * part1s.length)];
@@ -102,23 +121,42 @@ export function generateAncestryName(ancestry: string): { name: string; ancestry
     const cleanP2 = p2.startsWith('-') ? p2.slice(1) : p2;
     const combined = cleanP1 + cleanP2;
     const formatted = combined.charAt(0).toUpperCase() + combined.slice(1);
-    return { name: formatted, ancestry, method: sourceAncestry === ancestry ? '2-part compound generator' : `2-part compound generator (${sourceAncestry} source alias)` };
+    return {
+      name: formatted,
+      ancestry,
+      source: nameSource,
+      method: `${nameSource === 'region' ? 'regional ' : ''}2-part compound generator${sourceAncestry === ancestry ? '' : ` (${sourceAncestry} source alias)`}`,
+    };
   }
 
-  const standalones = masterTables.ancestry_names.filter(
-    (n) => (n.ancestry || '').toLowerCase() === sourceNorm || sourceNorm.includes((n.ancestry || '').toLowerCase())
-  );
+  const standalones = nameEntries.length > 0
+    ? nameEntries
+    : masterTables.ancestry_names.filter(
+      (n) => (n.ancestry || '').toLowerCase() === sourceNorm || sourceNorm.includes((n.ancestry || '').toLowerCase()),
+    );
 
   if (standalones.length > 0) {
-    const chosenItem = standalones[Math.floor(Math.random() * standalones.length)];
-    const chosen = chosenItem ? chosenItem.name_part : 'Thorin';
-    return { name: chosen, ancestry, method: sourceAncestry === ancestry ? 'standalone name list' : `standalone name list (${sourceAncestry} source alias)` };
+    const givenNames = nameSource === 'region'
+      ? standalones.filter((n) => n.type === 'standalone')
+      : standalones;
+    const chosenItem = (givenNames.length > 0 ? givenNames : standalones)[Math.floor(Math.random() * (givenNames.length > 0 ? givenNames.length : standalones.length))];
+    const surnameItems = nameSource === 'region' ? nameEntries.filter((n) => n.type === 'surname') : [];
+    const surname = surnameItems.length > 0
+      ? ` ${surnameItems[Math.floor(Math.random() * surnameItems.length)]!.name_part}`
+      : '';
+    const chosen = chosenItem ? `${chosenItem.name_part}${surname}` : 'Thorin';
+    return {
+      name: chosen,
+      ancestry,
+      source: nameSource,
+      method: `${nameSource === 'region' ? 'regional ' : ''}standalone name list${sourceAncestry === ancestry ? '' : ` (${sourceAncestry} source alias)`}`,
+    };
   }
 
   const fallbackHumans = masterTables.ancestry_names.filter((n) => (n.ancestry || '').toLowerCase() === 'human');
   const fallbackItem = fallbackHumans.length > 0 ? fallbackHumans[Math.floor(Math.random() * fallbackHumans.length)] : null;
   const fallback = fallbackItem ? fallbackItem.name_part : 'Thorin';
-  return { name: fallback, ancestry, method: 'default fallback' };
+  return { name: fallback, ancestry, source: 'fallback', method: 'default fallback' };
 }
 
 /**

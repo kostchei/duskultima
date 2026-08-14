@@ -42,6 +42,13 @@ describe('TableService API & Coverage Fixes', () => {
     expect(getProjectAncestries()).toHaveLength(6);
   });
 
+  it('prefers the regional Nord name table in Midnight Sun', () => {
+    const result = generateAncestryName('Human', 'Midnight Sun');
+    expect(result.source).toBe('region');
+    expect(result.method).toContain('regional');
+    expect(result.name.split(' ')).toHaveLength(2);
+  });
+
   it('rolls backgrounds from expanded 96 background pool', () => {
     const bg1 = getBackground(1);
     expect(bg1).toBeTruthy();

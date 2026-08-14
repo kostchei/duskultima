@@ -8,6 +8,7 @@ import type { ClassName, MonsterBiome, MonsterSize } from "../../engine";
 import { generateShopName, generateTavernName } from "../../engine/downtime";
 import { classesForBiome } from "../../data/biomeOrigins";
 import { classDef } from "../../data/classes";
+import { randomPlebName } from "../../data/names";
 import { Adventure, GoalKind, GoalVerb, SiteDef, SiteGoal, SiteSize, SiteType } from "./Adventure";
 
 const BIOMES: readonly MonsterBiome[] = [
@@ -36,12 +37,6 @@ const NAME_SUFFIXES = [
 ];
 
 const SITE_TYPES: readonly SiteType[] = ["cave", "ruins", "tomb", "fortress", "temple", "lair"];
-
-/** First names drawn for rescued companions, independent of their class. */
-const COMPANION_NAMES: readonly string[] = [
-  "Lyra", "Elen", "Vael", "Kaelen", "Sorra", "Bram", "Nyx", "Fenwick",
-  "Isolde", "Tamsin", "Doran", "Wren", "Corvin", "Maren", "Osric", "Sable",
-];
 
 interface GoalTemplate {
   kind: GoalKind;
@@ -212,9 +207,17 @@ export const GOAL_TEMPLATES: readonly GoalTemplate[] = [
 
 export class AdventureGenerator {
   private dice: Dice;
+  /** Names already assigned to generated companions in this campaign generator. */
+  private readonly companionNames = new Set<string>();
 
   constructor(seed?: number) {
     this.dice = new Dice(seed);
+  }
+
+  private nextCompanionName(): string {
+    const name = randomPlebName(this.dice, this.companionNames);
+    this.companionNames.add(name);
+    return name;
   }
 
   public generateAdventure(partySize: number, excludedClasses: readonly ClassName[]): Adventure {
@@ -248,7 +251,7 @@ export class AdventureGenerator {
       if (rollRescue) {
         const rescueClass = this.getRandomItem([...eligibleRescueClasses]);
         spokenFor.add(rescueClass);
-        const heroName = this.getRandomItem([...COMPANION_NAMES]);
+        const heroName = this.nextCompanionName();
         const rescueClassLabel = classDef(rescueClass).displayName.toUpperCase();
         goal = {
           kind: "rescue-companion",
@@ -552,4 +555,3 @@ export class AdventureGenerator {
     return arr[idx]!;
   }
 }
-

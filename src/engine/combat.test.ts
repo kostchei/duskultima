@@ -82,4 +82,23 @@ describe("Shadowdark combat resolution", () => {
     expect(result.first).toBe("party");
     expect(rolls).toBe(2);
   });
+
+  it("re-grips a versatile Seawolf weapon so a starting shield can be readied", () => {
+    const character = new Character({
+      id: "seawolf",
+      name: "Seawolf",
+      className: "seawolf",
+      stats: { STR: 16, DEX: 12, CON: 12, INT: 10, WIS: 10, CHA: 10 },
+      maxHp: 10,
+    });
+    character.equipWeapon(item("greataxe"));
+    character.equipShield(item("round-shield"));
+
+    expect(character.shieldStowed).toBe(true);
+    character.setWeaponWieldMode("1h");
+
+    expect(character.shieldStowed).toBe(false);
+    expect(character.ac).toBe(13);
+    expect(character.effectiveWeaponDamage).toBe("1d8");
+  });
 });

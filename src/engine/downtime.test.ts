@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { carouseCost, resolveCarouse, resolveGroupCarouse, groupCarouseCost, type CarouseTier } from "./downtime";
+import { carouseCost, carouseEffectsForText, resolveCarouse, resolveGroupCarouse, groupCarouseCost, type CarouseTier } from "./downtime";
 import { Dice } from "./dice";
 import { TableRegistry } from "./tables";
 import { ALL_CAROUSE_TABLES } from "../data/tables/carousing";
@@ -58,5 +58,20 @@ describe("Shadowdark carousing XP", () => {
   it("throws when the pooled gold can't cover the whole party", () => {
     const tables = tablesWithCarousing();
     expect(() => resolveGroupCarouse(new Dice(1), tables, "worthy-night", 29, 1)).toThrow();
+  });
+
+  it("returns structured effects for mechanically explicit outcomes", () => {
+    expect(carouseEffectsForText("You won 50 gp against a famous gambler; +1 renown", "benefit"))
+      .toEqual([{ kind: "goldDelta", amount: 50 }]);
+    expect(carouseEffectsForText("A gloating thief burgled 50% of your wealth; -3 renown", "mishap"))
+      .toEqual([{ kind: "goldPercent", percent: -50 }]);
+    expect(carouseEffectsForText("A soothsayer reads your palm; gain a luck token", "benefit"))
+      .toEqual([{ kind: "gainLuck", amount: 1 }]);
+    expect(carouseEffectsForText("A beggar gives you a gutter trinket (roll an ancestry trinket)", "benefit"))
+      .toEqual([{ kind: "addTrinket" }]);
+    expect(carouseEffectsForText("You woke up in a lab; gain two random magic potions", "benefit"))
+      .toEqual([{ kind: "addRandomPotion", quantity: 2 }]);
+    expect(carouseEffectsForText("A pickpocket successfully lifted 1d4 pieces of your gear", "mishap"))
+      .toEqual([{ kind: "removeGear", count: "1d4" }]);
   });
 });
