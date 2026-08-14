@@ -11,7 +11,8 @@ import {
   type Effect,
   type EffectHook,
 } from "./effects";
-import type { Dice } from "./dice";
+import { Dice } from "./dice";
+export { Dice };
 import { Inventory, ItemStateTracker, type ItemDef } from "./inventory";
 import type { MonsterBiome } from "./monster";
 
@@ -310,6 +311,7 @@ export interface CharacterInit {
   /** The biome this character calls home. Governs which classes they could
    * have started as, and which biome's captives they can be rescued from. */
   homeBiome?: MonsterBiome;
+  method?: StatGenerationMethod;
 }
 
 export class Character {
@@ -321,6 +323,7 @@ export class Character {
   readonly ancestry: Ancestry;
   readonly voiceRegister: VoiceRegister;
   readonly homeBiome: MonsterBiome | null;
+  readonly method: StatGenerationMethod;
   readonly trainedSkills = new Set<string>();
 
   level = 1;
@@ -380,6 +383,7 @@ export class Character {
     this.ancestry = parseAncestry(init.ancestry ?? "human");
     this.voiceRegister = init.voiceRegister ?? voiceRegisterForIdentity(init.id, init.name);
     this.homeBiome = init.homeBiome ?? null;
+    this.method = init.method ?? "unearthed-arcana";
     for (const s of STAT_NAMES) statModifier(this.stats[s]); // validate
     this.baseMaxHp = init.maxHp;
     this.hp = this.maxHp;

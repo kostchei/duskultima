@@ -85,9 +85,10 @@ export class UltimaFrame {
       if (hpPct < 30) hpClass = "danger";
       else if (hpPct < 60) hpClass = "warning";
 
+      const fontClass = char.method === "iron-man" ? "font-ironman" : "font-unearthed-arcana";
       card.innerHTML = `
         <div class="member-header">
-          <span class="member-name">${idx + 1}. ${char.name}</span>
+          <span class="member-name ${fontClass}">${idx + 1}. ${char.name}</span>
           ${isLeader ? '<span class="leader-star">★ LEADER</span>' : ""}
         </div>
         <div class="member-stats">

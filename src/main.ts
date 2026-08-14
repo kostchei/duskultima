@@ -4,7 +4,7 @@
  */
 
 import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ClassName, type ConditionKind, type MonsterBiome, type StatGenerationMethod, type TreasureQuality } from "./engine/index";
-import { Character } from "./engine/character";
+import { Character, type Stats } from "./engine/character";
 import { classDef, createCharacter, registerTables } from "./data/index";
 import { bestTreasureQuality, rollFabledItem, rollTreasureCache } from "./data/treasureGeneration";
 import { MapGrid } from "./game/level/MapGrid";
@@ -42,6 +42,8 @@ class Game {
   private movementBandsRemaining: 0 | 1 | 2 = 2;
   private actionAvailable = true;
   private autoFollowerIds = new Set<string>();
+  private pendingLevelUps: Character[] = [];
+  private pendingLevelUpsAfter?: () => void;
   /** Standard Shadowdark: initiative is rolled once when an encounter begins. */
   private combatActive = false;
   private partyActsFirst = true;
@@ -90,6 +92,7 @@ class Game {
     biome: MonsterBiome;
     className: ClassName;
     method: StatGenerationMethod;
+    stats?: Stats;
   }): void {
     const hero = createCharacter(
       this.engine,
@@ -99,7 +102,8 @@ class Game {
       undefined,
       undefined,
       choice.biome,
-      choice.method
+      choice.method,
+      choice.stats
     );
     hero.gold = 40;
 
@@ -280,7 +284,9 @@ class Game {
         const xp = treasureQualityXp(rewardQuality);
         this.party.forEach((char) => this.engine.awardXp(char, xp));
         this.frame.addLog(`${xp} ${rewardQuality}-treasure XP awarded to each party member.`, "hit");
-        if (goalUsesChest(goal)) this.completeSiteGoal(null);
+        this.queueLevelUps(this.party, () => {
+          if (goalUsesChest(goal)) this.completeSiteGoal(null);
+        });
       }
     }
     if (moved === 0) {
@@ -309,7 +315,8 @@ class Game {
       rescueClass,
       undefined,
       undefined,
-      this.currentSite.biome
+      this.currentSite.biome,
+      this.party[0]?.method ?? "iron-man"
     );
 
     // Add to active party
@@ -464,29 +471,44 @@ class Game {
     this.currentSite.goal.isCompleted = true;
 
     this.audio.playVictoryJingle();
-    this.frame.addLog(`★ SITE GOAL COMPLETED: ${this.currentSite.goal.description}! XP comes from treasure and boons.`, "hit");
+    // Shadowdark RAW: non-treasure achievements ("boons") award XP on the same
+    // poor/normal/fabulous/legendary scale as treasure quality.
+    const boonQuality: TreasureQuality = this.currentSite.goal.treasureQuality ?? "normal";
+    const boonXp = treasureQualityXp(boonQuality);
+    this.party.forEach((char) => this.engine.awardXp(char, boonXp));
+    this.frame.addLog(`★ SITE GOAL COMPLETED: ${this.currentSite.goal.description}! +${boonXp} boon XP awarded to each party member.`, "hit");
 
     const isFinalSite = this.currentAdventure.currentSiteIndex >= this.currentAdventure.sites.length - 1;
-    this.modals.showSiteCompleteModal(
-      this.currentSite.name,
-      this.currentSite.goal.description,
-      rescuedHeroName,
-      isFinalSite,
-      () => this.advanceSite()
-    );
+    this.queueLevelUps(this.party, () => {
+      this.modals.showSiteCompleteModal(
+        this.currentSite.name,
+        this.currentSite.goal.description,
+        rescuedHeroName,
+        isFinalSite,
+        () => this.advanceSite()
+      );
+    });
   }
 
   private advanceSite(): void {
     if (this.currentAdventure.currentSiteIndex < this.currentAdventure.sites.length - 1) {
       this.currentAdventure.currentSiteIndex++;
       this.loadCurrentSite();
-    } else {
-      this.frame.addLog(`★ ADVENTURE COMPLETED: ${this.currentAdventure.name}! Generating next Adventure campaign...`, "system");
-      this.startNewAdventure();
+      this.grid.updateFov(this.isTorchActive ? 4 : 1);
+      this.updateUi();
+      this.render();
+      return;
     }
-    this.grid.updateFov(this.isTorchActive ? 4 : 1);
-    this.updateUi();
-    this.render();
+    const boonXp = treasureQualityXp("legendary");
+    this.party.forEach((char) => this.engine.awardXp(char, boonXp));
+    this.frame.addLog(`★ ADVENTURE COMPLETED: ${this.currentAdventure.name}! +${boonXp} legendary boon XP awarded to each party member.`, "system");
+    this.queueLevelUps(this.party, () => {
+      this.frame.addLog("Generating next Adventure campaign...", "system");
+      this.startNewAdventure();
+      this.grid.updateFov(this.isTorchActive ? 4 : 1);
+      this.updateUi();
+      this.render();
+    });
   }
 
   private handleAttack(): void {
@@ -595,6 +617,44 @@ class Game {
     return this.party.filter((member) => !member.dead);
   }
 
+  /**
+   * XP resets to 0 on level-up, so a character can never carry excess XP into
+   * the next threshold — each one that qualifies must clear its own level-up
+   * screen before further game flow (e.g. the next modal) proceeds.
+   */
+  private queueLevelUps(candidates: Character[], after?: () => void): void {
+    const eligible = candidates.filter((char) => !char.dead && this.engine.canLevelUp(char));
+    if (eligible.length === 0) {
+      after?.();
+      return;
+    }
+    this.pendingLevelUps.push(...eligible);
+    this.pendingLevelUpsAfter = after;
+    this.processNextLevelUp();
+  }
+
+  private processNextLevelUp(): void {
+    const char = this.pendingLevelUps.shift();
+    if (!char) {
+      const after = this.pendingLevelUpsAfter;
+      this.pendingLevelUpsAfter = undefined;
+      this.modals.hide();
+      after?.();
+      return;
+    }
+    if (!this.engine.canLevelUp(char)) {
+      this.processNextLevelUp();
+      return;
+    }
+    const def = classDef(char.className);
+    const result = this.engine.levelUp(char, def.hitDie, def.talentTableId);
+    this.frame.addLog(`★ ${char.name} reaches Level ${result.newLevel}! +${result.hpGained} HP.`, "system");
+    this.modals.showLevelUpModal(char, result, () => {
+      this.updateUi();
+      this.processNextLevelUp();
+    });
+  }
+
   private handleCarouse(tier: CarouseTier): void {
     const participants = this.livingParty();
     const cost = groupCarouseCost(tier, participants.length);
@@ -615,6 +675,7 @@ class Game {
     });
     this.audio.playVictoryJingle();
     this.updateUi();
+    this.queueLevelUps(participants);
   }
 
   private handlePass(): void {
@@ -776,7 +837,7 @@ class Game {
   }
 
   private render(): void {
-    this.renderer.render(this.grid);
+    this.renderer.render(this.grid, this.party, this.leaderIndex);
   }
 }
 

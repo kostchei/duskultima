@@ -114,7 +114,7 @@ export function registerTables(engine: Engine): void {
  * classes) roll unconstrained — the priority-order method already stacks
  * their best rolls onto their own primary/secondary stats.
  */
-const CLASS_STAT_REQUIREMENTS: Partial<Record<ClassName, Partial<Record<StatName, number>>>> = {
+export const CLASS_STAT_REQUIREMENTS: Partial<Record<ClassName, Partial<Record<StatName, number>>>> = {
   fighter: { STR: 12 },
   cleric: { WIS: 12 },
   thief: { DEX: 12 },
@@ -127,6 +127,12 @@ const CLASS_STAT_REQUIREMENTS: Partial<Record<ClassName, Partial<Record<StatName
   seawolf: { STR: 12, CON: 12 },
   warlock: { CHA: 12 },
 };
+
+export function isClassQualified(stats: Stats, cls: ClassName): boolean {
+  const reqs = CLASS_STAT_REQUIREMENTS[cls];
+  if (!reqs) return true;
+  return (Object.entries(reqs) as [StatName, number][]).every(([stat, min]) => stats[stat] >= min);
+}
 
 /**
  * Roll a stat array for this class with the chosen generation method, silently
@@ -187,10 +193,11 @@ export function createCharacter(
   alignment?: Alignment,
   homeBiome?: MonsterBiome,
   method: StatGenerationMethod = "unearthed-arcana",
+  customStats?: Stats,
 ): Character {
   const def = classDef(cls);
   const resolvedAncestry = ancestry ?? rollAncestry(engine.dice);
-  const stats = rollStatsForClass(engine.dice, cls, method);
+  const stats = customStats ?? rollStatsForClass(engine.dice, cls, method);
 
   const conMod = Math.floor((stats.CON - 10) / 2);
   const hitDieSides = parseInt(def.hitDie.split("d")[1] || "8", 10);
@@ -204,6 +211,7 @@ export function createCharacter(
     ancestry: resolvedAncestry,
     alignment: alignment ?? rollAlignment(engine.dice),
     homeBiome,
+    method,
   });
   for (const f of def.features) c.addEffect(bindMastery(structuredClone(f), def.startingWeaponId));
   initializeClassState(c);

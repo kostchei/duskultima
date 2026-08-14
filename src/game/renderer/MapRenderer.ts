@@ -5,6 +5,7 @@
 
 import { MapGrid } from "../level/MapGrid";
 import { TileSet, TileType, TILE_SIZE } from "./TileSet";
+import type { Character } from "../../engine/character";
 
 export class MapRenderer {
   private canvas: HTMLCanvasElement;
@@ -28,7 +29,7 @@ export class MapRenderer {
     this.cursorY = y;
   }
 
-  public render(grid: MapGrid): void {
+  public render(grid: MapGrid, party: Character[] = [], leaderIndex = 0): void {
     // Update biome palette if site biome changed
     if (grid.siteDef && grid.siteDef.biome !== this.lastBiome) {
       this.lastBiome = grid.siteDef.biome;
@@ -89,12 +90,18 @@ export class MapRenderer {
 
           // Draw Player Party Leader if at gx, gy
           if (gx === grid.playerPos.x && gy === grid.playerPos.y) {
-            const playerCvs = this.tileSet.getTileCanvas(TileType.FIGHTER);
+            const leaderChar = party[leaderIndex];
+            const playerCvs = leaderChar
+              ? this.tileSet.getHeroTileCanvas(leaderChar.className, leaderChar.method)
+              : this.tileSet.getTileCanvas(TileType.FIGHTER);
             ctx.drawImage(playerCvs, screenX, screenY, TILE_SIZE, TILE_SIZE);
           }
-          for (const position of grid.partyPositions.values()) {
+          for (const [charId, position] of grid.partyPositions.entries()) {
             if (gx === position.x && gy === position.y) {
-              const followerCvs = this.tileSet.getTileCanvas(TileType.PRIEST);
+              const followerChar = party.find((member) => member.id === charId);
+              const followerCvs = followerChar
+                ? this.tileSet.getHeroTileCanvas(followerChar.className, followerChar.method)
+                : this.tileSet.getTileCanvas(TileType.PRIEST);
               ctx.drawImage(followerCvs, screenX, screenY, TILE_SIZE, TILE_SIZE);
               break;
             }

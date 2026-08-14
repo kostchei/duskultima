@@ -3,7 +3,7 @@
  * Supports biome-specific terrain palettes for all 6 Cursed Scroll zones.
  */
 
-import type { MonsterBiome } from "../../engine";
+import type { MonsterBiome, ClassName, StatGenerationMethod } from "../../engine";
 
 export const TILE_SIZE = 32;
 
@@ -58,6 +58,7 @@ const BIOME_PALETTES: Record<MonsterBiome, BiomePalette> = {
 export class TileSet {
   private currentBiome: MonsterBiome = "diablerie";
   private tileMap = new Map<TileType, HTMLCanvasElement>();
+  private heroTileCache = new Map<string, HTMLCanvasElement>();
 
   constructor(biome: MonsterBiome = "diablerie") {
     this.setBiome(biome);
@@ -65,7 +66,69 @@ export class TileSet {
 
   public setBiome(biome: MonsterBiome): void {
     this.currentBiome = biome;
+    this.heroTileCache.clear();
     this.generateAllTiles();
+  }
+
+  public getHeroTileCanvas(className: ClassName, method: StatGenerationMethod = "unearthed-arcana"): HTMLCanvasElement {
+    const key = `${className}_${method}_${this.currentBiome}`;
+    if (this.heroTileCache.has(key)) {
+      return this.heroTileCache.get(key)!;
+    }
+
+    const palette = BIOME_PALETTES[this.currentBiome] || BIOME_PALETTES["diablerie"];
+    const symbol = className.charAt(0).toUpperCase();
+    const isIronman = method === "iron-man";
+
+    const cvs = this.drawFloorTile(palette);
+    const ctx = cvs.getContext("2d")!;
+
+    if (isIronman) {
+      // Ironman: Barbaric deep blood ring with Conan Display font
+      ctx.fillStyle = "#3e1203";
+      ctx.beginPath();
+      ctx.arc(16, 16, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#c1440e";
+      ctx.beginPath();
+      ctx.arc(16, 16, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#ffd45f";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 13px 'Conan Display', 'MedievalSharp', monospace";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(symbol, 16, 16);
+    } else {
+      // Unearthed Arcana: Chrome metallic cyan ring with Classic Chrome font
+      ctx.fillStyle = "#091724";
+      ctx.beginPath();
+      ctx.arc(16, 16, 12, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#34c4f2";
+      ctx.beginPath();
+      ctx.arc(16, 16, 9.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = "#f2c760";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 12px 'Classic Chrome', 'Orbitron', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(symbol, 16, 16);
+    }
+
+    this.heroTileCache.set(key, cvs);
+    return cvs;
   }
 
   public getTileCanvas(type: TileType): HTMLCanvasElement {

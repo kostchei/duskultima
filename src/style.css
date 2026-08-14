@@ -364,6 +364,20 @@ body.crt-off::before {
   cursor: pointer;
 }
 
+@font-face {
+  font-family: "Conan Display";
+  src: url("/assets/fonts/CrushYourEnemies-Bold.ttf") format("truetype");
+  font-display: block;
+}
+
+@font-face {
+  font-family: "Classic Chrome";
+  src:
+    url("/assets/fonts/classic-chrome/ClassicChrome-Display.woff2") format("woff2"),
+    url("/assets/fonts/classic-chrome/ClassicChrome-Display.ttf") format("truetype");
+  font-display: swap;
+}
+
 .modal-title {
   font-family: var(--font-pixel);
   font-size: 16px;
@@ -372,3 +386,98 @@ body.crt-off::before {
   border-bottom: 2px solid var(--panel-border-inner);
   padding-bottom: 8px;
 }
+
+/* Ironman: Conan Display title face extracted from AIGM */
+.font-ironman, .aigm-ironman-conan {
+  display: inline-block;
+  font-family: "Conan Display", "MedievalSharp", cursive, serif;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #c1440e;
+  text-shadow: 2px 2px 0 #3e1203, 0 0 10px rgba(193, 68, 14, 0.4);
+}
+
+/* Unearthed Arcana: Classic Chrome face extracted from AIGM */
+.font-unearthed-arcana, .aigm-ua-chrome {
+  display: inline-block;
+  font-family: "Classic Chrome", "Orbitron", "Arial Black", sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #f2b64e;
+  background: linear-gradient(
+    #34c4f2 0%,
+    #c4f5ff 38%,
+    #fff 46%,
+    #713214 49%,
+    #cc702c 69%,
+    #ffc75f 94%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.35px #f2c760;
+  paint-order: stroke fill;
+  filter:
+    drop-shadow(0.04em 0.05em 0 #6f371c)
+    drop-shadow(0.075em 0.09em 0 #c66d2f);
+}
+
+/* Mode Selection Cards in Character Creation matching AIGM */
+.mode-card-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.mode-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 120px;
+  padding: 16px;
+  background: #12121a;
+  border: 1px solid #2a2d38;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.mode-card:hover {
+  border-color: #ffd45f;
+  background: #1a1a26;
+}
+
+.mode-card.selected-ironman {
+  border-color: #c1440e;
+  box-shadow: 0 0 14px rgba(193, 68, 14, 0.4), inset 0 0 10px rgba(62, 18, 3, 0.5);
+  background: #1f100b;
+}
+
+.mode-card.selected-unearthed-arcana {
+  border-color: #34c4f2;
+  box-shadow: 0 0 14px rgba(52, 196, 242, 0.4), inset 0 0 10px rgba(113, 50, 20, 0.5);
+  background: #091724;
+}
+
+.mode-card-title-ironman {
+  font-family: "Conan Display", cursive, serif;
+  font-size: 24px;
+  letter-spacing: 0.05em;
+  color: #8f2020;
+  text-shadow: 2px 2px 0 #5a321f, 4px 4px 0 #2d1a12;
+  line-height: 1;
+}
+
+.mode-card-sublabel {
+  font-size: 13px;
+  color: #8b8f9c;
+  line-height: 1.3;
+}
+
+
