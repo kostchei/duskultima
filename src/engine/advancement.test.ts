@@ -15,9 +15,9 @@ function hero(): Character {
 }
 
 describe("Shadowdark advancement XP", () => {
-  it("uses the published formula: current level x 10 to reach the next level", () => {
+  it("uses the published XP schedule by destination level", () => {
     expect([1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(xpToNextLevel)).toEqual([
-      10, 20, 30, 40, 50, 60, 70, 80, 90, 0,
+      10, 20, 20, 20, 20, 20, 30, 30, 30, 0,
     ]);
   });
 

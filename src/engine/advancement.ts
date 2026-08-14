@@ -1,6 +1,6 @@
 /**
- * Advancement: XP comes from treasure and boons only. The XP requirement is
- * the current level multiplied by 10, and XP resets when that level is gained.
+ * Advancement: XP comes from treasure and boons only. The source advancement
+ * table sets XP by destination level, and XP resets when that level is gained.
  * Level-up rolls HP (class hit die + CON) and 2d6 on the class talent table.
  */
 
@@ -12,11 +12,24 @@ import { applyClassLevelProgression } from "./classAbilities";
 
 export const MAX_LEVEL = 10;
 
+/** Source Shadowdark advancement table: XP required by destination level. */
+const XP_BY_DESTINATION_LEVEL: Readonly<Record<number, number>> = {
+  2: 10,
+  3: 20,
+  4: 20,
+  5: 20,
+  6: 20,
+  7: 20,
+  8: 30,
+  9: 30,
+  10: 30,
+};
+
 export function xpToNextLevel(level: number): number {
   if (!Number.isInteger(level) || level < 1 || level > MAX_LEVEL) {
     throw new Error(`Invalid level ${level}`);
   }
-  return level === MAX_LEVEL ? 0 : level * 10;
+  return XP_BY_DESTINATION_LEVEL[level + 1] ?? 0;
 }
 
 export interface LevelUpResult {

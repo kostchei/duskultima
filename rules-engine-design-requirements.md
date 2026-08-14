@@ -112,10 +112,9 @@ No slots. Casting = spell check: d20 + INT (wizard) / WIS (priest) vs **DC 10 + 
 
 - **XP comes from treasure only.** Gems/idols/crowns carry `xpValue`; coins bank
   toward 100-coin thresholds (1 XP per full 100, tracked by the game context).
-- Authoritative XP formula: the current level multiplied by 10 is required to
-  reach the next level. XP resets to zero on level-up; excess is discarded.
-- Threshold: `(current level x 10)` XP to reach the next level; max level 10.
-  XP resets to zero when the level is gained, and excess XP is discarded.
+- Authoritative XP schedule is keyed by destination level: L2 10 XP, L3-L7
+  20 XP, and L8-L10 30 XP. XP resets to zero when the level is gained; excess
+  XP is discarded. Max level is 10.
 - Level-up rolls HP (class hit die + CON, min 1), **heals to full** (pulling a
   dying character back up), and rolls **2d6 on the class talent table**, whose
   structured effects mutate the character's hooks. Talent rolls occur at levels

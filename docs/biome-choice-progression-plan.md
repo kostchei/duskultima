@@ -51,8 +51,9 @@ kits land.
 - **`SaveSlot`** (`src/game/state.ts:45`) persists `dungeonIndex`, `runSeed`,
   `party`, `coinsBanked`, etc. **It has no zone/scroll field today.**
 - **Level-up already happens per dungeon** through the reward + advancement
-  systems; "advance to the next level" here means the existing progression, not a
-  new XP rule. Confirm against `src/engine/advancement.ts` during implementation.
+  systems; "advance to the next level" here means the existing progression.
+  The source XP schedule is keyed by destination level: 10 XP for L2, 20 XP for
+  L3-L7, and 30 XP for L8-L10; XP resets on level-up and excess is discarded.
 - **Victory UI** is the overlay in `Hud.ts` (~line 813) that currently just says
   "Press R to enter the next dungeon." This is where the choice screen inserts.
 

@@ -199,7 +199,7 @@ class Character:
 
     # Level Up Progression
     function check_level_up():
-        xp_needed = this.level * 10
+        xp_needed = { 1: 10, 2: 20, 3: 20, 4: 20, 5: 20, 6: 20, 7: 30, 8: 30, 9: 30 }[this.level]
         if this.xp >= xp_needed:
             this.xp = 0 # Reset XP (page 37)
             this.level += 1
