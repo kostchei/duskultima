@@ -139,6 +139,22 @@ class Game {
       onToggleAuto: (idx) => this.toggleAutoFollower(idx),
       onInteract: () => this.handleInteract(),
       onToggleCrt: () => this.handleToggleCrt(),
+      onCustomPrompt: () => this.handleCustomPrompt(),
+    });
+  }
+
+  private handleCustomPrompt(): void {
+    this.modals.showCustomAdventureModal((promptText) => {
+      this.currentAdventure = this.adventureGenerator.generateFromPrompt(
+        promptText,
+        this.party.length,
+        this.unrescuedClasses
+      );
+      this.frame.addLog(`★ CUSTOM QUEST GENERATED: "${promptText}"`, "system");
+      this.loadCurrentSite();
+      this.grid.updateFov(this.isTorchActive ? 4 : 1);
+      this.updateUi();
+      this.render();
     });
   }
 

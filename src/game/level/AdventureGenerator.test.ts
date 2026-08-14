@@ -62,4 +62,64 @@ describe("AdventureGenerator goals", () => {
     expect(eggProfiles.find((profile) => profile.speciesId === "purple-worm")?.guardianMonsterId).toBe("purple-worm");
     expect(eggProfiles.find((profile) => profile.speciesId === "purple-worm")?.speciesName).toBe("Purple Worm");
   });
+
+  describe("Natural Language Prompt Parsing", () => {
+    it("parses rescue prompt 'rescue the thief <name> from the small rimesea caves'", () => {
+      const generator = new AdventureGenerator(42);
+      const site = generator.parseSiteFromPrompt("rescue the thief <name> from the small rimesea caves");
+
+      expect(site.sizeCategory).toBe("small");
+      // Room count rolled dynamically for small: 1d4 + 2 (3 to 6 rooms)
+      expect(site.roomCount).toBeGreaterThanOrEqual(3);
+      expect(site.roomCount).toBeLessThanOrEqual(6);
+      expect(site.biome).toBe("midnight-sun");
+      expect(site.goal.kind).toBe("rescue-companion");
+      expect(site.goal.rescueClass).toBe("thief");
+      expect(site.goal.target).toBe("Lyra the THIEF");
+    });
+
+    it("parses rescue prompt with explicit hero name 'rescue the thief Lyra from the small rimesea caves'", () => {
+      const generator = new AdventureGenerator(42);
+      const site = generator.parseSiteFromPrompt("rescue the thief Lyra from the small rimesea caves");
+
+      expect(site.sizeCategory).toBe("small");
+      expect(site.biome).toBe("midnight-sun");
+      expect(site.goal.kind).toBe("rescue-companion");
+      expect(site.goal.rescueClass).toBe("thief");
+      expect(site.goal.target).toBe("Lyra the THIEF");
+    });
+
+    it("parses egg prompt with typo 'gather the dargon eggs from the medium hazardous approach'", () => {
+      const generator = new AdventureGenerator(42);
+      const site = generator.parseSiteFromPrompt("gather the dargon eggs from the medium hazardous approach");
+
+      expect(site.sizeCategory).toBe("medium");
+      // Room count rolled dynamically for medium: 2d4 + 1 (3 to 9 rooms)
+      expect(site.roomCount).toBeGreaterThanOrEqual(3);
+      expect(site.roomCount).toBeLessThanOrEqual(9);
+      expect(site.biome).toBe("red-sands");
+      expect(site.goal.kind).toBe("monster-eggs");
+      expect(site.goal.target).toContain("Dragon eggs");
+      expect(site.goal.eggSpeciesName).toContain("Dragon");
+    });
+
+    it("generates a multi-site adventure from a composite prompt string", () => {
+      const generator = new AdventureGenerator(42);
+      const prompt = "rescue the thief Lyra from the small rimesea caves or gather the dargon eggs from the medium hazardous approach";
+      const adventure = generator.generateFromPrompt(prompt);
+
+      expect(adventure.sites.length).toBe(2);
+
+      const site1 = adventure.sites[0]!;
+      expect(site1.sizeCategory).toBe("small");
+      expect(site1.biome).toBe("midnight-sun");
+      expect(site1.goal.kind).toBe("rescue-companion");
+
+      const site2 = adventure.sites[1]!;
+      expect(site2.sizeCategory).toBe("medium");
+      expect(site2.biome).toBe("red-sands");
+      expect(site2.goal.kind).toBe("monster-eggs");
+    });
+  });
 });
+

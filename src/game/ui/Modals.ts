@@ -198,4 +198,48 @@ export class Modals {
       <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalProceedSite()">${btnText}</button>
     `;
   }
+
+  public showCustomAdventureModal(onGenerate: (prompt: string) => void): void {
+    this.overlay.classList.remove("hidden");
+
+    (window as any).onModalGenerateAdventure = () => {
+      const textarea = document.getElementById("prompt-input") as HTMLTextAreaElement;
+      const prompt = textarea?.value?.trim() || "rescue the thief Lyra from the small rimesea caves";
+      onGenerate(prompt);
+      this.hide();
+    };
+
+    (window as any).onModalPickPreset = (presetText: string) => {
+      const textarea = document.getElementById("prompt-input") as HTMLTextAreaElement;
+      if (textarea) textarea.value = presetText;
+    };
+
+    this.body.innerHTML = `
+      <div class="modal-title">Custom Adventure Prompt Generator</div>
+      <p style="margin-bottom: 8px; color: #ccc;">Describe your adventure in natural language. Note: site sizes (small, medium, large) dictate room counts automatically without requiring explicit room numbers!</p>
+
+      <div style="margin-bottom: 12px;">
+        <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 4px;">Preset Prompts:</label>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <button class="cmd-btn" style="font-size: 13px; text-align: left; padding: 6px;" onclick="window.onModalPickPreset('rescue the thief <name> from the small rimesea caves')">
+            1. "rescue the thief &lt;name&gt; from the small rimesea caves"
+          </button>
+          <button class="cmd-btn" style="font-size: 13px; text-align: left; padding: 6px;" onclick="window.onModalPickPreset('gather the dargon eggs from the medium hazardous approach')">
+            2. "gather the dargon eggs from the medium hazardous approach"
+          </button>
+          <button class="cmd-btn" style="font-size: 13px; text-align: left; padding: 6px;" onclick="window.onModalPickPreset('rescue the thief Lyra from the small rimesea caves or gather the dragon eggs from the medium hazardous approach')">
+            3. Multi-site: "rescue the thief Lyra from the small rimesea caves or gather the dragon eggs from the medium hazardous approach"
+          </button>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 4px;">Adventure Prompt Text:</label>
+        <textarea id="prompt-input" rows="3" style="width: 100%; box-sizing: border-box; padding: 8px; font-family: inherit; font-size: 14px; background: #111; color: #f1c40f; border: 1px solid #4a3810;">rescue the thief Lyra from the small rimesea caves</textarea>
+      </div>
+
+      <button class="cmd-btn" style="font-size: 18px; width: 100%; padding: 10px;" onclick="window.onModalGenerateAdventure()">Generate & Start Adventure</button>
+    `;
+  }
 }
+

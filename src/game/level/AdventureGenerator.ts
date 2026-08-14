@@ -293,6 +293,210 @@ export class AdventureGenerator {
     };
   }
 
+  /**
+   * Generates a play-ready Adventure parsed from natural language prompt descriptions.
+   * Prompts can contain site descriptions separated by " or ", " and ", ";", or newlines.
+   * Dynamic room counting is applied automatically according to the parsed site size category.
+   */
+  public generateFromPrompt(
+    prompt: string,
+    partySize: number = 1,
+    unrescuedClasses: Array<"thief" | "priest" | "wizard"> = ["thief", "priest", "wizard"]
+  ): Adventure {
+    const rawFragments = prompt
+      .split(/\s+(?:or|and)\s+|[;\n]+/i)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    const siteDescriptions = rawFragments.length > 0 ? rawFragments : [prompt];
+    const sites: SiteDef[] = siteDescriptions.map((desc, idx) => this.parseSiteFromPrompt(desc, idx));
+
+    const firstSite = sites[0];
+    const advTitle = firstSite
+      ? `Adventure: ${firstSite.name}`
+      : "Custom Prompt Adventure";
+
+    return {
+      id: `adv-prompt-${Date.now()}`,
+      name: advTitle,
+      sites,
+      currentSiteIndex: 0,
+    };
+  }
+
+  /**
+   * Parses a single site description string into a structured SiteDef.
+   * Handles size extraction, biome matching across all 6 zones, goal extraction,
+   * typo correction ("dargon" -> "dragon"), and placeholder substitution ("<name>").
+   */
+  public parseSiteFromPrompt(description: string, siteIndex: number = 0, defaultBiome?: MonsterBiome): SiteDef {
+    const text = description.trim();
+
+    // 1. Size Category & Room Count
+    let sizeCategory: SiteSize = "medium";
+    if (/\bsmall\b/i.test(text)) sizeCategory = "small";
+    else if (/\blarge\b/i.test(text)) sizeCategory = "large";
+    else if (/\bmedium\b/i.test(text)) sizeCategory = "medium";
+
+    const roomCount = this.rollRoomCount(sizeCategory);
+
+    // 2. Biome Resolution
+    let biome: MonsterBiome = defaultBiome ?? "diablerie";
+    if (/\b(?:rimesea|rime-sea|rime|frost|dverg|glacial|ice)\b/i.test(text)) {
+      biome = "midnight-sun";
+    } else if (/\b(?:hazardous\s+approach|hazardous|red\s*sand|red-sands|sand|desert|ziggurat|djurum)\b/i.test(text)) {
+      biome = "red-sands";
+    } else if (/\b(?:rot-bramble|bramble|swamp|bog|mud|diablerie|willowman|mugdulblub)\b/i.test(text)) {
+      biome = "diablerie";
+    } else if (/\b(?:river\s*of\s*night|chasm|canopy|subterranean|vaults)\b/i.test(text)) {
+      biome = "river-of-night";
+    } else if (/\b(?:dwellers|deep|cenote|trench|coral|abyssal|sunken\s*fane)\b/i.test(text)) {
+      biome = "dwellers-in-the-deep";
+    } else if (/\b(?:city\s*of\s*masks|rooftop|thieves|asylum|urban|cobblestone)\b/i.test(text)) {
+      biome = "city-of-masks";
+    }
+
+    // 3. Goal Extraction
+    let goal: SiteGoal;
+
+    // A. Rescue Goal
+    if (/\brescue\b/i.test(text) || /\bhostage\b/i.test(text)) {
+      let rescueClass: "thief" | "priest" | "wizard" = "thief";
+      if (/\bpriest\b/i.test(text)) rescueClass = "priest";
+      else if (/\bwizard\b/i.test(text) || /\bmagic-user\b/i.test(text)) rescueClass = "wizard";
+
+      const defaultName = rescueClass === "thief" ? "Lyra" : rescueClass === "priest" ? "Elen" : "Vael";
+
+      // Match explicit name if given (e.g. "rescue the thief Lyra" or "rescue the thief <name>")
+      let heroName = defaultName;
+      const nameMatch = text.match(/\brescue\s+(?:the\s+)?(?:thief|priest|wizard)\s+(?:<([\w\s]+)>|([\w]+))/i);
+      if (nameMatch) {
+        const extracted = (nameMatch[1] || nameMatch[2] || "").trim();
+        if (extracted && extracted.toLowerCase() !== "from" && extracted.toLowerCase() !== "in" && extracted !== "name") {
+          heroName = extracted;
+        }
+      }
+
+      goal = {
+        kind: "rescue-companion",
+        verb: "Rescue",
+        target: `${heroName} the ${rescueClass.toUpperCase()}`,
+        isRescue: true,
+        rescueClass: rescueClass,
+        completion: "rescue",
+        approaches: ["combat", "stealth", "evasion", "social"],
+        requiresAllHostilesDefeated: false,
+        objectiveEntity: "rescue-companion",
+        isCompleted: false,
+        description: `Rescue ${heroName} the ${rescueClass.toUpperCase()} from captivity`,
+      };
+    }
+    // B. Monster Eggs Goal (supports typo "dargon")
+    else if (/\b(?:gather|retrieve|collect|steal|harvest|find)\s+.*(?:dargon|dragon|monster|\w+)\s+eggs\b/i.test(text) || /\beggs\b/i.test(text)) {
+      const isDragon = /\b(?:dargon|dragon)\b/i.test(text) || !eggProfilesForBiome(biome).length;
+      const profiles = eggProfilesForBiome(biome);
+
+      let eggProfile: EggGuardianProfile | undefined;
+      if (isDragon) {
+        eggProfile = profiles.find((p) => p.speciesId.includes("dragon")) ?? {
+          speciesId: "frost-dragon",
+          speciesName: "Dragon",
+          guardianName: "the dragon mother",
+          guardianMonsterId: "frost-dragon",
+          guardianSize: "gargantuan",
+          treasureQuality: "legendary",
+        };
+      } else if (profiles.length > 0) {
+        eggProfile = profiles[0];
+      }
+
+      const speciesName = eggProfile?.speciesName ?? "Dragon";
+      const guardianName = eggProfile?.guardianName ?? "the nesting mother";
+
+      goal = {
+        kind: "monster-eggs",
+        verb: "Retrieve",
+        target: `${speciesName} eggs`,
+        isRescue: false,
+        completion: "acquire",
+        approaches: ["combat", "stealth", "evasion"],
+        requiresAllHostilesDefeated: false,
+        targetItemId: "monster-egg",
+        requiredQuantity: 1,
+        treasureQuality: eggProfile?.treasureQuality ?? "legendary",
+        guardianName,
+        eggSpeciesId: eggProfile?.speciesId ?? "dragon",
+        eggSpeciesName: speciesName,
+        guardianMonsterId: eggProfile?.guardianMonsterId ?? "frost-dragon",
+        guardianSize: eggProfile?.guardianSize ?? "gargantuan",
+        isCompleted: false,
+        description: `Gather ${speciesName} eggs without waking ${guardianName}`,
+      };
+    }
+    // C. Cleanse / Hex Goal
+    else if (/\b(?:cleanse|lift|hex|rot-bramble)\b/i.test(text)) {
+      goal = {
+        kind: "lift-hex",
+        verb: "Cleanse",
+        target: "the Rot-Bramble hex",
+        isRescue: false,
+        completion: "interact",
+        approaches: ["combat", "stealth", "evasion", "social"],
+        requiresAllHostilesDefeated: false,
+        objectiveEntity: "objective",
+        isCompleted: false,
+        description: "Lift the Rot-Bramble hex",
+      };
+    }
+    // D. Slay / Boss Goal
+    else if (/\b(?:slay|kill|defeat|assassinate)\b/i.test(text)) {
+      goal = {
+        kind: "kill-boss",
+        verb: "Slay",
+        target: "the site boss",
+        isRescue: false,
+        completion: "defeat-target",
+        approaches: ["combat", "stealth", "evasion"],
+        requiresAllHostilesDefeated: false,
+        isCompleted: false,
+        description: "Slay the site boss",
+      };
+    }
+    // E. Default: Fabled Item / Treasure
+    else {
+      goal = {
+        kind: "fabled-item",
+        verb: "Retrieve",
+        target: "a random fabled magical item",
+        isRescue: false,
+        completion: "acquire",
+        approaches: ["combat", "stealth", "evasion"],
+        requiresAllHostilesDefeated: false,
+        treasureQuality: "legendary",
+        isCompleted: false,
+        description: "Recover a random fabled magical item",
+      };
+    }
+
+    // 4. Site Name Construction
+    // Clean up description for nice site name
+    let siteName = text
+      .replace(/^(?:the|an|a)\s+/i, "")
+      .replace(/<[^>]+>/g, "Lyra")
+      .replace(/\b(dargon)\b/ig, "dragon");
+
+    siteName = siteName.charAt(0).toUpperCase() + siteName.slice(1);
+
+    return {
+      id: `site-prompt-${siteIndex + 1}`,
+      name: siteName,
+      biome,
+      sizeCategory,
+      roomCount,
+      goal,
+    };
+  }
+
   private rollRoomCount(size: SiteSize): number {
     switch (size) {
       case "small":
@@ -309,3 +513,4 @@ export class AdventureGenerator {
     return arr[idx]!;
   }
 }
+

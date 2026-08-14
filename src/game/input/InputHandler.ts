@@ -17,6 +17,7 @@ export interface CommandCallbacks {
   onToggleAuto: (index: number) => void;
   onInteract: () => void;
   onToggleCrt: () => void;
+  onCustomPrompt?: () => void;
 }
 
 export class InputHandler {
@@ -90,6 +91,9 @@ export class InputHandler {
         case " ":
           this.callbacks.onPass();
           break;
+        case "n":
+          this.callbacks.onCustomPrompt?.();
+          break;
         case "e":
         case "enter":
           this.callbacks.onInteract();
@@ -128,6 +132,7 @@ export class InputHandler {
           case "rest": this.callbacks.onRest(); break;
           case "pass": this.callbacks.onPass(); break;
           case "stats": this.callbacks.onStats(); break;
+          case "prompt": this.callbacks.onCustomPrompt?.(); break;
         }
       });
     });
