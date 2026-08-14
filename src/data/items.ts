@@ -60,7 +60,7 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   {
     id: "chainmail", name: "Chainmail", slotCost: 2, bundleSize: 1, tags: ["armor"],
     description: "Disadvantage on stealth checks.",
-    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf", "cleric", "paladin", "seawolf", "basilisk-warrior"], stealthDisadvantage: true, swimDisadvantage: true }, armorVisual: "chain", valueGp: 60,
+    armor: { acBase: 13, dexCap: 99, classes: ["fighter", "priest", "pit-fighter", "sea-wolf", "cleric", "paladin", "seawolf", "basilisk-warrior", "bard", "ranger", "necromancer"], stealthDisadvantage: true, swimDisadvantage: true }, armorVisual: "chain", valueGp: 60,
   },
   {
     id: "plate-mail", name: "Plate Mail", slotCost: 3, bundleSize: 1, tags: ["armor"],

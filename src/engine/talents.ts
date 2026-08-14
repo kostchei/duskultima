@@ -19,6 +19,7 @@ export type TalentChoice =
   | { kind: "stat"; id: string; label: string; bonus: number; stats: readonly string[]; options: readonly TalentChoiceOption[] }
   | { kind: "statOrCheck"; id: string; label: string; stat: StatName; statBonus: number; applies: string; checkBonus: number; options: readonly TalentChoiceOption[] }
   | { kind: "statPair"; id: string; label: string; stats: readonly StatName[]; bonus: number; options: readonly TalentChoiceOption[] }
+  | { kind: "statOrHp"; id: string; label: string; stats: readonly StatName[]; statBonus: number; hpBonus: number; options: readonly TalentChoiceOption[] }
   | { kind: "checkKind"; id: string; label: string; applies: readonly string[]; bonus: number; options: readonly TalentChoiceOption[] }
   | { kind: "weaponMastery"; id: string; label: string; bonus: number; options: readonly TalentChoiceOption[] }
   | { kind: "armorAc"; id: string; label: string; bonus: number; options: readonly TalentChoiceOption[] }
@@ -117,6 +118,10 @@ function applyTalentResultInternal(
     if (hook.kind === "statPairChoice") {
       const pairs = hook.stats.flatMap((first, index) => hook.stats.slice(index + 1).map((second) => ({ value: `${first},${second}`, label: `+${hook.bonus} ${first} and ${second}` })));
       pendingChoices.push({ kind: "statPair", id: `${effectId}:stats`, label: text, stats: hook.stats, bonus: hook.bonus, options: pairs });
+      return true;
+    }
+    if (hook.kind === "statOrHpChoice") {
+      pendingChoices.push({ kind: "statOrHp", id: `${effectId}:stat-or-hp`, label: text, stats: hook.stats, statBonus: hook.statBonus, hpBonus: hook.hpBonus, options: [...choiceOptions(hook.stats), { value: "hp", label: `+${hook.hpBonus} HP` }] });
       return true;
     }
     if (hook.kind === "checkKindChoice") {
@@ -223,6 +228,10 @@ export function applyTalentChoice(character: Character, choice: TalentChoice, va
     const [first, second] = value.split(",") as [StatName | undefined, StatName | undefined];
     if (!first || !second || first === second || !choice.stats.includes(first) || !choice.stats.includes(second)) throw new Error(`Invalid stat pair choice "${value}"`);
     character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus", stat: first, bonus: choice.bonus }, { kind: "statBonus", stat: second, bonus: choice.bonus }] });
+  } else if (choice.kind === "statOrHp") {
+    if (value === "hp") character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "maxHpBonus", bonus: choice.hpBonus }] });
+    else if (choice.stats.includes(value as StatName)) character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus", stat: value as StatName, bonus: choice.statBonus }] });
+    else throw new Error(`Invalid stat or HP choice "${value}"`);
   } else if (choice.kind === "checkKind") {
     if (!choice.applies.includes(value)) throw new Error(`Invalid check choice "${value}"`);
     character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "checkBonus", applies: value as any, bonus: choice.bonus }] });

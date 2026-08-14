@@ -17,6 +17,8 @@ export function resourceMaximum(character: Character, resource: ClassResource): 
   if (character.className === "pit-fighter") base.relentless = 3;
   if (character.className === "monk") base.sunOnWater = 1;
   if (character.className === "necromancer") base.returnFromDeath = character.classState.returnFromDeathUses;
+  if (character.className === "basilisk-warrior") base.petrifyingGaze = Math.max(1, character.mod("CON"));
+  if (character.className === "duelist") base.parry = 1;
   let total = base[resource] ?? 0;
   for (const effect of character.effects) for (const hook of effect.hooks) {
     if (hook.kind === "resourceBonus" && hook.resource === resource) total += hook.bonus;
@@ -25,7 +27,7 @@ export function resourceMaximum(character: Character, resource: ClassResource): 
 }
 
 function refillResources(character: Character): void {
-  const resources: ClassResource[] = ["ignoreAttack", "relentless", "berserk", "smokeStep", "paralyze", "waterWalk", "sleep", "wallWalk", "unseen", "familiarTeleport", "omen", "sunOnWater", "returnFromDeath"];
+  const resources: ClassResource[] = ["ignoreAttack", "relentless", "berserk", "smokeStep", "paralyze", "waterWalk", "sleep", "wallWalk", "unseen", "familiarTeleport", "omen", "sunOnWater", "returnFromDeath", "petrifyingGaze", "parry"];
   for (const resource of resources) character.classState.resourceUses[resource] = resourceMaximum(character, resource);
   character.classState.omenUses = character.classState.resourceUses.omen ?? 0;
 }
@@ -274,6 +276,16 @@ export function useSunOnWater(character: Character): number {
   const remaining = spendResource(character, "sunOnWater");
   character.classState.sunOnWaterUses = remaining;
   return remaining;
+}
+
+export function usePetrifyingGaze(character: Character): number {
+  if (character.className !== "basilisk-warrior") throw new Error("Only a Basilisk Warrior has Petrifying Gaze");
+  return spendResource(character, "petrifyingGaze");
+}
+
+export function useParry(character: Character): number {
+  if (character.className !== "duelist") throw new Error("Only a Duelist has Parry");
+  return spendResource(character, "parry");
 }
 
 export function useNecromancerDeathReturn(character: Character): number {

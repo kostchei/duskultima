@@ -467,7 +467,10 @@ export class Character {
     const monkWisdom = !armored && this.effects.some((effect) => effect.hooks.some((hook) => hook.kind === "unarmoredAcWisBonus"))
       ? Math.max(0, this.mod("WIS"))
       : 0;
-    const base = armored ? armored.acBase + Math.min(dex, armored.dexCap) : 10 + dex + monkWisdom;
+    const stoneSkin = !armored
+      ? this.effects.flatMap((effect) => effect.hooks).reduce((sum, hook) => sum + (hook.kind === "unarmoredAcLevelBonus" ? hook.base + Math.floor(this.level / 2) : 0), 0)
+      : 0;
+    const base = armored ? armored.acBase + Math.min(dex, armored.dexCap) : 10 + dex + monkWisdom + stoneSkin;
     const shield = this.carriedShield && !this.shieldStowed
       ? 2 + (this.carriedShield.magicBonus ?? 0)
       : 0;

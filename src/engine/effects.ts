@@ -34,6 +34,7 @@ export type EffectHook =
   | { kind: "statBonusChoice"; stats: StatName[]; bonus: number }
   | { kind: "statOrCheckChoice"; stat: StatName; statBonus: number; applies: CheckKind; checkBonus: number }
   | { kind: "statPairChoice"; stats: StatName[]; bonus: number }
+  | { kind: "statOrHpChoice"; stats: StatName[]; statBonus: number; hpBonus: number }
   | { kind: "checkKindChoice"; applies: CheckKind[]; bonus: number }
   | { kind: "acBonus"; bonus: number }
   | { kind: "acMinimum"; value: number }
@@ -79,7 +80,8 @@ export type EffectHook =
   | { kind: "hpFloor"; value: number }
   | { kind: "unarmoredAcWisBonus" }
   | { kind: "deathSaveBonus"; bonus: number }
-  | { kind: "namedBladeBonus"; bonus: number };
+  | { kind: "namedBladeBonus"; bonus: number }
+  | { kind: "unarmoredAcLevelBonus"; base: number };
 
 export type ClassResource =
   | "ignoreAttack"
@@ -94,7 +96,9 @@ export type ClassResource =
   | "familiarTeleport"
   | "omen"
   | "sunOnWater"
-  | "returnFromDeath";
+  | "returnFromDeath"
+  | "petrifyingGaze"
+  | "parry";
 
 type DurationUnit = "rounds" | "crawlingRounds" | "realMs" | "untilRest" | "focus";
 
