@@ -4,8 +4,11 @@
  */
 
 import { Dice } from "../../engine/dice";
-import type { MonsterBiome, MonsterSize } from "../../engine";
-import { Adventure, GoalKind, GoalVerb, SiteDef, SiteGoal, SiteSize } from "./Adventure";
+import type { ClassName, MonsterBiome, MonsterSize } from "../../engine";
+import { generateShopName, generateTavernName } from "../../engine/downtime";
+import { classesForBiome } from "../../data/biomeOrigins";
+import { classDef } from "../../data/classes";
+import { Adventure, GoalKind, GoalVerb, SiteDef, SiteGoal, SiteSize, SiteType } from "./Adventure";
 
 const BIOMES: readonly MonsterBiome[] = [
   "diablerie",
@@ -30,6 +33,14 @@ const NAME_SUFFIXES = [
   "of the Cursed Knight", "of the Frozen Sword", "of the Burning Beast",
   "of the Mad Crown", "of the Lost Runes", "of the Demonic Descendant",
   "of the Radiant Sorcerer", "of the Night Queen", "of the Hidden Gem"
+];
+
+const SITE_TYPES: readonly SiteType[] = ["cave", "ruins", "tomb", "fortress", "temple", "lair"];
+
+/** First names drawn for rescued companions, independent of their class. */
+const COMPANION_NAMES: readonly string[] = [
+  "Lyra", "Elen", "Vael", "Kaelen", "Sorra", "Bram", "Nyx", "Fenwick",
+  "Isolde", "Tamsin", "Doran", "Wren", "Corvin", "Maren", "Osric", "Sable",
 ];
 
 interface GoalTemplate {
@@ -206,42 +217,52 @@ export class AdventureGenerator {
     this.dice = new Dice(seed);
   }
 
-  public generateAdventure(partySize: number, unrescuedClasses: Array<"thief" | "priest" | "wizard">): Adventure {
+  public generateAdventure(partySize: number, excludedClasses: readonly ClassName[]): Adventure {
     const siteCount = this.dice.die(3) + 1; // 2 to 4 sites per adventure
     const advBiome = this.getRandomItem([...BIOMES]);
     const prefixes = NAME_PREFIXES[advBiome];
     const advName = `${this.getRandomItem(prefixes)} ${this.getRandomItem(NAME_SUFFIXES)}`;
+    const tavernName = generateTavernName(this.dice);
+    const shopName = generateShopName(this.dice);
 
     const sites: SiteDef[] = [];
     const sizes: SiteSize[] = ["small", "medium", "large"];
-    const remainingRescues = [...unrescuedClasses];
+    // Classes already spoken for — in the party, or already rescued earlier
+    // in this same adventure — are never offered again as a rescue target.
+    const spokenFor = new Set<ClassName>(excludedClasses);
 
     for (let i = 0; i < siteCount; i++) {
       const biome = BIOMES[(BIOMES.indexOf(advBiome) + i) % BIOMES.length]!;
       const sizeCategory = sizes[i % sizes.length]!;
+      const siteType = this.getRandomItem([...SITE_TYPES]);
       const roomCount = this.rollRoomCount(sizeCategory);
       const sitePrefixes = NAME_PREFIXES[biome];
       const siteName = `${this.getRandomItem(sitePrefixes)} ${this.getRandomItem(NAME_SUFFIXES)}`;
 
-      // 50% Rescue Rule if party < 4 and unrescued heroes remain
+      // 50% Rescue Rule if party < 4 and this biome has an un-recruited class to offer.
+      // A captive's class is always native to the biome they are found in.
+      const eligibleRescueClasses = classesForBiome(biome).filter((c) => !spokenFor.has(c));
       let goal: SiteGoal;
-      const rollRescue = partySize < 4 && remainingRescues.length > 0 && (this.dice.die(2) === 1 || i === 0);
+      const rollRescue = partySize < 4 && eligibleRescueClasses.length > 0 && (this.dice.die(2) === 1 || i === 0);
 
-      if (rollRescue && remainingRescues.length > 0) {
-        const rescueClass = remainingRescues.shift()!;
-        const heroName = rescueClass === "thief" ? "Lyra" : rescueClass === "priest" ? "Elen" : "Vael";
+      if (rollRescue) {
+        const rescueClass = this.getRandomItem([...eligibleRescueClasses]);
+        spokenFor.add(rescueClass);
+        const heroName = this.getRandomItem([...COMPANION_NAMES]);
+        const rescueClassLabel = classDef(rescueClass).displayName.toUpperCase();
         goal = {
           kind: "rescue-companion",
           verb: "Rescue",
-          target: `${heroName} the ${rescueClass.toUpperCase()}`,
+          target: `${heroName} the ${rescueClassLabel}`,
           isRescue: true,
           rescueClass: rescueClass,
+          rescueHeroName: heroName,
           completion: "rescue",
           approaches: ["combat", "stealth", "evasion", "social"],
           requiresAllHostilesDefeated: false,
           objectiveEntity: "rescue-companion",
           isCompleted: false,
-          description: `Rescue ${heroName} the ${rescueClass.toUpperCase()} from captivity`,
+          description: `Rescue ${heroName} the ${rescueClassLabel} from captivity`,
         };
       } else {
         const availableTemplates = GOAL_TEMPLATES.filter((template) =>
@@ -280,6 +301,7 @@ export class AdventureGenerator {
         name: siteName,
         biome,
         sizeCategory,
+        siteType,
         roomCount,
         goal,
       });
@@ -290,6 +312,8 @@ export class AdventureGenerator {
       name: advName,
       sites,
       currentSiteIndex: 0,
+      tavernName,
+      shopName,
     };
   }
 
@@ -301,7 +325,7 @@ export class AdventureGenerator {
   public generateFromPrompt(
     prompt: string,
     partySize: number = 1,
-    unrescuedClasses: Array<"thief" | "priest" | "wizard"> = ["thief", "priest", "wizard"]
+    unrescuedClasses: readonly ClassName[] = ["thief", "priest", "wizard"]
   ): Adventure {
     const rawFragments = prompt
       .split(/\s+(?:or|and)\s+|[;\n]+/i)
@@ -321,6 +345,8 @@ export class AdventureGenerator {
       name: advTitle,
       sites,
       currentSiteIndex: 0,
+      tavernName: generateTavernName(this.dice),
+      shopName: generateShopName(this.dice),
     };
   }
 
@@ -339,6 +365,16 @@ export class AdventureGenerator {
     else if (/\bmedium\b/i.test(text)) sizeCategory = "medium";
 
     const roomCount = this.rollRoomCount(sizeCategory);
+
+    // 1b. Site Type
+    let siteType: SiteType | undefined;
+    if (/\bcaves?\b/i.test(text)) siteType = "cave";
+    else if (/\bruins?\b/i.test(text)) siteType = "ruins";
+    else if (/\btombs?\b/i.test(text)) siteType = "tomb";
+    else if (/\bfortress(?:es)?\b/i.test(text)) siteType = "fortress";
+    else if (/\btemples?\b/i.test(text)) siteType = "temple";
+    else if (/\blairs?\b/i.test(text)) siteType = "lair";
+    if (!siteType) siteType = this.getRandomItem([...SITE_TYPES]);
 
     // 2. Biome Resolution
     let biome: MonsterBiome = defaultBiome ?? "diablerie";
@@ -377,18 +413,20 @@ export class AdventureGenerator {
         }
       }
 
+      const rescueClassLabel = classDef(rescueClass).displayName.toUpperCase();
       goal = {
         kind: "rescue-companion",
         verb: "Rescue",
-        target: `${heroName} the ${rescueClass.toUpperCase()}`,
+        target: `${heroName} the ${rescueClassLabel}`,
         isRescue: true,
         rescueClass: rescueClass,
+        rescueHeroName: heroName,
         completion: "rescue",
         approaches: ["combat", "stealth", "evasion", "social"],
         requiresAllHostilesDefeated: false,
         objectiveEntity: "rescue-companion",
         isCompleted: false,
-        description: `Rescue ${heroName} the ${rescueClass.toUpperCase()} from captivity`,
+        description: `Rescue ${heroName} the ${rescueClassLabel} from captivity`,
       };
     }
     // B. Monster Eggs Goal (supports typo "dargon")
@@ -492,6 +530,7 @@ export class AdventureGenerator {
       name: siteName,
       biome,
       sizeCategory,
+      siteType,
       roomCount,
       goal,
     };

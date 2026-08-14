@@ -3,9 +3,9 @@
  * Links the Shadowdark OSR rules engine with the Ultima V style renderer, UI, ZoneHazards, and Web Audio API.
  */
 
-import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ConditionKind, type TreasureQuality } from "./engine/index";
+import { Engine, applyCondition, groupInitiative, monsterAttackRoll, type ClassName, type ConditionKind, type MonsterBiome, type StatGenerationMethod, type TreasureQuality } from "./engine/index";
 import { Character } from "./engine/character";
-import { item } from "./data/items";
+import { classDef, createCharacter, registerTables } from "./data/index";
 import { bestTreasureQuality, rollFabledItem, rollTreasureCache } from "./data/treasureGeneration";
 import { MapGrid } from "./game/level/MapGrid";
 import { MapRenderer } from "./game/renderer/MapRenderer";
@@ -17,7 +17,7 @@ import { Adventure, goalUsesChest, SiteDef } from "./game/level/Adventure";
 import { AdventureGenerator } from "./game/level/AdventureGenerator";
 import { ZoneHazards } from "./engine/zoneHazards";
 import { AudioEngine } from "./game/audio/AudioEngine";
-import { resolveCarouse, carouseCost, type CarouseTier } from "./engine/downtime";
+import { groupCarouseCost, resolveGroupCarouse, type CarouseTier } from "./engine/downtime";
 import { treasureQualityXp } from "./engine/treasureXp";
 import { chooseAutoSupportAction, type LeaderIntent } from "./engine/partyAutomation";
 import { gridDistance, movementTiles, RANGE_BAND_TILES } from "./engine/rangeBands";
@@ -27,7 +27,6 @@ class Game {
   private engine: Engine;
   private party: Character[] = [];
   private leaderIndex = 0;
-  private unrescuedClasses: Array<"thief" | "priest" | "wizard"> = ["thief", "priest", "wizard"];
   private adventureGenerator: AdventureGenerator;
   private currentAdventure!: Adventure;
   private grid: MapGrid;
@@ -50,24 +49,27 @@ class Game {
 
   constructor() {
     this.engine = new Engine();
+    registerTables(this.engine);
     this.adventureGenerator = new AdventureGenerator();
     this.grid = new MapGrid(28, 28);
     this.renderer = new MapRenderer("game-canvas");
     this.frame = new UltimaFrame();
     this.modals = new Modals();
     this.audio = new AudioEngine();
-
-    this.setupSoloFighter();
-    this.startNewAdventure();
     this.setupInput();
 
-    this.grid.updateFov(this.isTorchActive ? 4 : 1);
-    this.updateUi();
-    this.render();
+    this.modals.showCharacterCreation((choice) => {
+      this.setupCharacter(choice);
+      this.startNewAdventure();
 
-    this.frame.addLog("DuskUltima initialized. You begin your solo journey as Thorin the Fighter!", "system");
-    this.frame.addLog("Use Arrow Keys to move. Press [A]ttack, [C]ast, [T]orch, [I]nventory.", "prompt");
-    this.frame.addLog("Move near + act, or hold Shift to move double near and end the round.", "prompt");
+      this.grid.updateFov(this.isTorchActive ? 4 : 1);
+      this.updateUi();
+      this.render();
+
+      this.frame.addLog(`DuskUltima initialized. You begin your journey as ${choice.name} the ${this.leader.ancestry.toUpperCase()} ${classDef(choice.className).displayName.toUpperCase()}, of ${choice.biome}!`, "system");
+      this.frame.addLog("Use Arrow Keys to move. Press [A]ttack, [C]ast, [T]orch, [I]nventory.", "prompt");
+      this.frame.addLog("Move near + act, or hold Shift to move double near and end the round.", "prompt");
+    });
   }
 
   private get leader(): Character {
@@ -78,31 +80,37 @@ class Game {
     return this.currentAdventure.sites[this.currentAdventure.currentSiteIndex]!;
   }
 
-  private setupSoloFighter(): void {
-    // Solo Start: Thorin the Fighter
-    const fighter = new Character({
-      id: "char-thorin",
-      name: "Thorin",
-      className: "fighter",
-      stats: { STR: 16, DEX: 14, CON: 15, INT: 10, WIS: 10, CHA: 12 },
-      maxHp: 12,
-    });
-    const sword = item("longsword");
-    fighter.inventory.add(sword, 1, true);
-    fighter.equipWeapon(sword);
-    this.engine.registerCharacter(fighter);
-    fighter.inventory.add(item("torch"), 3);
-    fighter.inventory.add(item("ration"), 5);
-    fighter.gold = 40;
+  /** Classes already spoken for by the party, so they never turn up again as a rescue target. */
+  private recruitedClasses(): ClassName[] {
+    return this.party.map((member) => member.className);
+  }
 
-    this.party = [fighter];
+  private setupCharacter(choice: {
+    name: string;
+    biome: MonsterBiome;
+    className: ClassName;
+    method: StatGenerationMethod;
+  }): void {
+    const hero = createCharacter(
+      this.engine,
+      "char-hero",
+      choice.name,
+      choice.className,
+      undefined,
+      undefined,
+      choice.biome,
+      choice.method
+    );
+    hero.gold = 40;
+
+    this.party = [hero];
     this.leaderIndex = 0;
   }
 
   private startNewAdventure(): void {
     this.currentAdventure = this.adventureGenerator.generateAdventure(
       this.party.length,
-      this.unrescuedClasses
+      this.recruitedClasses()
     );
     this.loadCurrentSite();
   }
@@ -118,7 +126,7 @@ class Game {
     this.partyActsFirst = true;
     this.playerTurnStarted = false;
     this.audio.updateBiomeAmbience(site.biome);
-    this.frame.addLog(`Entered Site ${this.currentAdventure.currentSiteIndex + 1}: ${site.name} (${site.sizeCategory.toUpperCase()}, ${site.roomCount} Rooms, Biome: ${site.biome.toUpperCase()}).`, "system");
+    this.frame.addLog(`Entered Site ${this.currentAdventure.currentSiteIndex + 1}: ${site.name} (${site.sizeCategory.toUpperCase()} ${site.siteType.toUpperCase()}, ${site.roomCount} Rooms, Biome: ${site.biome.toUpperCase()}).`, "system");
     this.frame.addLog(`Site Goal: ${site.goal.description}`, "prompt");
     this.syncPartyFormation();
   }
@@ -148,7 +156,7 @@ class Game {
       this.currentAdventure = this.adventureGenerator.generateFromPrompt(
         promptText,
         this.party.length,
-        this.unrescuedClasses
+        this.recruitedClasses()
       );
       this.frame.addLog(`★ CUSTOM QUEST GENERATED: "${promptText}"`, "system");
       this.loadCurrentSite();
@@ -292,59 +300,28 @@ class Game {
   }
 
   private rescueHero(npcEntity: any): void {
-    const rescueClass = npcEntity.rescueClass as "thief" | "priest" | "wizard";
-    let newHero: Character;
+    const rescueClass = npcEntity.rescueClass as ClassName;
+    const heroName = (npcEntity.rescueHeroName as string) ?? npcEntity.name;
+    const newHero = createCharacter(
+      this.engine,
+      `char-${heroName.toLowerCase()}`,
+      heroName,
+      rescueClass,
+      undefined,
+      undefined,
+      this.currentSite.biome
+    );
 
-    if (rescueClass === "thief") {
-      newHero = new Character({
-        id: "char-lyra",
-        name: "Lyra",
-        className: "thief",
-        stats: { STR: 11, DEX: 16, CON: 12, INT: 13, WIS: 10, CHA: 14 },
-        maxHp: 8,
-      });
-      const dagger = item("dagger");
-      newHero.inventory.add(dagger, 2, true);
-      newHero.equipWeapon(dagger);
-    } else if (rescueClass === "priest") {
-      newHero = new Character({
-        id: "char-elen",
-        name: "Elen",
-        className: "priest",
-        stats: { STR: 13, DEX: 10, CON: 14, INT: 10, WIS: 16, CHA: 12 },
-        maxHp: 9,
-      });
-      const mace = item("mace");
-      newHero.inventory.add(mace, 1, true);
-      newHero.equipWeapon(mace);
-      newHero.learnSpell("light");
-      newHero.learnSpell("cure-wounds");
-    } else {
-      newHero = new Character({
-        id: "char-vael",
-        name: "Vael",
-        className: "wizard",
-        stats: { STR: 9, DEX: 14, CON: 11, INT: 17, WIS: 12, CHA: 10 },
-        maxHp: 6,
-      });
-      const staff = item("staff");
-      newHero.inventory.add(staff, 1, true);
-      newHero.equipWeapon(staff);
-      newHero.learnSpell("magic-missile");
-    }
-
-    this.engine.registerCharacter(newHero);
-
-    // Add to active party & remove from unrescued list
+    // Add to active party
     this.party.push(newHero);
     this.autoFollowerIds.add(newHero.id);
     this.syncPartyFormation();
-    this.unrescuedClasses = this.unrescuedClasses.filter((c) => c !== rescueClass);
     npcEntity.hp = 0; // Remove entity from grid
 
     this.audio.playVictoryJingle();
-    this.frame.addLog(`★ RESCUE ACCOMPLISHED! ${newHero.name} the ${rescueClass.toUpperCase()} freed and joins your party!`, "hit");
-    this.completeSiteGoal(`${newHero.name} the ${rescueClass.toUpperCase()}`);
+    const rescueClassLabel = classDef(rescueClass).displayName.toUpperCase();
+    this.frame.addLog(`★ RESCUE ACCOMPLISHED! ${newHero.name} the ${rescueClassLabel} freed and joins your party!`, "hit");
+    this.completeSiteGoal(`${newHero.name} the ${rescueClassLabel}`);
     this.endTurn();
   }
 
@@ -589,30 +566,53 @@ class Game {
       this.endTurn();
     };
 
-    const carouseOptions =
-      this.currentSite.biome === "city-of-masks"
-        ? {
-            gold: this.leader.gold,
-            onCarouse: (tier: CarouseTier) => this.handleCarouse(tier),
-          }
-        : undefined;
+    const carouseOptions = {
+      gold: this.leader.gold,
+      partySize: this.livingParty().length,
+      tavernName: this.currentAdventure.tavernName,
+      onCarouse: (tier: CarouseTier) => this.handleCarouse(tier),
+    };
 
-    this.modals.showRestScreen(onConfirmRest, carouseOptions);
+    this.modals.showRestScreen(onConfirmRest, carouseOptions, () => this.handleShop());
+  }
+
+  private handleShop(): void {
+    this.modals.showShopScreen(this.currentAdventure.shopName, this.leader, (itemId) => this.handleSellItem(itemId));
+  }
+
+  private handleSellItem(itemId: string): void {
+    const stack = this.leader.inventory.all().find((s) => s.def.id === itemId);
+    if (!stack) return;
+    const price = this.leader.inventory.sellPrice(itemId);
+    this.leader.inventory.remove(itemId, 1);
+    this.leader.gold += price;
+    this.frame.addLog(`${this.leader.name} sells ${stack.def.name} at ${this.currentAdventure.shopName} for ${price} gp.`, "item");
+    this.updateUi();
+  }
+
+  /** Party members still on their feet — the only ones who can carouse or roll. */
+  private livingParty(): Character[] {
+    return this.party.filter((member) => !member.dead);
   }
 
   private handleCarouse(tier: CarouseTier): void {
-    if (this.leader.gold < carouseCost(tier)) {
-      this.frame.addLog(`Not enough gold to carouse at the ${tier} tier.`, "prompt");
+    const participants = this.livingParty();
+    const cost = groupCarouseCost(tier, participants.length);
+    if (this.leader.gold < cost) {
+      this.frame.addLog(`Not enough gold pooled to carouse at the ${tier} tier (needs ${cost} gp for ${participants.length}).`, "prompt");
       return;
     }
-    const result = resolveCarouse(this.engine.dice, tier, this.leader.gold);
-    this.leader.gold -= result.cost;
-    this.leader.gold = Math.max(0, this.leader.gold + (result.event.goldDelta ?? 0));
-    this.engine.awardXp(this.leader, result.xp);
-    if (result.event.itemId) this.leader.inventory.add(item(result.event.itemId), 1);
+    const group = resolveGroupCarouse(this.engine.dice, this.engine.tables, tier, this.leader.gold, participants.length);
+    this.leader.gold -= group.cost;
 
-    this.frame.addLog(`★ CAROUSE (${tier.toUpperCase()}): ${result.event.title} — ${result.event.text}`, "item");
-    this.frame.addLog(`Carousing roll ${result.event.roll}+bonus = ${result.event.total}: gained ${result.xp} XP.`, "hit");
+    this.frame.addLog(`★ CAROUSE (${tier.toUpperCase()}): the party pools ${group.cost} gp at ${this.currentAdventure.tavernName} — each reveler rolls their own night.`, "item");
+    participants.forEach((char, i) => {
+      const result = group.results[i]!;
+      this.engine.awardXp(char, result.xp);
+      this.frame.addLog(`${char.name} rolls ${result.total} on the Carousing Outcome table: +${result.xp} XP.`, "hit");
+      for (const benefit of result.benefits) this.frame.addLog(`${char.name} — Benefit: ${benefit}`, "hit");
+      for (const mishap of result.mishaps) this.frame.addLog(`${char.name} — Mishap: ${mishap}`, "combat");
+    });
     this.audio.playVictoryJingle();
     this.updateUi();
   }
@@ -757,7 +757,7 @@ class Game {
       site.name,
       this.currentAdventure.currentSiteIndex + 1,
       this.currentAdventure.sites.length,
-      site.sizeCategory,
+      `${site.sizeCategory} ${site.siteType}`,
       site.roomCount,
       site.goal.description,
       this.round,

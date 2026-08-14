@@ -4,18 +4,23 @@ import {
   getBaseRole,
   initializeClassState,
   rollAlignment,
-  rollStats,
-  STAT_NAMES,
+  rollAncestry,
+  rollStatsByPriority,
+  rollStatsIronMan,
   type ClassName,
   type Engine,
+  type StatGenerationMethod,
   type StatName,
   type Stats,
   type Alignment,
   type Ancestry,
   type Effect,
+  type MonsterBiome,
 } from "../engine";
 import { classDef } from "./classes";
 import { item } from "./items";
+import { statPriorityForClass } from "./statPriority";
+import { ALL_CAROUSE_TABLES } from "./tables/carousing";
 import { ALL_MISHAP_TABLES } from "./tables/mishaps";
 import {
   FIGHTER_TALENTS,
@@ -100,51 +105,49 @@ export function registerTables(engine: Engine): void {
   engine.tables.register(DUELIST_TALENTS);
   for (const table of ALL_MISHAP_TABLES) engine.tables.register(table);
   for (const table of ALL_TREASURE_TABLES) engine.tables.register(table);
+  for (const table of ALL_CAROUSE_TABLES) engine.tables.register(table);
 }
 
-const PRIME_STAT: Record<ClassName, StatName> = {
-  fighter: "STR",
-  cleric: "WIS",
-  "magic-user": "INT",
-  thief: "DEX",
-  bard: "CHA",
-  monk: "WIS",
-  necromancer: "CHA",
-  paladin: "CHA",
-  ranger: "INT",
-  seawolf: "STR",
-  "sea-wolf": "STR",
-  warlock: "CHA",
-  "basilisk-warrior": "CON",
-  "ras-godai": "DEX",
-  roustabout: "CON",
-  delver: "INT",
-  duelist: "CHA",
-  "pit-fighter": "CON",
-  priest: "WIS",
-  wizard: "INT",
-  witch: "CHA",
-  seer: "WIS",
+/**
+ * Minimum stats a class demands before it can be played, per the Cursed
+ * Scroll class table. Classes without an entry here (recoverable-only
+ * classes) roll unconstrained — the priority-order method already stacks
+ * their best rolls onto their own primary/secondary stats.
+ */
+const CLASS_STAT_REQUIREMENTS: Partial<Record<ClassName, Partial<Record<StatName, number>>>> = {
+  fighter: { STR: 12 },
+  cleric: { WIS: 12 },
+  thief: { DEX: 12 },
+  "magic-user": { INT: 12 },
+  bard: { CHA: 12 },
+  monk: { DEX: 12, WIS: 12 },
+  necromancer: { CHA: 12 },
+  paladin: { STR: 12, CHA: 12 },
+  ranger: { DEX: 12, INT: 12 },
+  seawolf: { STR: 12, CON: 12 },
+  warlock: { CHA: 12 },
 };
 
 /**
- * Guarantee the class prime stat carries one of the rolled 15s by swapping the
- * best qualifying stat in. This also guarantees fighters can carry their
- * complete starting kit within the strength-based gear-slot rules.
+ * Roll a stat array for this class with the chosen generation method, silently
+ * rerolling the whole array in the background until it clears the class's
+ * minimum requirements (if any) — only the finished character is ever shown.
+ * Unearthed Arcana assigns stats in the class's own priority order (see
+ * statPriorityForClass); Iron Man rolls a flat STR-through-CHA array.
  */
-function ensurePrimeStat(stats: Stats, cls: ClassName): void {
-  const prime = PRIME_STAT[cls];
-  if (stats[prime] >= 15) return;
-  let best: StatName | null = null;
-  for (const s of STAT_NAMES) {
-    if (s === prime) continue;
-    if (stats[s] >= 15 && (best === null || stats[s] > stats[best])) best = s;
+function rollStatsForClass(dice: Engine["dice"], cls: ClassName, method: StatGenerationMethod): Stats {
+  const requirements = CLASS_STAT_REQUIREMENTS[cls];
+  const MAX_ATTEMPTS = 10_000;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const stats = method === "iron-man"
+      ? rollStatsIronMan(dice)
+      : rollStatsByPriority(dice, statPriorityForClass(cls));
+    if (!requirements) return stats;
+    const meetsAll = (Object.entries(requirements) as [StatName, number][])
+      .every(([stat, minimum]) => stats[stat] >= minimum);
+    if (meetsAll) return stats;
   }
-  // rollStats guarantees two 15s; the prime isn't one, so one must exist.
-  if (best === null) throw new Error("rollStats produced no 15+ stat to swap");
-  const tmp = stats[prime];
-  stats[prime] = stats[best];
-  stats[best] = tmp;
+  throw new Error(`Could not roll a stat array meeting ${cls}'s requirements in ${MAX_ATTEMPTS} attempts`);
 }
 
 /**
@@ -169,22 +172,25 @@ function bindMastery(feature: Effect, weaponId: string): Effect {
 }
 
 /**
- * Build a level-1 character of the given class: 3d6 stats (silently rerolled
- * until heroic — see rollStats), prime stat guaranteed 15+, max HP at level 1,
- * class armor kit, starting gear and spells. AC is computed from armor + DEX,
- * never stored.
+ * Build a level-1 character of the given class: 3d6 stats via the chosen
+ * generation method (silently rerolled until they clear the class's stat
+ * requirements — see rollStatsForClass), max HP at level 1, class armor kit,
+ * starting gear and spells. AC is computed from armor + DEX, never stored.
+ * Ancestry is rolled from the project ancestry table when not given.
  */
 export function createCharacter(
   engine: Engine,
   id: string,
   name: string,
   cls: ClassName,
-  ancestry: Ancestry = "human",
+  ancestry?: Ancestry,
   alignment?: Alignment,
+  homeBiome?: MonsterBiome,
+  method: StatGenerationMethod = "unearthed-arcana",
 ): Character {
   const def = classDef(cls);
-  const stats = rollStats(engine.dice);
-  ensurePrimeStat(stats, cls);
+  const resolvedAncestry = ancestry ?? rollAncestry(engine.dice);
+  const stats = rollStatsForClass(engine.dice, cls, method);
 
   const conMod = Math.floor((stats.CON - 10) / 2);
   const hitDieSides = parseInt(def.hitDie.split("d")[1] || "8", 10);
@@ -195,8 +201,9 @@ export function createCharacter(
     className: cls,
     stats,
     maxHp,
-    ancestry,
+    ancestry: resolvedAncestry,
     alignment: alignment ?? rollAlignment(engine.dice),
+    homeBiome,
   });
   for (const f of def.features) c.addEffect(bindMastery(structuredClone(f), def.startingWeaponId));
   initializeClassState(c);
@@ -220,7 +227,7 @@ export function createCharacter(
     applyTalentResult(engine.dice, engine.tables, c, blackLotus, "talent-black-lotus-start");
   }
   let startingWeapon = item(def.startingWeaponId);
-  if (ancestry === "dwarf" && startingWeapon.finesse) {
+  if (resolvedAncestry === "dwarf" && startingWeapon.finesse) {
     startingWeapon = item("spear");
   }
   c.inventory.add(startingWeapon, 1, true);
@@ -236,7 +243,7 @@ export function createCharacter(
     c.equipShield(shield);
   }
 
-  if (cls === "fighter" || cls === "pit-fighter" || cls === "sea-wolf") {
+  if (cls === "fighter" || cls === "pit-fighter" || cls === "sea-wolf" || cls === "seawolf") {
     c.inventory.add(item("javelin"), 3, true);
     c.inventory.add(item("backpack"), 1, true);
     c.inventory.add(item("flint-and-steel"), 1, true);
@@ -248,10 +255,10 @@ export function createCharacter(
   }
   // Class sidearms: thieves & ras-godai shoot from the shadows, wizards & witches keep knives.
   if (cls === "thief" || cls === "ras-godai") c.inventory.add(item("shortbow"), 1, true);
-  if (cls === "wizard" || cls === "witch") c.inventory.add(item("dagger"), 2, true);
+  if (cls === "wizard" || cls === "witch" || cls === "magic-user") c.inventory.add(item("dagger"), 2, true);
 
   // Roll starting talents (1 + 1 extra if human/ambitious)
-  const talentCount = ancestry === "human" ? 2 : 1;
+  const talentCount = resolvedAncestry === "human" ? 2 : 1;
   for (let i = 0; i < talentCount; i++) {
     const talent = engine.tables.roll(engine.dice, def.talentTableId);
     applyTalentResult(engine.dice, engine.tables, c, talent, `talent-start-${i}`);

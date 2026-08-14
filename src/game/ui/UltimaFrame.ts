@@ -7,6 +7,7 @@
  */
 
 import { Character } from "../../engine/character";
+import { classDef } from "../../data/classes";
 
 export class UltimaFrame {
   private locDisplay: HTMLElement;
@@ -90,7 +91,7 @@ export class UltimaFrame {
           ${isLeader ? '<span class="leader-star">★ LEADER</span>' : ""}
         </div>
         <div class="member-stats">
-          <span>${char.className.toUpperCase()} Lvl ${char.level}</span>
+          <span>${classDef(char.className).displayName.toUpperCase()} Lvl ${char.level}</span>
           <span>AC: ${char.ac}</span>
           <span>HP: ${char.hp}/${char.maxHp}</span>
         </div>

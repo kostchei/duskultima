@@ -13,6 +13,7 @@ import {
 } from "./effects";
 import type { Dice } from "./dice";
 import { Inventory, ItemStateTracker, type ItemDef } from "./inventory";
+import type { MonsterBiome } from "./monster";
 
 export type StatName = "STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA";
 export const STAT_NAMES: readonly StatName[] = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
@@ -107,6 +108,17 @@ export function parseAncestry(value: string): Ancestry {
   throw new Error(`Unknown ancestry "${value}"`);
 }
 
+/** Project ancestry table: 1d12, human 1-4, dwarf 5-6, elf 7-8, half-orc 9-10, gnome 11, tiefling/deva 12. */
+export function rollAncestry(dice: Dice): Ancestry {
+  const roll = dice.die(12);
+  if (roll <= 4) return "human";
+  if (roll <= 6) return "dwarf";
+  if (roll <= 8) return "elf";
+  if (roll <= 10) return "half-orc";
+  if (roll === 11) return "gnome";
+  return "tiefling-deva";
+}
+
 const VOICE_REGISTERS: readonly VoiceRegister[] = ["low", "medium", "high"];
 
 /** Stable cosmetic assignment that never consumes the rules engine's dice. */
@@ -176,7 +188,7 @@ export interface DyingState {
 }
 
 export interface ClassState {
-  /** Pit Fighter Flourish uses remaining until rest. */
+  /** Gladiator Flourish uses remaining until rest. */
   flourishUses: number;
   /** Witch familiar availability and restoration state. */
   familiarAlive: boolean;
@@ -209,6 +221,7 @@ export function statModifier(score: number): number {
 /**
  * Roll a starting stat array: 3d6 per stat, silently regenerated until the
  * set is heroic — at least two stats of 15+ and at most one stat under 6.
+ * This is the "Unearthed Arcana" generation method.
  */
 export function rollStats(dice: Dice): Stats {
   const MAX_ATTEMPTS = 10_000;
@@ -225,6 +238,66 @@ export function rollStats(dice: Dice): Stats {
   throw new Error(`rollStats found no qualifying array in ${MAX_ATTEMPTS} attempts`);
 }
 
+/**
+ * "Iron Man" generation: 3d6 in stat order (STR through CHA), no rearranging.
+ * Silently regenerated until at least two stats are 14+ and at most one is
+ * under 6 — a looser heroic bar than Unearthed Arcana's 15+.
+ */
+export function rollStatsIronMan(dice: Dice): Stats {
+  const MAX_ATTEMPTS = 10_000;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    const scores = STAT_NAMES.map(() => dice.roll("3d6"));
+    const high = scores.filter((s) => s >= 14).length;
+    const low = scores.filter((s) => s < 6).length;
+    if (high >= 2 && low <= 1) {
+      const stats = {} as Stats;
+      STAT_NAMES.forEach((name, i) => (stats[name] = scores[i]!));
+      return stats;
+    }
+  }
+  throw new Error(`rollStatsIronMan found no qualifying array in ${MAX_ATTEMPTS} attempts`);
+}
+
+export type StatGenerationMethod = "iron-man" | "unearthed-arcana";
+
+/** Roll `pool` d6 and sum the best 3. */
+function bestThreeOfPool(dice: Dice, pool: number): number {
+  const rolls: number[] = [];
+  for (let i = 0; i < pool; i++) rolls.push(dice.die(6));
+  rolls.sort((a, b) => b - a);
+  return rolls[0]! + rolls[1]! + rolls[2]!;
+}
+
+/**
+ * "Unearthed Arcana" generation: stats are assigned in the class's own
+ * priority order (primary first, dump last). Each slot is rolled as the best
+ * 3 of a shrinking dice pool — 8d6, 7d6, 6d6... — until two stats have hit
+ * 14+; every slot after that is a plain 3d6 (the pool floor anyway). Every
+ * stat but the dump (6th) slot is silently rerolled if it comes in under 6.
+ */
+export function rollStatsByPriority(dice: Dice, priorityOrder: readonly StatName[]): Stats {
+  if (priorityOrder.length !== STAT_NAMES.length) {
+    throw new Error(`Stat priority order must name all ${STAT_NAMES.length} stats`);
+  }
+  const stats = {} as Stats;
+  let highCount = 0;
+  priorityOrder.forEach((stat, slot) => {
+    const isDump = slot === priorityOrder.length - 1;
+    const pool = highCount >= 2 ? 3 : Math.max(3, 8 - slot);
+    let value: number;
+    do {
+      value = bestThreeOfPool(dice, pool);
+    } while (!isDump && value < 6);
+    stats[stat] = value;
+    if (value >= 14) highCount++;
+  });
+  return stats;
+}
+
+export function rollStatsByMethod(dice: Dice, method: StatGenerationMethod): Stats {
+  return method === "iron-man" ? rollStatsIronMan(dice) : rollStats(dice);
+}
+
 export interface CharacterInit {
   id: string;
   name: string;
@@ -234,6 +307,9 @@ export interface CharacterInit {
   alignment?: Alignment;
   ancestry?: Ancestry;
   voiceRegister?: VoiceRegister;
+  /** The biome this character calls home. Governs which classes they could
+   * have started as, and which biome's captives they can be rescued from. */
+  homeBiome?: MonsterBiome;
 }
 
 export class Character {
@@ -244,6 +320,7 @@ export class Character {
   readonly stats: Stats;
   readonly ancestry: Ancestry;
   readonly voiceRegister: VoiceRegister;
+  readonly homeBiome: MonsterBiome | null;
   readonly trainedSkills = new Set<string>();
 
   level = 1;
@@ -302,6 +379,7 @@ export class Character {
     this.stats = { ...init.stats };
     this.ancestry = parseAncestry(init.ancestry ?? "human");
     this.voiceRegister = init.voiceRegister ?? voiceRegisterForIdentity(init.id, init.name);
+    this.homeBiome = init.homeBiome ?? null;
     for (const s of STAT_NAMES) statModifier(this.stats[s]); // validate
     this.baseMaxHp = init.maxHp;
     this.hp = this.maxHp;

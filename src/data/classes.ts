@@ -71,7 +71,7 @@ const CLASS_LIST: readonly ClassDef[] = [
   },
   {
     name: "wizard",
-    displayName: "Wizard",
+    displayName: "MagicUser",
     hitDie: "1d4",
     startingWeaponId: "staff",
     armorId: null,
@@ -83,7 +83,7 @@ const CLASS_LIST: readonly ClassDef[] = [
   },
   {
     name: "pit-fighter",
-    displayName: "Pit Fighter",
+    displayName: "Gladiator",
     hitDie: "1d8",
     startingWeaponId: "longsword",
     armorId: "leather-armor",
@@ -301,7 +301,7 @@ const CLASS_LIST: readonly ClassDef[] = [
   },
   {
     name: "seawolf",
-    displayName: "Seawolf",
+    displayName: "Barbarian",
     hitDie: "1d8",
     startingWeaponId: "spear",
     armorId: "chainmail",

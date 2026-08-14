@@ -266,6 +266,14 @@ function adjustedStacks(
   return adjusted.filter((stack) => stack.qty > 0);
 }
 
+/** Sell price is a fraction of buy price — a shop never pays full value for used gear. */
+export const SELL_RATE = 0.5;
+
+export function sellPrice(def: ItemDef): number {
+  if (def.valueGp === undefined) throw new Error(`${def.name} has no value and cannot be sold`);
+  return Math.floor(def.valueGp * SELL_RATE);
+}
+
 export class Inventory {
   private readonly baseCapacity: number;
   private stacks: ItemStack[] = [];
@@ -337,6 +345,13 @@ export class Inventory {
 
   has(itemId: string, qty = 1): boolean {
     return this.count(itemId) >= qty;
+  }
+
+  /** Sell price = floor(valueGp * SELL_RATE). Items without a valueGp cannot be sold. */
+  sellPrice(itemId: string): number {
+    const stack = this.stacks.find((s) => s.def.id === itemId);
+    if (!stack) throw new Error(`Cannot price "${itemId}": not carried`);
+    return sellPrice(stack.def);
   }
 
   remove(itemId: string, qty = 1): void {

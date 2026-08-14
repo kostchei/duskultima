@@ -6,6 +6,7 @@
 import { TileType } from "../renderer/TileSet";
 import { goalUsesChest, SiteDef } from "./Adventure";
 import { monster } from "../../data/monsters";
+import type { ClassName } from "../../engine/character";
 import {
   buildRoomPlans,
   buildTravelSegments,
@@ -29,7 +30,8 @@ export interface MapEntity {
   damage?: string;
   specialAbility?: "web" | "poison" | "engulf" | "shadow-extinct" | "split" | "corrode" | "thorns";
   isParty?: boolean;
-  rescueClass?: "thief" | "priest" | "wizard";
+  rescueClass?: ClassName;
+  rescueHeroName?: string;
   goalInteraction?: "rescue-companion" | "hostage" | "objective";
   isGoalTarget?: boolean;
   monsterSize?: "medium" | "large" | "huge" | "gargantuan";
@@ -222,6 +224,7 @@ export class MapGrid {
         ac: 10,
         isHostile: false,
         rescueClass: siteDef.goal.rescueClass,
+        rescueHeroName: siteDef.goal.rescueHeroName,
         goalInteraction: "rescue-companion",
       });
     } else if (siteDef.goal.kind === "rescue-hostage") {

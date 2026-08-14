@@ -11,17 +11,17 @@ import { applyTalentResult, type AppliedTalent } from "./talents";
 
 export const MAX_LEVEL = 10;
 
-/** XP required after resetting to advance from each current level. */
+/** XP required after resetting to advance from each current level: level x 10. */
 const XP_TO_NEXT_LEVEL: Readonly<Record<number, number>> = {
   1: 10,
   2: 20,
-  3: 20,
-  4: 20,
-  5: 20,
-  6: 20,
-  7: 30,
-  8: 30,
-  9: 30,
+  3: 30,
+  4: 40,
+  5: 50,
+  6: 60,
+  7: 70,
+  8: 80,
+  9: 90,
   10: 0,
 };
 

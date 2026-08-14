@@ -2,9 +2,10 @@
  * Data structures for DuskUltima Adventures, Sites, Room Counts, Biomes, and Shadowdark Goals.
  */
 
-import type { MonsterBiome } from "../../engine";
+import type { ClassName, MonsterBiome } from "../../engine";
 
 export type SiteSize = "small" | "medium" | "large";
+export type SiteType = "cave" | "ruins" | "tomb" | "fortress" | "temple" | "lair";
 export type GoalVerb = "Rescue" | "Slay" | "Retrieve" | "Cleanse" | "Investigate";
 export type GoalKind =
   | "rescue-companion"
@@ -32,7 +33,8 @@ export interface SiteGoal {
   verb: GoalVerb;
   target: string;
   isRescue: boolean;
-  rescueClass?: "thief" | "priest" | "wizard";
+  rescueClass?: ClassName;
+  rescueHeroName?: string;
   completion: GoalCompletion;
   approaches: readonly GoalApproach[];
   /** This is deliberately false for every current goal. Named-target goals
@@ -58,6 +60,7 @@ export interface SiteDef {
   name: string;
   biome: MonsterBiome;
   sizeCategory: SiteSize;
+  siteType: SiteType;
   roomCount: number;
   goal: SiteGoal;
 }
@@ -67,6 +70,9 @@ export interface Adventure {
   name: string;
   sites: SiteDef[];
   currentSiteIndex: number;
+  /** Generated once per adventure so downtime stays consistent across its sites. */
+  tavernName: string;
+  shopName: string;
 }
 
 export function goalUsesChest(goal: SiteGoal): boolean {
