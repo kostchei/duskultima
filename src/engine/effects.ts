@@ -33,6 +33,8 @@ export type EffectHook =
   | { kind: "statMinimum"; stat: StatName; value: number }
   | { kind: "statBonusChoice"; stats: StatName[]; bonus: number }
   | { kind: "statOrCheckChoice"; stat: StatName; statBonus: number; applies: CheckKind; checkBonus: number }
+  | { kind: "statPairChoice"; stats: StatName[]; bonus: number }
+  | { kind: "checkKindChoice"; applies: CheckKind[]; bonus: number }
   | { kind: "acBonus"; bonus: number }
   | { kind: "acMinimum"; value: number }
   | { kind: "armorAcBonusChoice"; bonus: number }
@@ -74,7 +76,10 @@ export type EffectHook =
   | { kind: "enemyMoraleDcMinimum"; value: number }
   | { kind: "oldGodDuality" }
   | { kind: "damageImmune" }
-  | { kind: "hpFloor"; value: number };
+  | { kind: "hpFloor"; value: number }
+  | { kind: "unarmoredAcWisBonus" }
+  | { kind: "deathSaveBonus"; bonus: number }
+  | { kind: "namedBladeBonus"; bonus: number };
 
 export type ClassResource =
   | "ignoreAttack"
@@ -87,7 +92,9 @@ export type ClassResource =
   | "wallWalk"
   | "unseen"
   | "familiarTeleport"
-  | "omen";
+  | "omen"
+  | "sunOnWater"
+  | "returnFromDeath";
 
 type DurationUnit = "rounds" | "crawlingRounds" | "realMs" | "untilRest" | "focus";
 

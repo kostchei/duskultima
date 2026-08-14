@@ -50,7 +50,7 @@ const BASE_ITEM_LIST: readonly ItemDef[] = [
   // Armor — AC = acBase + DEX (capped); class permissions are RAW.
   {
     id: "leather-armor", name: "Leather Armor", slotCost: 1, bundleSize: 1, tags: ["armor"],
-    armor: { acBase: 11, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "bard", "ranger", "seawolf", "warlock", "roustabout", "delver", "duelist", "paladin"] }, armorVisual: "leather", valueGp: 10,
+    armor: { acBase: 11, dexCap: 99, classes: ["fighter", "priest", "thief", "pit-fighter", "sea-wolf", "ras-godai", "witch", "seer", "cleric", "bard", "necromancer", "paladin", "ranger", "seawolf", "warlock", "roustabout", "delver", "duelist"] }, armorVisual: "leather", valueGp: 10,
   },
   {
     id: "padded-armor", name: "Padded Armor", slotCost: 1, bundleSize: 1, tags: ["armor"],

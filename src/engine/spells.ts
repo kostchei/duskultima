@@ -10,7 +10,7 @@ import { resolveCheck, type CheckResult } from "./check";
 import type { Dice } from "./dice";
 import type { TableRegistry, TableRollResult } from "./tables";
 
-export type SpellClass = "wizard" | "priest" | "witch" | "seer";
+export type SpellClass = "wizard" | "priest" | "witch" | "seer" | "necromancer";
 export type SpellClasses = SpellClass | readonly SpellClass[];
 
 export interface SpellDef {
@@ -57,6 +57,7 @@ const CAST_STAT: Record<string, StatName> = {
   cleric: "WIS",
   witch: "CHA",
   seer: "WIS",
+  necromancer: "CHA",
 };
 
 export const WIZARD_MISHAP_TABLE_TIER_1_2 = "wizard-mishaps-tier-1-2";

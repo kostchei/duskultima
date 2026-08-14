@@ -484,6 +484,27 @@ const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
     target: "ally",
     description: "World Serpent venom doubles one ally's melee damage while you focus.",
   },
+  {
+    id: "wither-mark",
+    name: "Withermark",
+    tier: 1,
+    class: "necromancer",
+    range: "far",
+    focus: false,
+    dice: "1d4",
+    target: "enemy",
+    description: "Fling a dark rune of necrotic energy at a living target.",
+  },
+  {
+    id: "undeath",
+    name: "Undeath",
+    tier: 1,
+    class: "necromancer",
+    range: "close",
+    focus: true,
+    target: "object",
+    description: "Raise one intact humanoid's remains as a temporary undead servant.",
+  },
 ];
 
 /** Exact d12 spell faces from the core Scrolls and Wands table (pp. 288-289). */
@@ -545,6 +566,13 @@ export const CLASS_SPELL_ROSTER: Readonly<Record<SpellClass, Readonly<Record<num
     3: ["cast-out", "wolfshape"],
     4: ["odins-wisdom", "thors-thunder"],
     5: ["world-tree", "world-serpent"],
+  },
+  necromancer: {
+    1: ["wither-mark", "undeath"],
+    2: [],
+    3: [],
+    4: [],
+    5: [],
   },
 };
 

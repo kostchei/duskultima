@@ -16,6 +16,9 @@ import {
   type Ancestry,
   type Effect,
   type MonsterBiome,
+  chooseWarlockPatron,
+  warlockPatronOptions,
+  type WarlockPatronId,
 } from "../engine";
 import { classDef } from "./classes";
 import { item, namedBlade } from "./items";
@@ -80,7 +83,9 @@ export { CLASS_SPELL_ROSTER, highestAvailableSpellIndex, highestAvailableDamagin
 export function advanceKnownSpells(character: Character): string[] {
   const progression = classDef(character.className).spellsKnownByLevel?.[character.level - 1];
   if (!progression) return [];
-  const spellClass = character.className === "cleric" || character.className === "priest" ? "priest" : "wizard";
+  const spellClass = character.className === "cleric" || character.className === "priest"
+    ? "priest"
+    : character.className === "necromancer" ? "necromancer" : "wizard";
   const candidates = spellsForClass(spellClass);
   const learned: string[] = [];
   progression.forEach((target, tierIndex) => {
@@ -218,6 +223,7 @@ export function createCharacter(
   method: StatGenerationMethod = "unearthed-arcana",
   customStats?: Stats,
   namedBladeSwordId?: string,
+  warlockPatronId?: WarlockPatronId,
 ): Character {
   const def = classDef(cls);
   const resolvedAncestry = ancestry ?? rollAncestry(engine.dice);
@@ -241,6 +247,11 @@ export function createCharacter(
   });
   for (const f of def.features) c.addEffect(bindMastery(structuredClone(f), def.startingWeaponId));
   initializeClassState(c);
+  if (cls === "warlock") {
+    const selectedPatron = warlockPatronId ?? warlockPatronOptions(c.alignment === "neutral" ? "chaos" : c.alignment)[0]?.id;
+    if (!selectedPatron) throw new Error("A Warlock must have a lawful or chaotic patron");
+    chooseWarlockPatron(c, selectedPatron);
+  }
   if (getBaseRole(cls) === "thief") {
     for (const skill of ["thievery", "stealth", "climbing", "swimming"]) c.trainSkill(skill);
   }

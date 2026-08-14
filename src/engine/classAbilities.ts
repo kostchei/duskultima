@@ -3,6 +3,7 @@
 import type { Character } from "./character";
 import type { Dice } from "./dice";
 import { hasHook, type ClassResource } from "./effects";
+import type { WarlockPatronId } from "./patrons";
 
 export const SHIELD_WALL_EFFECT_ID = "class:sea-wolf:shield-wall";
 export const HIDDEN_EFFECT_ID = "class:hidden";
@@ -14,6 +15,8 @@ export function resourceMaximum(character: Character, resource: ClassResource): 
   if (character.className === "ras-godai") base.smokeStep = 3;
   if (character.className === "seer") base.omen = 3;
   if (character.className === "pit-fighter") base.relentless = 3;
+  if (character.className === "monk") base.sunOnWater = 1;
+  if (character.className === "necromancer") base.returnFromDeath = character.classState.returnFromDeathUses;
   let total = base[resource] ?? 0;
   for (const effect of character.effects) for (const hook of effect.hooks) {
     if (hook.kind === "resourceBonus" && hook.resource === resource) total += hook.bonus;
@@ -22,7 +25,7 @@ export function resourceMaximum(character: Character, resource: ClassResource): 
 }
 
 function refillResources(character: Character): void {
-  const resources: ClassResource[] = ["ignoreAttack", "relentless", "berserk", "smokeStep", "paralyze", "waterWalk", "sleep", "wallWalk", "unseen", "familiarTeleport", "omen"];
+  const resources: ClassResource[] = ["ignoreAttack", "relentless", "berserk", "smokeStep", "paralyze", "waterWalk", "sleep", "wallWalk", "unseen", "familiarTeleport", "omen", "sunOnWater", "returnFromDeath"];
   for (const resource of resources) character.classState.resourceUses[resource] = resourceMaximum(character, resource);
   character.classState.omenUses = character.classState.resourceUses.omen ?? 0;
 }
@@ -43,11 +46,15 @@ export function initializeClassState(character: Character): void {
   if (character.className === "sea-wolf" && character.classState.oldGods.length === 0) character.classState.oldGods = ["odin"];
   refillResources(character);
   character.classState.cauldronItems ??= [];
+  character.classState.sunOnWaterUses = character.classState.resourceUses.sunOnWater ?? 0;
+  character.classState.returnFromDeathUses = character.classState.resourceUses.returnFromDeath ?? 0;
 }
 
 export function restoreClassResources(character: Character): void {
   if (character.className === "pit-fighter") character.classState.flourishUses = 3;
   refillResources(character);
+  character.classState.sunOnWaterUses = character.classState.resourceUses.sunOnWater ?? 0;
+  character.classState.returnFromDeathUses = character.classState.resourceUses.returnFromDeath ?? 0;
   if (character.className === "sea-wolf" && character.classState.oldGods.includes("freya") && !character.luckToken) character.luckToken = true;
   character.removeEffect("class:sea-wolf:berserk");
   cancelShieldWall(character);
@@ -231,4 +238,89 @@ export function enemyMoraleDc(character: Character, enemiesCanSeeCharacter: bool
 
 export function pitFighterLastStandThreshold(character: Character): number {
   return character.className === "pit-fighter" ? 18 : 20;
+}
+
+export function monkFistMagicBonus(character: Character): number {
+  if (character.className !== "monk") return 0;
+  if (character.level >= 8) return 3;
+  if (character.level >= 4) return 2;
+  if (character.level >= 2) return 1;
+  return 0;
+}
+
+export function namedBladeMagicBonus(character: Character): number {
+  if (character.className !== "paladin") return 0;
+  if (character.level >= 8) return 3;
+  if (character.level >= 5) return 2;
+  if (character.level >= 2) return 1;
+  return 0;
+}
+
+export function activateStillHeart(character: Character): number {
+  if (character.className !== "monk") throw new Error("Only a Monk can use Still the Heart");
+  const rounds = Math.max(0, character.level);
+  if (rounds === 0) throw new Error("Still the Heart has no rounds remaining today");
+  character.addEffect({
+    id: "class:monk:still-heart",
+    name: "Still the Heart",
+    hooks: [{ kind: "waterBreathing" }, { kind: "hpFloor", value: 1 }],
+    duration: { unit: "rounds", remaining: rounds },
+  });
+  return rounds;
+}
+
+export function useSunOnWater(character: Character): number {
+  if (character.className !== "monk") throw new Error("Only a Monk can use Sun on the Water");
+  const remaining = spendResource(character, "sunOnWater");
+  character.classState.sunOnWaterUses = remaining;
+  return remaining;
+}
+
+export function useNecromancerDeathReturn(character: Character): number {
+  if (character.className !== "necromancer") throw new Error("Only a Necromancer can use River of Death");
+  const remaining = spendResource(character, "returnFromDeath");
+  character.classState.returnFromDeathUses = remaining;
+  return remaining;
+}
+
+export function deathTimerDie(character: Character): string {
+  return character.className === "necromancer" ? "1d6" : "1d4";
+}
+
+export function inspiringPresenceThreshold(paladin: Character, bonus = 0): number {
+  if (paladin.className !== "paladin") throw new Error("Only a Paladin has Inspiring Presence");
+  return Math.max(2, 18 - bonus);
+}
+
+export function inspireAllyFromDying(paladin: Character, ally: Character, naturalD20: number, inNearRange: boolean): boolean {
+  if (!inNearRange || paladin.className !== "paladin" || !ally.dying) return false;
+  const bonus = paladin.effects.flatMap((effect) => effect.hooks).reduce((sum, hook) => sum + (hook.kind === "deathSaveBonus" ? hook.bonus : 0), 0);
+  if (naturalD20 < inspiringPresenceThreshold(paladin, bonus)) return false;
+  ally.dying = null;
+  ally.hp = Math.max(1, paladin.mod("CHA"));
+  return true;
+}
+
+export function chooseWarlockPatron(character: Character, patron: WarlockPatronId): void {
+  if (character.className !== "warlock") throw new Error("Only a Warlock can choose a patron");
+  character.classState.warlockPatron = patron;
+  character.classState.patronBoons = Math.max(1, character.classState.patronBoons);
+  character.removeEffect("class:warlock:patron-boon");
+  const hooks = patron === "rathgamnon"
+    ? [{ kind: "acBonus" as const, bonus: 1 }]
+    : patron === "saint-ydris"
+      ? [{ kind: "checkBonus" as const, applies: "attack" as const, bonus: 1 }]
+      : [];
+  character.addEffect({ id: "class:warlock:patron-boon", name: `Patron Boon (${patron})`, hooks });
+}
+
+export function warlockPatronBoonCount(character: Character): number {
+  return character.className === "warlock" ? character.classState.patronBoons : 0;
+}
+
+/** Apply class features whose source schedule advances with character level. */
+export function applyClassLevelProgression(character: Character): void {
+  if (character.className === "warlock" && character.level % 2 === 0) {
+    character.classState.patronBoons++;
+  }
 }

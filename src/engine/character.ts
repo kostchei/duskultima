@@ -14,6 +14,7 @@ import {
 import { Dice } from "./dice";
 export { Dice };
 import { Inventory, ItemStateTracker, type ItemDef } from "./inventory";
+import { namedBladeMagicBonus } from "./classAbilities";
 import type { MonsterBiome } from "./monster";
 
 export type StatName = "STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA";
@@ -207,6 +208,13 @@ export interface ClassState {
   oldGods: ("odin" | "freya" | "loki")[];
   /** Gear held between Cauldron castings (maximum 3 slots). */
   cauldronItems: { itemId: string; qty: number }[];
+  /** Monk's daily Sun on the Water uses. */
+  sunOnWaterUses: number;
+  /** A Necromancer's earned return-from-death uses. */
+  returnFromDeathUses: number;
+  /** Selected Warlock patron and earned boon count. */
+  warlockPatron: import("./patrons").WarlockPatronId | null;
+  patronBoons: number;
 }
 
 export const DEFAULT_CLASS_STATE: Readonly<ClassState> = {
@@ -216,6 +224,10 @@ export const DEFAULT_CLASS_STATE: Readonly<ClassState> = {
   resourceUses: {},
   oldGods: [],
   cauldronItems: [],
+  sunOnWaterUses: 0,
+  returnFromDeathUses: 0,
+  warlockPatron: null,
+  patronBoons: 0,
 };
 
 export function statModifier(score: number): number {
@@ -452,7 +464,10 @@ export class Character {
   get ac(): number {
     const dex = this.mod("DEX");
     const armored = this.wornArmor?.armor;
-    const base = armored ? armored.acBase + Math.min(dex, armored.dexCap) : 10 + dex;
+    const monkWisdom = !armored && this.effects.some((effect) => effect.hooks.some((hook) => hook.kind === "unarmoredAcWisBonus"))
+      ? Math.max(0, this.mod("WIS"))
+      : 0;
+    const base = armored ? armored.acBase + Math.min(dex, armored.dexCap) : 10 + dex + monkWisdom;
     const shield = this.carriedShield && !this.shieldStowed
       ? 2 + (this.carriedShield.magicBonus ?? 0)
       : 0;
@@ -586,12 +601,15 @@ export class Character {
       : "STR";
     const kind: CheckKind = ranged ? "attack" : "meleeAttack";
     const magic = weapon.magicBonus ?? 0;
+    const namedBladeBonus = weapon.id.startsWith("named-blade--")
+      ? namedBladeMagicBonus(this) + this.effects.flatMap((effect) => effect.hooks).reduce((sum, hook) => sum + (hook.kind === "namedBladeBonus" ? hook.bonus : 0), 0)
+      : 0;
     return {
       weapon,
       stat,
-      toHit: this.mod(stat) + sumCheckBonus(this.effects, kind, this.level, weapon.id, stat) + magic,
+      toHit: this.mod(stat) + sumCheckBonus(this.effects, kind, this.level, weapon.id, stat) + magic + namedBladeBonus,
       damageDice: this.effectiveWeaponDamage ?? weapon.damage,
-      damageBonus: this.mod(stat) + this.damageBonusWith(weapon.id) + magic
+      damageBonus: this.mod(stat) + this.damageBonusWith(weapon.id) + magic + namedBladeBonus
         + (!ranged && this.ancestry === "half-orc" ? 1 : 0)
         + (!ranged ? sumMeleeDamageBonus(this.effects) : 0),
     };
@@ -695,6 +713,8 @@ export class Character {
       if (hook.kind === "resourceBonus") {
         this.classState.resourceUses[hook.resource] = (this.classState.resourceUses[hook.resource] ?? 0) + hook.bonus;
         if (hook.resource === "omen") this.classState.omenUses = this.classState.resourceUses.omen ?? 0;
+        if (hook.resource === "sunOnWater") this.classState.sunOnWaterUses = this.classState.resourceUses.sunOnWater ?? 0;
+        if (hook.resource === "returnFromDeath") this.classState.returnFromDeathUses = this.classState.resourceUses.returnFromDeath ?? 0;
       }
     }
   }

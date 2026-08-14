@@ -18,6 +18,8 @@ export interface TalentChoiceOption {
 export type TalentChoice =
   | { kind: "stat"; id: string; label: string; bonus: number; stats: readonly string[]; options: readonly TalentChoiceOption[] }
   | { kind: "statOrCheck"; id: string; label: string; stat: StatName; statBonus: number; applies: string; checkBonus: number; options: readonly TalentChoiceOption[] }
+  | { kind: "statPair"; id: string; label: string; stats: readonly StatName[]; bonus: number; options: readonly TalentChoiceOption[] }
+  | { kind: "checkKind"; id: string; label: string; applies: readonly string[]; bonus: number; options: readonly TalentChoiceOption[] }
   | { kind: "weaponMastery"; id: string; label: string; bonus: number; options: readonly TalentChoiceOption[] }
   | { kind: "armorAc"; id: string; label: string; bonus: number; options: readonly TalentChoiceOption[] }
   | { kind: "knownSpellAdvantage"; id: string; label: string; options: readonly TalentChoiceOption[] }
@@ -33,11 +35,13 @@ function alreadyHasRoll(character: Character, tableId: string, roll: number): bo
   return character.effects.some((effect) => effect.id.includes(`:${tableId}:${roll}:`));
 }
 
-function duplicateResource(tableId: string, roll: number): "ignoreAttack" | "berserk" | "familiarTeleport" | null {
+function duplicateResource(tableId: string, roll: number): "ignoreAttack" | "berserk" | "familiarTeleport" | "sunOnWater" | "returnFromDeath" | null {
   if (roll !== 2) return null;
   if (tableId === "pit-fighter-talents") return "ignoreAttack";
   if (tableId === "sea-wolf-talents") return "berserk";
   if (tableId === "witch-talents") return "familiarTeleport";
+  if (tableId === "monk-talents") return "sunOnWater";
+  if (tableId === "necromancer-talents") return "returnFromDeath";
   return null;
 }
 
@@ -108,6 +112,15 @@ function applyTalentResultInternal(
         checkBonus: hook.checkBonus,
         options: [{ value: "stat", label: `+${hook.statBonus} ${hook.stat}` }, { value: "check", label: `+${hook.checkBonus} ${hook.applies}` }],
       });
+      return true;
+    }
+    if (hook.kind === "statPairChoice") {
+      const pairs = hook.stats.flatMap((first, index) => hook.stats.slice(index + 1).map((second) => ({ value: `${first},${second}`, label: `+${hook.bonus} ${first} and ${second}` })));
+      pendingChoices.push({ kind: "statPair", id: `${effectId}:stats`, label: text, stats: hook.stats, bonus: hook.bonus, options: pairs });
+      return true;
+    }
+    if (hook.kind === "checkKindChoice") {
+      pendingChoices.push({ kind: "checkKind", id: `${effectId}:check`, label: text, applies: hook.applies, bonus: hook.bonus, options: choiceOptions(hook.applies) });
       return true;
     }
     if (hook.kind === "weaponMasteryChoice") {
@@ -206,6 +219,13 @@ export function applyTalentChoice(character: Character, choice: TalentChoice, va
   } else if (choice.kind === "statOrCheck") {
     if (value === "stat") character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus", stat: choice.stat, bonus: choice.statBonus }] });
     else character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "checkBonus", applies: choice.applies as any, bonus: choice.checkBonus }] });
+  } else if (choice.kind === "statPair") {
+    const [first, second] = value.split(",") as [StatName | undefined, StatName | undefined];
+    if (!first || !second || first === second || !choice.stats.includes(first) || !choice.stats.includes(second)) throw new Error(`Invalid stat pair choice "${value}"`);
+    character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus", stat: first, bonus: choice.bonus }, { kind: "statBonus", stat: second, bonus: choice.bonus }] });
+  } else if (choice.kind === "checkKind") {
+    if (!choice.applies.includes(value)) throw new Error(`Invalid check choice "${value}"`);
+    character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "checkBonus", applies: value as any, bonus: choice.bonus }] });
   } else if (choice.kind === "weaponMastery") {
     character.addEffect({ id: choice.id, name: choice.label, hooks: [
       { kind: "checkBonus", applies: "attack", bonus: choice.bonus, weaponId: value },

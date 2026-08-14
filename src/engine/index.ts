@@ -5,7 +5,7 @@
 
 import { awardXp, canLevelUp, levelUp, type LevelUpResult, type XpAward } from "./advancement";
 import { Character } from "./character";
-import { ignoreAttackDamage, pitFighterLastStandThreshold, restoreClassResources } from "./classAbilities";
+import { deathTimerDie, ignoreAttackDamage, monkFistMagicBonus, namedBladeMagicBonus, pitFighterLastStandThreshold, restoreClassResources } from "./classAbilities";
 import {
   DC,
   resolveCheck,
@@ -87,6 +87,8 @@ export interface AttackInput {
   extraDamageDice?: number;
   /** Whether the target is unaware for class features such as Backstab. */
   targetUnaware?: boolean;
+  /** Monk strike; uses the supplied damage die and gains the class magic bonus. */
+  unarmed?: boolean;
   advantage?: readonly string[];
   disadvantage?: readonly string[];
 }
@@ -295,10 +297,15 @@ export class Engine {
   attack(input: AttackInput): AttackResult {
     // Ranged weapons use DEX. Finesse melee weapons use the better of STR/DEX.
     const a = input.attacker;
+    if (input.unarmed && a.className !== "monk") throw new Error("Only a Monk can make a Fist of the Moon God strike");
     const finesse = input.weapon?.finesse === true && a.ancestry !== "dwarf";
     const ranged = input.weapon?.tags.includes("ranged") === true;
     const stat = ranged || (finesse && a.mod("DEX") > a.mod("STR")) ? "DEX" : "STR";
     const melee = !ranged;
+    const monkMagic = input.unarmed ? monkFistMagicBonus(a) : 0;
+    const namedBladeBonus = input.weapon?.id.startsWith("named-blade--")
+      ? namedBladeMagicBonus(a) + a.effects.flatMap((effect) => effect.hooks).reduce((sum, hook) => sum + (hook.kind === "namedBladeBonus" ? hook.bonus : 0), 0)
+      : 0;
     const check = this.check({
       actor: a,
       stat,
@@ -306,7 +313,7 @@ export class Engine {
       kind: melee ? "meleeAttack" : "attack",
       advantage: input.advantage,
       disadvantage: input.disadvantage,
-      bonus: input.weapon?.magicBonus,
+      bonus: (input.weapon?.magicBonus ?? 0) + monkMagic + namedBladeBonus,
       weaponId: input.weapon?.id,
     });
     let damage = 0;
@@ -324,7 +331,7 @@ export class Engine {
       // The stat that swung the weapon also drives its damage: STR for melee,
       // DEX for ranged and for finesse weapons in a dextrous hand.
       damage += a.mod(stat);
-      damage += a.damageBonusWith(input.weapon?.id) + (input.weapon?.magicBonus ?? 0);
+      damage += a.damageBonusWith(input.weapon?.id) + (input.weapon?.magicBonus ?? 0) + monkMagic + namedBladeBonus;
       if (melee && a.ancestry === "half-orc") damage += 1;
       const meleeMultiplier = a.effects.flatMap((effect) => effect.hooks).reduce(
         (highest, hook) => hook.kind === "meleeDamageMultiplier" ? Math.max(highest, hook.value) : highest,
@@ -465,7 +472,7 @@ export class Engine {
           return false;
         }
       }
-      const rounds = Math.max(1, this.dice.roll("1d4") + character.mod("CON"));
+      const rounds = Math.max(1, this.dice.roll(deathTimerDie(character)) + character.mod("CON"));
       character.dying = { roundsRemaining: rounds };
       this.log.append(this.clock.elapsedMs, "dying.start", { who: character.id, rounds });
       return true;

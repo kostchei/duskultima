@@ -255,30 +255,30 @@ export const BARD_TALENTS: RollableTable = {
 
 export const MONK_TALENTS: RollableTable = {
   id: "monk-talents", name: "Monk Talents", dice: "2d6", entries: [
-    { min: 2, max: 2, text: "Flurry of Blows: extra attack on melee turn", effects: [{ kind: "checkBonus", applies: "attack", bonus: 1 }] },
-    { min: 3, max: 6, text: "+1 to Strength or Wisdom stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "WIS"], bonus: 1 }] },
-    { min: 7, max: 9, text: "Unarmored AC increases by +1", effects: [{ kind: "acBonus", bonus: 1 }] },
-    { min: 10, max: 11, text: "Ki Strike: melee attacks count as magic", effects: [{ kind: "damageBonus", bonus: 1 }] },
+    { min: 2, max: 2, text: "Once per day, double your movement speed for 3 rounds", effects: [{ kind: "speedBonus", bonus: 1 }] },
+    { min: 3, max: 6, text: "+1 to melee attacks and damage", effects: [{ kind: "checkBonus", applies: "meleeAttack", bonus: 1 }, { kind: "meleeDamageBonus", bonus: 1 }] },
+    { min: 7, max: 9, text: "+2 to Strength, Dexterity, or Wisdom stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "WIS"], bonus: 2 }] },
+    { min: 10, max: 11, text: "Gain an additional use of Sun on the Water", effects: [{ kind: "resourceBonus", resource: "sunOnWater", bonus: 1 }] },
     { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
   ],
 };
 
 export const NECROMANCER_TALENTS: RollableTable = {
   id: "necromancer-talents", name: "Necromancer Talents", dice: "2d6", entries: [
-    { min: 2, max: 2, text: "Animate undead thrall with +1d6 HP", effects: [{ kind: "statBonus", stat: "CHA", bonus: 2 }] },
-    { min: 3, max: 6, text: "+1 to Charisma or Intelligence stat", effects: [{ kind: "statBonusChoice", stats: ["CHA", "INT"], bonus: 1 }] },
-    { min: 7, max: 9, text: "Siphon Life restores +1d4 additional HP", effects: [{ kind: "damageBonus", bonus: 1 }] },
-    { min: 10, max: 11, text: "Undead monsters treat you as neutral", effects: [{ kind: "advantageOn", applies: "stealth" }] },
+    { min: 2, max: 2, text: "The next time you die, you may return to life with full HP", effects: [{ kind: "resourceBonus", resource: "returnFromDeath", bonus: 1 }] },
+    { min: 3, max: 7, text: "+1 to spellcasting checks or +1 to melee attacks", effects: [{ kind: "checkKindChoice", applies: ["spellcast", "meleeAttack"], bonus: 1 }] },
+    { min: 8, max: 9, text: "+2 to Strength, Constitution, or Charisma stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "CON", "CHA"], bonus: 2 }] },
+    { min: 10, max: 11, text: "Gain advantage on casting one spell you know", talent: [{ kind: "advantageKnownSpell" }] },
     { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
   ],
 };
 
 export const PALADIN_TALENTS: RollableTable = {
   id: "paladin-talents", name: "Paladin Talents", dice: "2d6", entries: [
-    { min: 2, max: 2, text: "Smite deals +1d8 extra radiant damage", effects: [{ kind: "damageBonus", bonus: 2 }] },
-    { min: 3, max: 6, text: "+1 to Strength or Charisma stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "CHA"], bonus: 1 }] },
-    { min: 7, max: 9, text: "Aura of Protection: +1 AC to adjacent allies", effects: [{ kind: "acBonus", bonus: 1 }] },
-    { min: 10, max: 11, text: "Lay on Hands heals full HP once per day", effects: [{ kind: "statBonus", stat: "CHA", bonus: 2 }] },
+    { min: 2, max: 2, text: "Your Named Blade gains a random magic weapon benefit", effects: [] },
+    { min: 3, max: 6, text: "Gain +1 to attacks and damage with your Named Blade", effects: [{ kind: "namedBladeBonus", bonus: 1 }] },
+    { min: 7, max: 9, text: "+2 to Strength, Constitution, or Charisma stat", effects: [{ kind: "statBonusChoice", stats: ["STR", "CON", "CHA"], bonus: 2 }] },
+    { min: 10, max: 11, text: "Increase your Inspiring Presence dying roll range by 1", effects: [{ kind: "deathSaveBonus", bonus: 1 }] },
     { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
   ],
 };
@@ -295,10 +295,10 @@ export const RANGER_TALENTS: RollableTable = {
 
 export const WARLOCK_TALENTS: RollableTable = {
   id: "warlock-talents", name: "Warlock Talents", dice: "2d6", entries: [
-    { min: 2, max: 2, text: "Patron's Gift: gain a second patron boon", effects: [{ kind: "statBonus", stat: "CHA", bonus: 2 }] },
-    { min: 3, max: 6, text: "+1 to Charisma or Constitution stat", effects: [{ kind: "statBonusChoice", stats: ["CHA", "CON"], bonus: 1 }] },
-    { min: 7, max: 9, text: "Eldritch Blast deals +1d6 force damage", effects: [{ kind: "damageBonus", bonus: 1 }] },
-    { min: 10, max: 11, text: "Regain 1 spent spell slot on critical hit", effects: [{ kind: "critRange", value: 19 }] },
+    { min: 2, max: 2, text: "Roll a Patron Boon from any patron; an unexplained gift", effects: [] },
+    { min: 3, max: 6, text: "Add +1 point to two stats (they must be different)", effects: [{ kind: "statPairChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 1 }] },
+    { min: 7, max: 9, text: "+1 to melee or ranged attacks", effects: [{ kind: "checkKindChoice", applies: ["meleeAttack", "attack"], bonus: 1 }] },
+    { min: 10, max: 11, text: "Roll two Patron Boons and choose one to keep", effects: [] },
     { min: 12, max: 12, text: "Choose a talent or +2 points to distribute to stats", effects: [{ kind: "statBonusChoice", stats: ["STR", "DEX", "CON", "INT", "WIS", "CHA"], bonus: 2 }] },
   ],
 };

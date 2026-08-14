@@ -8,6 +8,7 @@ import type { Character } from "./character";
 import type { Dice } from "./dice";
 import type { TableRegistry, TableRollResult } from "./tables";
 import { applyTalentResultForLevelUp, type AppliedTalent, type TalentChoice } from "./talents";
+import { applyClassLevelProgression } from "./classAbilities";
 
 export const MAX_LEVEL = 10;
 
@@ -67,6 +68,7 @@ export function levelUp(
     : dice.roll(hitDie);
   const hpGained = Math.max(1, hpRolled + character.mod("CON"));
   character.increaseMaxHp(hpGained);
+  applyClassLevelProgression(character);
   // Leveling restores the character to full (and pulls a dying one back up).
   character.heal(character.maxHp);
 
