@@ -298,7 +298,36 @@ const CARDINAL_DIRECTIONS: readonly { dx: number; dy: number }[] = [
 
 const LENGTH_BANDS: readonly CorridorLengthBand[] = ["door", "near", "far"];
 
-export function buildSitePlan(dice: Dice, size: SiteSize, goal: SiteGoal, biome: MonsterBiome): SitePlan {
+/** Runaway guard on the generated grid; a normal site lands far below this. */
+const MAX_LAYOUT_TILES = 512;
+
+/** How far a room may be shoved along its ray before we call the layout broken. */
+const MAX_PLACEMENT_PUSH = 256;
+
+/** True when two centered square rooms would touch or overlap (1-tile wall between). */
+function roomsCollide(
+  a: { cx: number; cy: number },
+  aDim: number,
+  b: { cx: number; cy: number; dim: number },
+): boolean {
+  const ax0 = a.cx - Math.floor(aDim / 2);
+  const ay0 = a.cy - Math.floor(aDim / 2);
+  const bx0 = b.cx - Math.floor(b.dim / 2);
+  const by0 = b.cy - Math.floor(b.dim / 2);
+  return ax0 - 1 < bx0 + b.dim
+    && bx0 - 1 < ax0 + aDim
+    && ay0 - 1 < by0 + b.dim
+    && by0 - 1 < ay0 + aDim;
+}
+
+/**
+ * `fillerCount` is supplied by the caller (from `SiteDef.roomCount`) rather than
+ * rerolled here, so the room count the UI advertises is the count that gets carved.
+ */
+export function buildSitePlan(dice: Dice, fillerCount: number, goal: SiteGoal, biome: MonsterBiome): SitePlan {
+  if (!Number.isInteger(fillerCount) || fillerCount < 0) {
+    throw new Error(`Filler room count must be a non-negative integer, got ${fillerCount}`);
+  }
   const topology = pickTopology(dice);
   const roles = assignBeatRoles(dice, topology);
   const roleByNode = new Map<number, BeatRole>([
@@ -322,7 +351,6 @@ export function buildSitePlan(dice: Dice, size: SiteSize, goal: SiteGoal, biome:
     return { from: a, to: b, lengthBand: LENGTH_BANDS[dice.die(3) - 1]! };
   });
 
-  const fillerCount = rollFillerCount(dice, size);
   let nextId = 5;
   for (let i = 0; i < fillerCount; i++) {
     const id = nextId++;
@@ -364,6 +392,11 @@ export function buildSitePlan(dice: Dice, size: SiteSize, goal: SiteGoal, biome:
   const positions = new Map<number, { cx: number; cy: number }>();
   positions.set(roles.entrance, { cx: 0, cy: 0 });
   const directionIndexByParent = new Map<number, number>();
+  // Branches from different parents can aim into the same patch of the plane, so
+  // each child is pushed further along its ray until it clears every room placed
+  // so far. Without this, two rooms can land on the same tiles and one room's
+  // content silently overwrites the other's — including the goal.
+  const settled: { cx: number; cy: number; dim: number }[] = [{ cx: 0, cy: 0, dim: dims.get(roles.entrance)! }];
   // `visited` was populated in BFS discovery order, so every node's parent is
   // already positioned by the time we reach it here.
   const placementOrder = [...visited].filter((n) => n !== roles.entrance);
@@ -377,11 +410,20 @@ export function buildSitePlan(dice: Dice, size: SiteSize, goal: SiteGoal, biome:
     const parentDim = dims.get(parent)!;
     const childDim = dims.get(node)!;
     const gap = CORRIDOR_LENGTH_TILES[lengthBand] + lap * 4;
-    const offset = Math.ceil(parentDim / 2) + gap + Math.ceil(childDim / 2);
-    positions.set(node, {
-      cx: parentPos.cx + dir.dx * offset,
-      cy: parentPos.cy + dir.dy * offset,
-    });
+    const baseOffset = Math.ceil(parentDim / 2) + gap + Math.ceil(childDim / 2);
+
+    let push = 0;
+    let candidate = { cx: parentPos.cx + dir.dx * baseOffset, cy: parentPos.cy + dir.dy * baseOffset };
+    while (settled.some((other) => roomsCollide(candidate, childDim, other))) {
+      push++;
+      if (push > MAX_PLACEMENT_PUSH) {
+        throw new Error(`Could not place room ${node} clear of the ${settled.length} rooms already laid out`);
+      }
+      const offset = baseOffset + push;
+      candidate = { cx: parentPos.cx + dir.dx * offset, cy: parentPos.cy + dir.dy * offset };
+    }
+    positions.set(node, candidate);
+    settled.push({ ...candidate, dim: childDim });
   }
 
   const placed: PlacedRoom[] = rooms.map((room) => {
@@ -404,11 +446,15 @@ export function buildSitePlan(dice: Dice, size: SiteSize, goal: SiteGoal, biome:
   const margin = 3;
   const shiftX = margin - minX;
   const shiftY = margin - minY;
-  const rawWidth = maxX - minX + margin * 2;
-  const rawHeight = maxY - minY + margin * 2;
-  const SAFETY_CAP = 80;
-  const width = Math.min(SAFETY_CAP, rawWidth);
-  const height = Math.min(SAFETY_CAP, rawHeight);
+  // Rooms are laid out on an unbounded plane, so the grid is sized to the layout
+  // instead of the layout being truncated to a fixed grid — clamping here would
+  // slice rooms and corridors off the far edge. The ceiling is a runaway guard
+  // well above any layout the topology/gap rolls can actually produce.
+  const width = maxX - minX + margin * 2;
+  const height = maxY - minY + margin * 2;
+  if (width > MAX_LAYOUT_TILES || height > MAX_LAYOUT_TILES) {
+    throw new Error(`Site layout ${width}x${height} exceeds the ${MAX_LAYOUT_TILES}-tile limit`);
+  }
 
   const roomPlans: RoomPlan[] = placed.map((r) => ({
     id: r.id,

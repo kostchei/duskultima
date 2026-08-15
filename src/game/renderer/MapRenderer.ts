@@ -111,7 +111,7 @@ export class MapRenderer {
         if (isVisible) {
           // Draw monsters or items
           const entity = grid.getEntityAt(gx, gy);
-          if (entity) {
+          if (entity && !entity.isHiddenGoal) {
             const entityCvs = this.getEntityCanvas(entity, currentBiome);
             ctx.drawImage(entityCvs, screenX, screenY, TILE_SIZE, TILE_SIZE);
 

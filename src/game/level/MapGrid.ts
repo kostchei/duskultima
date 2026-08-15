@@ -9,6 +9,7 @@ import { TileType } from "../renderer/TileSet";
 import { SiteDef } from "./Adventure";
 import type { MonsterDef, MonsterSize } from "../../engine/monster";
 import type { ClassName } from "../../engine/character";
+import type { HazardDef } from "../../engine/trapsHazards";
 import { Dice } from "../../engine/dice";
 import {
   buildSitePlan,
@@ -41,12 +42,17 @@ export interface MapEntity {
   goalInteraction?: "rescue-companion" | "hostage" | "objective";
   isGoalTarget?: boolean;
   monsterSize?: MonsterSize;
+  /** A hidden goal is spawned but not drawn until a search reveals it. */
+  isHiddenGoal?: boolean;
 }
 
 export interface CorridorTrapMarker {
   x: number;
   y: number;
   trapId: number;
+  /** Spotted by a search, which allows a disarm attempt and eases the save. */
+  found: boolean;
+  disabled: boolean;
   triggered: boolean;
 }
 
@@ -54,6 +60,16 @@ export interface TreasureChestMarker {
   x: number;
   y: number;
   isGoal: boolean;
+  /** A hidden goal chest carves no tile until a search reveals it. */
+  hidden: boolean;
+}
+
+export interface HazardMarker {
+  x: number;
+  y: number;
+  hazard: HazardDef;
+  /** Major hazards cover a plus-shaped field; minor ones a single tile. */
+  major: boolean;
 }
 
 export class MapGrid {
@@ -72,6 +88,7 @@ export class MapGrid {
   public travelSegments: readonly TravelSegment[] = [];
   public corridorTraps: CorridorTrapMarker[] = [];
   public treasureChests: TreasureChestMarker[] = [];
+  public hazards: HazardMarker[] = [];
 
   constructor(width = 28, height = 28) {
     this.width = width;
@@ -162,12 +179,20 @@ export class MapGrid {
   public generateSite(siteDef: SiteDef, dice: Dice = new Dice()): void {
     this.siteDef = siteDef;
 
-    const plan = buildSitePlan(dice, siteDef.sizeCategory, siteDef.goal, siteDef.biome);
+    // The 5 beat rooms are mandatory; everything above them is filler the site
+    // definition already committed to when it advertised its room count.
+    const fillerCount = siteDef.roomCount - 5;
+    if (fillerCount < 0) {
+      throw new Error(`Site ${siteDef.id} declares ${siteDef.roomCount} rooms, fewer than the 5 mandatory beat rooms`);
+    }
+
+    const plan = buildSitePlan(dice, fillerCount, siteDef.goal, siteDef.biome);
     this.resize(plan.width, plan.height);
     this.roomPlans = plan.rooms;
     this.travelSegments = plan.edges;
     this.corridorTraps = [];
     this.treasureChests = [];
+    this.hazards = [];
     this.entities = [];
 
     const roomById = new Map(plan.rooms.map((r) => [r.id, r]));
@@ -187,7 +212,10 @@ export class MapGrid {
 
     // Connect travel segments. Width comes from the largest monster in the
     // site; length band (door/near/far) only shaped the layout positions
-    // already baked into each room's rect.
+    // already baked into each room's rect. Every corridor is carved before any
+    // fixture is stamped, so a later corridor cannot floor over an earlier
+    // segment's door or trap.
+    const fixtures: { x: number; y: number; tile: TileType; trapId?: number }[] = [];
     for (const segment of plan.edges) {
       const r1 = roomById.get(segment.fromRoom)!.rect;
       const r2 = roomById.get(segment.toRoom)!.rect;
@@ -200,14 +228,31 @@ export class MapGrid {
       // Place door at corridor midpoint
       const midX = Math.floor((cx1 + cx2) / 2);
       const midY = Math.floor((cy1 + cy2) / 2);
-      this.setTile(midX, midY, TileType.DOOR_CLOSED);
-      if (segment.kind === "ramp") this.setTile(midX, midY + 1, TileType.RAMP);
-      if (segment.kind === "shaft") this.setTile(midX, midY + 1, TileType.SHAFT);
+      fixtures.push({ x: midX, y: midY, tile: TileType.DOOR_CLOSED });
+      if (segment.kind === "ramp") fixtures.push({ x: midX, y: midY + 1, tile: TileType.RAMP });
+      if (segment.kind === "shaft") fixtures.push({ x: midX, y: midY + 1, tile: TileType.SHAFT });
       if (segment.trapId !== undefined) {
-        const trapX = Math.floor((cx1 + midX) / 2);
-        const trapY = Math.floor((cy1 + midY) / 2);
-        this.setTile(trapX, trapY, TileType.TRAP);
-        this.corridorTraps.push({ x: trapX, y: trapY, trapId: segment.trapId, triggered: false });
+        fixtures.push({
+          x: Math.floor((cx1 + midX) / 2),
+          y: Math.floor((cy1 + midY) / 2),
+          tile: TileType.TRAP,
+          trapId: segment.trapId,
+        });
+      }
+    }
+
+    const inAnyRoom = (x: number, y: number): boolean =>
+      plan.rooms.some((r) => x >= r.rect.x && x < r.rect.x + r.rect.w && y >= r.rect.y && y < r.rect.y + r.rect.h);
+    const stamped = new Set<string>();
+    for (const fixture of fixtures) {
+      // Fixtures belong to the corridor network; one that falls inside a room
+      // would be overwritten by that room's own content anyway.
+      const key = `${fixture.x},${fixture.y}`;
+      if (stamped.has(key) || inAnyRoom(fixture.x, fixture.y)) continue;
+      stamped.add(key);
+      this.setTile(fixture.x, fixture.y, fixture.tile);
+      if (fixture.trapId !== undefined) {
+        this.corridorTraps.push({ x: fixture.x, y: fixture.y, trapId: fixture.trapId, found: false, disabled: false, triggered: false });
       }
     }
 
@@ -234,10 +279,41 @@ export class MapGrid {
     }
   }
 
+  /**
+   * Reveals a goal that was spawned hidden — carving the chest tile, or letting
+   * the goal entity draw — in whichever room the generator actually put it.
+   * Returns true when something was revealed.
+   */
+  public revealHiddenGoal(): boolean {
+    let revealed = false;
+    for (const chest of this.treasureChests) {
+      if (!chest.isGoal || !chest.hidden) continue;
+      chest.hidden = false;
+      this.setTile(chest.x, chest.y, TileType.CHEST_CLOSED);
+      revealed = true;
+    }
+    for (const entity of this.entities) {
+      if (!entity.isHiddenGoal) continue;
+      entity.isHiddenGoal = false;
+      revealed = true;
+    }
+    return revealed;
+  }
+
+  /** The live (not yet sprung or disarmed) trap on a tile, if any. */
+  public liveTrapAt(x: number, y: number): CorridorTrapMarker | undefined {
+    return this.corridorTraps.find((trap) => trap.x === x && trap.y === y && !trap.triggered && !trap.disabled);
+  }
+
+  public hazardAt(x: number, y: number): HazardMarker | undefined {
+    return this.hazards.find((hazard) => hazard.x === x && hazard.y === y);
+  }
+
   private spawnClimaxEntity(room: RoomPlan, target: string, guardianName: string | undefined): void {
     const pos = rectCenter(room.rect);
     const climax = room.content.climax;
     if (!climax) return;
+    const isHiddenGoal = Boolean(this.siteDef?.goal.isHidden);
     if (climax.kind === "rescue-companion") {
       this.entities.push({
         id: "rescue-npc",
@@ -251,6 +327,7 @@ export class MapGrid {
         rescueClass: this.siteDef?.goal.rescueClass,
         rescueHeroName: this.siteDef?.goal.rescueHeroName,
         goalInteraction: "rescue-companion",
+        isHiddenGoal,
       });
       return;
     }
@@ -265,6 +342,7 @@ export class MapGrid {
         ac: 10,
         isHostile: false,
         goalInteraction: "hostage",
+        isHiddenGoal,
       });
       return;
     }
@@ -291,9 +369,8 @@ export class MapGrid {
       return;
     }
     if (climax.kind === "chest") {
-      const goal = this.siteDef!.goal;
-      if (!goal.isHidden) this.setTile(pos.x, pos.y, TileType.CHEST_CLOSED);
-      this.treasureChests.push({ x: pos.x, y: pos.y, isGoal: true });
+      if (!isHiddenGoal) this.setTile(pos.x, pos.y, TileType.CHEST_CLOSED);
+      this.treasureChests.push({ x: pos.x, y: pos.y, isGoal: true, hidden: isHiddenGoal });
       this.spawnGuardianIfAny(room, climax.monster, guardianName, pos);
       return;
     }
@@ -308,6 +385,7 @@ export class MapGrid {
       ac: 10,
       isHostile: false,
       goalInteraction: "objective",
+      isHiddenGoal,
     });
     this.spawnGuardianIfAny(room, climax.monster, guardianName, pos);
   }
@@ -343,18 +421,33 @@ export class MapGrid {
     const content: RoomContent = room.content;
     switch (content.feature) {
       case "empty":
-      case "minor-hazard":
-      case "major-hazard":
         return;
+      case "minor-hazard":
+      case "major-hazard": {
+        if (!content.hazard) return;
+        const major = content.feature === "major-hazard";
+        // A minor hazard is one tile underfoot; a major one spreads over a
+        // plus-shaped field that is far harder to skirt around.
+        const spread = major
+          ? [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }]
+          : [{ x: 0, y: 0 }];
+        for (const offset of spread) {
+          const tile = offsetWithin(room.rect, offset.x, offset.y, at);
+          if (this.hazards.some((h) => h.x === tile.x && h.y === tile.y)) continue;
+          this.setTile(tile.x, tile.y, TileType.HAZARD);
+          this.hazards.push({ x: tile.x, y: tile.y, hazard: content.hazard, major });
+        }
+        return;
+      }
       case "trap": {
         if (!content.trap) return;
         this.setTile(at.x, at.y, TileType.TRAP);
-        this.corridorTraps.push({ x: at.x, y: at.y, trapId: content.trap.id, triggered: false });
+        this.corridorTraps.push({ x: at.x, y: at.y, trapId: content.trap.id, found: false, disabled: false, triggered: false });
         return;
       }
       case "treasure": {
         this.setTile(at.x, at.y, TileType.CHEST_CLOSED);
-        this.treasureChests.push({ x: at.x, y: at.y, isGoal: false });
+        this.treasureChests.push({ x: at.x, y: at.y, isGoal: false, hidden: false });
         return;
       }
       case "npc": {

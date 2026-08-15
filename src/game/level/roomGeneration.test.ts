@@ -110,7 +110,7 @@ describe("rollFillerCount", () => {
 describe("buildSitePlan", () => {
   it("produces exactly one room per beat role plus size-appropriate filler", () => {
     for (let seed = 1; seed <= 30; seed++) {
-      const plan = buildSitePlan(new Dice(seed), "small", GOAL, "diablerie");
+      const plan = buildSitePlan(new Dice(seed), 0, GOAL, "diablerie");
       expect(plan.rooms).toHaveLength(5);
       const roles = plan.rooms.map((r) => r.beatRole).filter((r): r is BeatRole => r !== undefined);
       expect(new Set(roles)).toEqual(new Set(["entrance", "explore", "trick", "climax", "reward"]));
@@ -119,7 +119,7 @@ describe("buildSitePlan", () => {
 
   it("keeps every room reachable from the entrance", () => {
     for (let seed = 1; seed <= 20; seed++) {
-      const plan = buildSitePlan(new Dice(seed), "large", GOAL, "diablerie");
+      const plan = buildSitePlan(new Dice(seed), 4, GOAL, "diablerie");
       const adjacency = new Map<number, number[]>(plan.rooms.map((r) => [r.id, []]));
       for (const edge of plan.edges) {
         adjacency.get(edge.fromRoom)!.push(edge.toRoom);
@@ -143,7 +143,7 @@ describe("buildSitePlan", () => {
 
   it("sizes every room at least 3 tiles and consistent with its largest monster", () => {
     for (let seed = 1; seed <= 20; seed++) {
-      const plan = buildSitePlan(new Dice(seed), "large", GOAL, "diablerie");
+      const plan = buildSitePlan(new Dice(seed), 4, GOAL, "diablerie");
       for (const room of plan.rooms) {
         expect(room.rect.w).toBeGreaterThanOrEqual(3);
         expect(room.rect.h).toBe(room.rect.w);
@@ -154,7 +154,7 @@ describe("buildSitePlan", () => {
 
   it("keeps every corridor at least as wide as the site's largest monster", () => {
     for (let seed = 1; seed <= 20; seed++) {
-      const plan = buildSitePlan(new Dice(seed), "large", GOAL, "diablerie");
+      const plan = buildSitePlan(new Dice(seed), 4, GOAL, "diablerie");
       const largest = Math.max(...plan.rooms.map((r) => MONSTER_SIZE_TILES[r.largestMonsterSize]));
       for (const edge of plan.edges) {
         expect(edge.width).toBeGreaterThanOrEqual(largest);
@@ -163,11 +163,37 @@ describe("buildSitePlan", () => {
     }
   });
 
-  it("stays within the 80x80 safety cap", () => {
+  it("carves the exact filler count the caller asked for", () => {
+    for (const fillerCount of [0, 1, 3, 6]) {
+      const plan = buildSitePlan(new Dice(7), fillerCount, GOAL, "diablerie");
+      expect(plan.rooms).toHaveLength(5 + fillerCount);
+    }
+    expect(() => buildSitePlan(new Dice(7), -1, GOAL, "diablerie")).toThrow();
+  });
+
+  it("never lets two rooms overlap", () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const plan = buildSitePlan(new Dice(seed), 4, GOAL, "diablerie");
+      for (let i = 0; i < plan.rooms.length; i++) {
+        for (let j = i + 1; j < plan.rooms.length; j++) {
+          const a = plan.rooms[i]!.rect;
+          const b = plan.rooms[j]!.rect;
+          const overlapping = a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+          expect(overlapping).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("sizes the grid so every room fits inside it", () => {
     for (let seed = 1; seed <= 20; seed++) {
-      const plan = buildSitePlan(new Dice(seed), "large", GOAL, "diablerie");
-      expect(plan.width).toBeLessThanOrEqual(80);
-      expect(plan.height).toBeLessThanOrEqual(80);
+      const plan = buildSitePlan(new Dice(seed), 4, GOAL, "diablerie");
+      for (const room of plan.rooms) {
+        expect(room.rect.x).toBeGreaterThanOrEqual(0);
+        expect(room.rect.y).toBeGreaterThanOrEqual(0);
+        expect(room.rect.x + room.rect.w).toBeLessThanOrEqual(plan.width);
+        expect(room.rect.y + room.rect.h).toBeLessThanOrEqual(plan.height);
+      }
     }
   });
 });

@@ -26,6 +26,7 @@ export enum TileType {
   WATER = 12,
   RAMP = 13,
   SHAFT = 14,
+  HAZARD = 15,
 
   // Entities
   FIGHTER = 20,
@@ -156,6 +157,7 @@ export class TileSet {
     this.tileMap.set(TileType.WATER, this.drawWaterTile());
     this.tileMap.set(TileType.RAMP, this.drawRampTile(palette));
     this.tileMap.set(TileType.SHAFT, this.drawShaftTile(palette));
+    this.tileMap.set(TileType.HAZARD, this.drawHazardTile(palette));
 
     // Entities
     this.tileMap.set(TileType.FIGHTER, this.drawHeroTile("#e74c3c", "#f39c12", "F", palette));
@@ -314,6 +316,20 @@ export class TileSet {
     const ctx = cvs.getContext("2d")!;
     ctx.fillStyle = "#e74c3c";
     ctx.fillRect(10, 10, 12, 12);
+    return cvs;
+  }
+
+  /** Hazardous but passable ground: a sickly speckled overlay on the floor. */
+  private drawHazardTile(p: BiomePalette): HTMLCanvasElement {
+    const cvs = this.drawFloorTile(p);
+    const ctx = cvs.getContext("2d")!;
+    ctx.fillStyle = "rgba(154, 205, 50, 0.35)";
+    ctx.fillRect(2, 2, 28, 28);
+    ctx.fillStyle = "#9acd32";
+    ctx.fillRect(6, 8, 4, 4);
+    ctx.fillRect(20, 6, 4, 4);
+    ctx.fillRect(12, 18, 4, 4);
+    ctx.fillRect(22, 22, 4, 4);
     return cvs;
   }
 

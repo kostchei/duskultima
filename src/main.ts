@@ -8,7 +8,7 @@ import { Character, type Stats } from "./engine/character";
 import type { ItemDef } from "./engine/inventory";
 import { advanceKnownSpells, classDef, createCharacter, item, registerTables } from "./data/index";
 import { bestTreasureQuality, rollFabledItem, rollTreasureCache, rollTreasureFind } from "./data/treasureGeneration";
-import { MapGrid } from "./game/level/MapGrid";
+import { MapGrid, type HazardMarker } from "./game/level/MapGrid";
 import { MapRenderer } from "./game/renderer/MapRenderer";
 import { UltimaFrame } from "./game/ui/UltimaFrame";
 import { Modals } from "./game/ui/Modals";
@@ -23,7 +23,7 @@ import { treasureQualityXp } from "./engine/treasureXp";
 import { getTrinket } from "./engine/tableService";
 import { chooseAutoSupportAction, type LeaderIntent } from "./engine/partyAutomation";
 import { gridDistance, movementTiles, RANGE_BAND_TILES } from "./engine/rangeBands";
-import { disableTrap, trapById, triggerTrap } from "./engine/trapsHazards";
+import { disableTrap, resolveHazardTick, trapById, triggerTrap, type TrapDef } from "./engine/trapsHazards";
 import { getBaseRole } from "./engine/character";
 import { spell } from "./data/spells";
 
@@ -108,6 +108,7 @@ class Game {
     this.grid.generateSite(site, this.engine.dice);
     this.round = 1;
     this.movementBandsRemaining = 2;
+    this.stepsRemainingThisRound = movementTiles(1);
     this.actionAvailable = true;
     this.breathRoundsSubmerged = 0;
     this.combatActive = false;
@@ -198,7 +199,74 @@ class Game {
     this.grid.moveAutoFollowers([...this.autoFollowerIds]);
   }
 
-  private stepsRemainingThisRound = 4;
+  private stepsRemainingThisRound = movementTiles(1);
+
+  /**
+   * Springs `trap` on `victim`. `triggerTrap` already applies the damage and the
+   * condition, so this only extends the condition and reports the outcome.
+   */
+  private springTrap(victim: Character, trap: TrapDef, found: boolean): void {
+    const res = triggerTrap(this.engine.dice, victim, trap, { found, disabled: false });
+    if (res.avoided) {
+      this.frame.addLog(`★ TRAP AVOIDED! ${victim.name} dodged the ${trap.name} trap!`, "hit");
+      return;
+    }
+    if (res.conditionApplied) applyCondition(victim, res.conditionApplied, { unit: "rounds", remaining: 3 });
+    this.frame.addLog(`★ TRAP TRIGGERED! ${trap.name} springs! Dealt ${res.damage} damage to ${victim.name}.`, "combat");
+  }
+
+  /** Lets the party tinkerer work a spotted trap; a botched attempt spends it. */
+  private tryDisarmTrap(trap: TrapDef): "disabled" | "sprung" | "untouched" {
+    const tinkerer = this.party.find((c) => getBaseRole(c.className) === "thief" || c.isTrainedIn("tinkering"));
+    if (!tinkerer) return "untouched";
+    const res = disableTrap(this.engine.dice, tinkerer, trap, { found: true, disabled: false });
+    if (res.success) {
+      this.frame.addLog(`★ TRAP DEFUSED: ${tinkerer.name} carefully disarms the ${trap.name}!`, "hit");
+      return "disabled";
+    }
+    if (!res.triggered) return "untouched";
+    const trig = triggerTrap(this.engine.dice, tinkerer, trap, { found: true, disabled: false });
+    this.frame.addLog(`★ TRAP SPRUNG: ${tinkerer.name} failed to disarm the ${trap.name}! Dealt ${trig.damage} damage.`, "combat");
+    return "sprung";
+  }
+
+  /** Resolves the goal's own trap the first time the objective is touched. */
+  private resolveGoalTrap(): void {
+    const goal = this.currentSite.goal;
+    if (!goal.isTrapped || goal.trapDisabled) return;
+    this.springTrap(this.leader, trapById(goal.trapId ?? 1), Boolean(goal.trapFound));
+    goal.trapDisabled = true;
+  }
+
+  /** Steps the leader into a floor trap laid by the site generator. */
+  private resolveFloorTrap(x: number, y: number): void {
+    const marker = this.grid.liveTrapAt(x, y);
+    if (!marker) return;
+    marker.triggered = true;
+    this.springTrap(this.leader, trapById(marker.trapId), marker.found);
+    this.grid.setTile(x, y, TileType.FLOOR);
+  }
+
+  /** Ticks the terrain hazard the leader just stepped into. */
+  private resolveHazardStep(marker: HazardMarker): void {
+    const res = resolveHazardTick(this.engine.dice, this.leader, marker.hazard);
+    const severity = marker.major ? "MAJOR" : "MINOR";
+    if (res.kind === "movement") {
+      if (res.escaped) {
+        this.frame.addLog(`${this.leader.name} picks a way through the ${marker.hazard.name}.`, "system");
+      } else {
+        this.stepsRemainingThisRound = 0;
+        this.frame.addLog(`★ ${severity} HAZARD: ${marker.hazard.name} halts ${this.leader.name}'s advance!`, "combat");
+      }
+      return;
+    }
+    if (res.kind === "damage") {
+      this.frame.addLog(`★ ${severity} HAZARD: ${marker.hazard.name} deals ${res.damage} damage to ${this.leader.name}!`, "combat");
+      return;
+    }
+    const effect = res.effectApplied ? ` ${this.leader.name} is ${res.effectApplied}!` : "";
+    this.frame.addLog(`★ ${severity} HAZARD: ${marker.hazard.name} saps ${this.leader.name}.${effect}`, "combat");
+  }
 
   private handleMove(dx: number, dy: number, requestedBands: 1 | 2): void {
     if (!this.beginPlayerTurn()) return;
@@ -210,12 +278,12 @@ class Game {
     if (this.stepsRemainingThisRound <= 0) {
       if (this.movementBandsRemaining > 1) {
         this.movementBandsRemaining = 1;
-        this.stepsRemainingThisRound = 4;
+        this.stepsRemainingThisRound = movementTiles(1);
       } else if (this.actionAvailable && requestedBands === 2) {
         // Use action for double-near move
         this.actionAvailable = false;
         this.movementBandsRemaining = 0;
-        this.stepsRemainingThisRound = 4;
+        this.stepsRemainingThisRound = movementTiles(1);
         this.frame.addLog("Using your action for double-near movement.", "system");
       } else {
         this.frame.addLog("Your movement for this turn is complete. Take an action or pass.", "prompt");
@@ -229,34 +297,12 @@ class Game {
 
     const entityAtTarget = this.grid.getEntityAt(targetX, targetY);
     if (entityAtTarget?.goalInteraction === "rescue-companion" && entityAtTarget.rescueClass) {
-      if (goal.isTrapped && !goal.trapDisabled) {
-        const trap = trapById(goal.trapId ?? 1);
-        const res = triggerTrap(this.engine.dice, this.leader, trap, { found: Boolean(goal.trapFound), disabled: false });
-        if (!res.avoided) {
-          this.leader.hp = Math.max(0, this.leader.hp - res.damage);
-          if (res.conditionApplied) applyCondition(this.leader, res.conditionApplied, { unit: "rounds", remaining: 3 });
-          this.frame.addLog(`★ TRAP TRIGGERED! ${trap.name} springs! Dealt ${res.damage} damage to ${this.leader.name}.`, "combat");
-        } else {
-          this.frame.addLog(`★ TRAP AVOIDED! ${this.leader.name} dodged the ${trap.name} trap!`, "hit");
-        }
-        goal.trapDisabled = true;
-      }
+      this.resolveGoalTrap();
       this.rescueHero(entityAtTarget);
       return;
     }
     if (entityAtTarget?.goalInteraction === "hostage" || entityAtTarget?.goalInteraction === "objective") {
-      if (goal.isTrapped && !goal.trapDisabled) {
-        const trap = trapById(goal.trapId ?? 1);
-        const res = triggerTrap(this.engine.dice, this.leader, trap, { found: Boolean(goal.trapFound), disabled: false });
-        if (!res.avoided) {
-          this.leader.hp = Math.max(0, this.leader.hp - res.damage);
-          if (res.conditionApplied) applyCondition(this.leader, res.conditionApplied, { unit: "rounds", remaining: 3 });
-          this.frame.addLog(`★ TRAP TRIGGERED! ${trap.name} springs! Dealt ${res.damage} damage to ${this.leader.name}.`, "combat");
-        } else {
-          this.frame.addLog(`★ TRAP AVOIDED! ${this.leader.name} dodged the ${trap.name} trap!`, "hit");
-        }
-        goal.trapDisabled = true;
-      }
+      this.resolveGoalTrap();
       entityAtTarget.hp = 0;
       this.frame.addLog(`${this.leader.name} completes the objective: ${goal.description}.`, "hit");
       this.completeSiteGoal(null);
@@ -295,6 +341,13 @@ class Game {
     this.stepsRemainingThisRound--;
     this.audio.playStepSfx();
 
+    if (tileAtTarget === TileType.TRAP) {
+      this.resolveFloorTrap(targetX, targetY);
+    } else if (tileAtTarget === TileType.HAZARD) {
+      const hazardMarker = this.grid.hazardAt(targetX, targetY);
+      if (hazardMarker) this.resolveHazardStep(hazardMarker);
+    }
+
     if (tileAtTarget === TileType.STAIRS_DOWN) {
       this.frame.addLog(goal.isCompleted ? "Press [E]nter to descend to the next site." : "The stairs down are locked until you fulfill the Site Goal!", "prompt");
     } else if (tileAtTarget === TileType.CHEST_CLOSED) {
@@ -309,18 +362,7 @@ class Game {
         this.frame.addLog(`${bonusXp} ${finding.quality}-treasure XP awarded to each party member.`, "hit");
         this.queueLevelUps(this.party);
       } else {
-        if (goal.isTrapped && !goal.trapDisabled) {
-          const trap = trapById(goal.trapId ?? 1);
-          const res = triggerTrap(this.engine.dice, this.leader, trap, { found: Boolean(goal.trapFound), disabled: false });
-          if (!res.avoided) {
-            this.leader.hp = Math.max(0, this.leader.hp - res.damage);
-            if (res.conditionApplied) applyCondition(this.leader, res.conditionApplied, { unit: "rounds", remaining: 3 });
-            this.frame.addLog(`★ TRAP TRIGGERED! ${trap.name} springs! Dealt ${res.damage} damage to ${this.leader.name}.`, "combat");
-          } else {
-            this.frame.addLog(`★ TRAP AVOIDED! ${this.leader.name} dodged the ${trap.name} trap!`, "hit");
-          }
-          goal.trapDisabled = true;
-        }
+        this.resolveGoalTrap();
         this.grid.setTile(targetX, targetY, TileType.CHEST_OPEN);
         let rewardQuality: TreasureQuality = goal.treasureQuality ?? "normal";
         if (goal.kind === "fabled-item") {
@@ -354,7 +396,7 @@ class Game {
     if (this.stepsRemainingThisRound <= 0) {
       if (this.movementBandsRemaining > 1) {
         this.movementBandsRemaining = 1;
-        this.stepsRemainingThisRound = 4;
+        this.stepsRemainingThisRound = movementTiles(1);
         this.frame.showMovementTooltip("Hold Shift + direction to use action for double near movement");
         this.frame.addLog("Moved 5ft steps (near). Attack, cast, pass, or move near again.", "prompt");
         this.updateUi();
@@ -691,15 +733,11 @@ class Game {
 
     const goal = this.currentSite?.goal;
     if (goal) {
-      // Reveal hidden objective chest / location
+      // Reveal the hidden goal wherever the generator actually placed it.
       if (goal.isHidden) {
         goal.isHidden = false;
+        this.grid.revealHiddenGoal();
         if (goalUsesChest(goal)) {
-          const goalRoomIndex = Math.max(1, this.grid.roomPlans.length - 2);
-          const goalRoom = this.grid.roomPlans[goalRoomIndex]?.rect;
-          if (goalRoom) {
-            this.grid.setTile(goalRoom.x + 2, goalRoom.y + 2, TileType.CHEST_CLOSED);
-          }
           this.frame.addLog("★ SEARCH REVEALS: You discover a hidden, ornate treasure chest!", "hit");
         } else {
           this.frame.addLog(`★ SEARCH REVEALS: You discover the hidden location of ${goal.target}!`, "hit");
@@ -714,26 +752,30 @@ class Game {
           goal.trapFound = true;
           this.frame.addLog(`★ TRAP DISCOVERED: You spot a concealed ${trap.name} trap guarding the objective!`, "combat");
         }
-        const tinkerer = this.party.find((c) => getBaseRole(c.className) === "thief" || c.isTrainedIn("tinkering"));
-        if (tinkerer) {
-          const disableRes = disableTrap(this.engine.dice, tinkerer, trap, { found: true, disabled: false });
-          if (disableRes.success) {
-            goal.trapDisabled = true;
-            this.frame.addLog(`★ TRAP DEFUSED: ${tinkerer.name} carefully disarms the ${trap.name}!`, "hit");
-          } else if (disableRes.triggered) {
-            const trig = triggerTrap(this.engine.dice, tinkerer, trap, { found: true, disabled: false });
-            tinkerer.hp = Math.max(0, tinkerer.hp - trig.damage);
-            this.frame.addLog(`★ TRAP SPRUNG: ${tinkerer.name} failed to disarm the ${trap.name}! Dealt ${trig.damage} damage.`, "combat");
-          }
-        }
+        if (this.tryDisarmTrap(trap) !== "untouched") goal.trapDisabled = true;
       }
     }
 
     for (const trapMarker of this.grid.corridorTraps) {
-      if (!trapMarker.triggered && gridDistance(this.grid.playerPos, trapMarker) <= RANGE_BAND_TILES.close) {
-        const trap = trapById(trapMarker.trapId);
+      if (trapMarker.triggered || trapMarker.disabled) continue;
+      if (gridDistance(this.grid.playerPos, trapMarker) > RANGE_BAND_TILES.close) continue;
+      const trap = trapById(trapMarker.trapId);
+      if (!trapMarker.found) {
+        trapMarker.found = true;
         this.frame.addLog(`★ TRAP SPOTTED: A concealed ${trap.name} lies on the floor ahead!`, "combat");
       }
+      const outcome = this.tryDisarmTrap(trap);
+      if (outcome === "untouched") continue;
+      if (outcome === "disabled") trapMarker.disabled = true;
+      else trapMarker.triggered = true;
+      this.grid.setTile(trapMarker.x, trapMarker.y, TileType.FLOOR);
+      this.render();
+    }
+
+    for (const hazardMarker of this.grid.hazards) {
+      if (gridDistance(this.grid.playerPos, hazardMarker) > RANGE_BAND_TILES.close) continue;
+      this.frame.addLog(`★ HAZARD SPOTTED: ${hazardMarker.hazard.name} blocks the ground nearby.`, "combat");
+      break;
     }
   }
 
@@ -1176,6 +1218,7 @@ class Game {
       this.frame.addLog("The immediate threat is gone; combat ends.", "system");
     }
     this.movementBandsRemaining = 2;
+    this.stepsRemainingThisRound = movementTiles(1);
     this.actionAvailable = true;
     this.playerTurnStarted = false;
     this.enemyTurnResolved = false;
