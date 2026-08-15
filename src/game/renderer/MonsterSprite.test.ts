@@ -25,6 +25,7 @@ if (typeof document === "undefined") {
           lineTo: () => {},
           closePath: () => {},
           drawImage: () => {},
+          scale: () => {},
         };
         return {
           width: 32,
@@ -61,8 +62,8 @@ describe("MonsterSpriteDrawer", () => {
       const biome = mDef.biome ?? "diablerie";
       const canvas = drawer.getMonsterTileCanvas(mDef, biome);
       expect(canvas).toBeDefined();
-      expect(canvas.width).toBe(32);
-      expect(canvas.height).toBe(32);
+      expect(canvas.width).toBe(64);
+      expect(canvas.height).toBe(64);
     }
   });
 

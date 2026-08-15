@@ -17,18 +17,43 @@
     <header class="ultima-header retro-border">
       <div class="header-title">DUSK ULTIMA</div>
       <div class="header-info">
-        <span id="loc-display">Dungeon: Gloom Below</span>
         <span id="turn-display">Round: 1</span>
         <span id="light-display" class="light-active">Torch: 60m</span>
       </div>
+      <button id="menu-btn" class="cmd-btn menu-btn" data-cmd="menu"><span class="cmd-key">Esc</span> Menu</button>
     </header>
 
-    <!-- Main Content Area: Viewport + Side Panel -->
+    <!-- Main Content Area: Log + Viewport + Side Panel -->
     <main class="ultima-main">
-      <!-- Left / Center: Tile Viewport -->
-      <div class="viewport-wrapper retro-border">
-        <canvas id="game-canvas" width="576" height="576"></canvas>
-        <div id="viewport-overlay" class="viewport-overlay"></div>
+      <!-- Left: Scrollable Retro Message Log -->
+      <aside class="log-sidebar retro-border">
+        <div class="sidebar-header">LOG</div>
+        <div id="log-panel" class="log-panel">
+          <div class="log-entry log-system">Welcome to DuskUltima. Shadowdark OSR rules engine engaged.</div>
+          <div class="log-entry log-prompt">Press <span class="key-badge">Esc</span> for the Quest Log and Controls.</div>
+        </div>
+      </aside>
+
+      <!-- Center: Tile Viewport + Command Bar -->
+      <div class="viewport-column">
+        <div class="viewport-wrapper retro-border">
+          <canvas id="game-canvas" width="1152" height="1152"></canvas>
+          <div id="viewport-overlay" class="viewport-overlay"></div>
+        </div>
+
+        <!-- Command Shortcuts Bar -->
+        <div class="command-bar">
+          <button class="cmd-btn" data-cmd="attack"><span class="cmd-key">A</span>ttack</button>
+          <button class="cmd-btn" data-cmd="cast"><span class="cmd-key">C</span>ast</button>
+          <button class="cmd-btn" data-cmd="look"><span class="cmd-key">L</span>ook</button>
+          <button class="cmd-btn" data-cmd="torch"><span class="cmd-key">T</span>orch</button>
+          <button class="cmd-btn" data-cmd="use"><span class="cmd-key">U</span>se Item</button>
+          <button class="cmd-btn" data-cmd="inventory"><span class="cmd-key">I</span>nventory</button>
+          <button class="cmd-btn" data-cmd="rest"><span class="cmd-key">R</span>est</button>
+          <button class="cmd-btn" data-cmd="pass"><span class="cmd-key">P</span>ass Turn</button>
+          <button class="cmd-btn" data-cmd="stats"><span class="cmd-key">S</span>tats</button>
+          <button class="cmd-btn" data-cmd="prompt"><span class="cmd-key">N</span>ew Quest</button>
+        </div>
       </div>
 
       <!-- Right Side: Party Status Box -->
@@ -37,32 +62,9 @@
         <div id="party-list" class="party-list">
           <!-- Populated by UltimaFrame.ts -->
         </div>
-        <div class="leader-help">Press <span class="key-badge">1-4</span> to swap leader. Shift + direction = double near.</div>
+        <div class="leader-help">Press <span class="key-badge">1-4</span> to swap leader.</div>
       </aside>
     </main>
-
-    <!-- Bottom Section: Message Log & Action Bar -->
-    <footer class="ultima-footer retro-border">
-      <!-- Scrollable Retro Message Log -->
-      <div id="log-panel" class="log-panel">
-        <div class="log-entry log-system">Welcome to DuskUltima. Shadowdark OSR rules engine engaged.</div>
-        <div class="log-entry log-prompt">Type or press command keys: [A]ttack, [C]ast, [L]ook, [T]orch, [U]se, [I]nv, [R]est, [V]ideo (CRT toggle)...</div>
-      </div>
-
-      <!-- Command Shortcuts Bar -->
-      <div class="command-bar">
-        <button class="cmd-btn" data-cmd="attack"><span class="cmd-key">A</span>ttack</button>
-        <button class="cmd-btn" data-cmd="cast"><span class="cmd-key">C</span>ast</button>
-        <button class="cmd-btn" data-cmd="look"><span class="cmd-key">L</span>ook</button>
-        <button class="cmd-btn" data-cmd="torch"><span class="cmd-key">T</span>orch</button>
-        <button class="cmd-btn" data-cmd="use"><span class="cmd-key">U</span>se Item</button>
-        <button class="cmd-btn" data-cmd="inventory"><span class="cmd-key">I</span>nventory</button>
-        <button class="cmd-btn" data-cmd="rest"><span class="cmd-key">R</span>est</button>
-        <button class="cmd-btn" data-cmd="pass"><span class="cmd-key">P</span>ass Turn</button>
-        <button class="cmd-btn" data-cmd="stats"><span class="cmd-key">S</span>tats</button>
-        <button class="cmd-btn" data-cmd="prompt"><span class="cmd-key">N</span>ew Quest</button>
-      </div>
-    </footer>
 
     <!-- Overlay Modals Container -->
     <div id="modal-container" class="modal-overlay hidden">

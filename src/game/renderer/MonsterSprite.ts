@@ -13,7 +13,12 @@ import {
 } from "../../engine/monster";
 import { BIOME_PALETTES, type BiomePalette } from "./TileSet";
 
-export const TILE_SIZE = 32;
+/** All drawing math below works in a logical 32x32 grid (LOGICAL_TILE); canvases are
+ *  allocated at 2x that as physical pixels and drawn into via a scaled context, so the
+ *  sprite renders sharper on the larger map viewport without touching the geometry. */
+const LOGICAL_TILE = 32;
+const RENDER_SCALE = 2;
+export const TILE_SIZE = LOGICAL_TILE * RENDER_SCALE;
 const SPRITE_OUTLINE = "#080b10";
 const OUTLINE_OFFSETS = [
   [-1, -1], [0, -1], [1, -1],
@@ -93,7 +98,7 @@ export class MonsterSpriteDrawer {
 
         // Draw 16x16 raster sprite scaled to 24x24 centered (or 28x28 for large)
         const sizeOffset = def.size === "large" || def.size === "huge" || def.size === "gargantuan" ? 2 : 4;
-        const sizeDim = TILE_SIZE - sizeOffset * 2;
+        const sizeDim = LOGICAL_TILE - sizeOffset * 2;
         ctx.drawImage(img, 0, 0, img.width, img.height, sizeOffset, sizeOffset, sizeDim, sizeDim);
       };
       img.src = `assets/monsters/${def.id}.png`;
@@ -128,6 +133,7 @@ export class MonsterSpriteDrawer {
   ): void {
     const ctx = cvs.getContext("2d")!;
     ctx.imageSmoothingEnabled = false;
+    ctx.scale(RENDER_SCALE, RENDER_SCALE);
 
     // Base terrain
     this.drawFloorBackground(ctx, p);
@@ -138,7 +144,7 @@ export class MonsterSpriteDrawer {
 
     // Keep the silhouette visually grounded without adding a second opaque tile.
     ctx.fillStyle = SPRITE_OUTLINE;
-    ctx.fillRect(x0 + 2, Math.min(TILE_SIZE - 2, y0 + h - 1), Math.max(2, w - 4), 2);
+    ctx.fillRect(x0 + 2, Math.min(LOGICAL_TILE - 2, y0 + h - 1), Math.max(2, w - 4), 2);
 
     // Draw the creature on transparency first. This lets the shared ink pass
     // outline irregular silhouettes, not just their rectangular bounding box.
@@ -147,6 +153,7 @@ export class MonsterSpriteDrawer {
     spriteCvs.height = TILE_SIZE;
     const spriteCtx = spriteCvs.getContext("2d")!;
     spriteCtx.imageSmoothingEnabled = false;
+    spriteCtx.scale(RENDER_SCALE, RENDER_SCALE);
 
     const bodyCol = toHexColor(def.art.body);
     const shadeCol = toHexColor(def.art.shade);
@@ -210,7 +217,7 @@ export class MonsterSpriteDrawer {
     }
 
     this.drawPixelOutline(ctx, spriteCvs);
-    ctx.drawImage(spriteCvs, 0, 0);
+    ctx.drawImage(spriteCvs, 0, 0, LOGICAL_TILE, LOGICAL_TILE);
   }
 
   private getTileBounds(size: MonsterSize): { w: number; h: number; x0: number; y0: number } {
@@ -234,8 +241,9 @@ export class MonsterSpriteDrawer {
     maskCvs.height = TILE_SIZE;
     const maskCtx = maskCvs.getContext("2d")!;
     maskCtx.imageSmoothingEnabled = false;
+    maskCtx.scale(RENDER_SCALE, RENDER_SCALE);
     for (const [dx, dy] of OUTLINE_OFFSETS) {
-      maskCtx.drawImage(spriteCvs, dx, dy);
+      maskCtx.drawImage(spriteCvs, dx, dy, LOGICAL_TILE, LOGICAL_TILE);
     }
 
     const outlineCvs = document.createElement("canvas");
@@ -248,7 +256,7 @@ export class MonsterSpriteDrawer {
     outlineCtx.globalCompositeOperation = "destination-in";
     outlineCtx.drawImage(maskCvs, 0, 0);
 
-    ctx.drawImage(outlineCvs, 0, 0);
+    ctx.drawImage(outlineCvs, 0, 0, LOGICAL_TILE, LOGICAL_TILE);
   }
 
   // --- ARCHETYPE DRAWERS ---

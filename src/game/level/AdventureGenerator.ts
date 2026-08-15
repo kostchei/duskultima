@@ -9,7 +9,9 @@ import { generateShopName, generateTavernName } from "../../engine/downtime";
 import { classesForBiome } from "../../data/biomeOrigins";
 import { classDef } from "../../data/classes";
 import { randomPlebName } from "../../data/names";
-import { Adventure, GoalKind, GoalVerb, SiteDef, SiteGoal, SiteSize, SiteType } from "./Adventure";
+import { Adventure, EggGuardianSize, GoalKind, GoalVerb, SiteDef, SiteGoal, SiteSize, SiteType } from "./Adventure";
+import { monstersForBiome } from "../../data/monsters";
+import { rollFillerCount } from "./roomGeneration";
 
 const BIOMES: readonly MonsterBiome[] = [
   "diablerie",
@@ -275,6 +277,16 @@ export class AdventureGenerator {
         const eggProfile = standardGoal.kind === "monster-eggs"
           ? this.getRandomItem([...eggProfilesForBiome(biome)])
           : undefined;
+        const isNonKill = standardGoal.completion !== "defeat-target";
+        const isHidden = isNonKill && this.dice.die(100) <= 35;
+        const isTrapped = isNonKill && this.dice.die(100) <= 40;
+        const trapId = isTrapped ? this.dice.die(12) : undefined;
+        const rollGuardian = isNonKill && !eggProfile;
+        const biomeMonsters = monstersForBiome(biome);
+        const guardian = rollGuardian
+          ? (biomeMonsters.find((m) => m.role === "brute" || m.role === "champion") ?? biomeMonsters[0])
+          : undefined;
+
         goal = {
           kind: standardGoal.kind,
           verb: standardGoal.verb,
@@ -286,12 +298,17 @@ export class AdventureGenerator {
           objectiveEntity: standardGoal.objectiveEntity,
           targetItemId: standardGoal.targetItemId,
           requiredQuantity: standardGoal.requiredQuantity,
-          treasureQuality: eggProfile?.treasureQuality ?? standardGoal.treasureQuality,
-          guardianName: eggProfile?.guardianName ?? standardGoal.guardianName,
+          treasureQuality: eggProfile?.treasureQuality ?? standardGoal.treasureQuality ?? "normal",
+          guardianName: eggProfile?.guardianName ?? (guardian ? guardian.name : standardGoal.guardianName),
           eggSpeciesId: eggProfile?.speciesId,
           eggSpeciesName: eggProfile?.speciesName,
-          guardianMonsterId: eggProfile?.guardianMonsterId,
-          guardianSize: eggProfile?.guardianSize,
+          guardianMonsterId: eggProfile?.guardianMonsterId ?? guardian?.id,
+          guardianSize: eggProfile?.guardianSize ?? (guardian ? (guardian.size as EggGuardianSize) : undefined),
+          isHidden,
+          isTrapped,
+          trapId,
+          trapFound: false,
+          trapDisabled: false,
           isCompleted: false,
           description: eggProfile
             ? `Harvest ${eggProfile.speciesName} eggs without waking ${eggProfile.guardianName}`
@@ -539,15 +556,9 @@ export class AdventureGenerator {
     };
   }
 
+  /** 5 beat rooms plus size-dependent filler (see roomGeneration.ts). */
   private rollRoomCount(size: SiteSize): number {
-    switch (size) {
-      case "small":
-        return this.dice.die(4) + 2; // 1d4 + 2 = 3 to 6 rooms
-      case "medium":
-        return this.dice.roll("2d4") + 1; // 2d4 + 1 = 3 to 9 rooms
-      case "large":
-        return this.dice.roll("3d4"); // 3d4 = 3 to 12 rooms
-    }
+    return 5 + rollFillerCount(this.dice, size);
   }
 
   private getRandomItem<T>(arr: T[]): T {

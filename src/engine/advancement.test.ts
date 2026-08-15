@@ -57,6 +57,30 @@ describe("Shadowdark advancement XP", () => {
     expect(character.xp).toBe(0);
   });
 
+  it("adds Constitution to starting HP only, not to later hit-die gains", () => {
+    const character = new Character({
+      id: "con-hero",
+      name: "CON Hero",
+      className: "fighter",
+      stats: { STR: 14, DEX: 12, CON: 18, INT: 10, WIS: 10, CHA: 10 },
+      maxHp: 10,
+    });
+    const tables = new TableRegistry();
+    tables.register({
+      id: "fighter-talent-con",
+      name: "Fighter Talent",
+      dice: "2d6",
+      entries: [{ min: 2, max: 12, text: "A talent" }],
+    });
+
+    awardXp(character, 10);
+    const result = levelUp(new Dice(7), tables, character, "1d6", "fighter-talent-con");
+
+    expect(result.hpRolled).toBeGreaterThanOrEqual(1);
+    expect(result.hpGained).toBe(result.hpRolled);
+    expect(character.maxHp).toBe(10 + result.hpRolled);
+  });
+
   it("only rolls talents on the source advancement levels and defers choices", () => {
     const character = hero();
     const tables = new TableRegistry();

@@ -45,7 +45,7 @@ describe("Shadowdark combat resolution", () => {
     });
 
     expect(result.check.crit).toBe(true);
-    expect(result.damage).toBe(13); // 5 + 5 weapon dice + STR +3
+    expect(result.damage).toBe(10); // 5 + 5 critical weapon dice; STR applies to-hit only
   });
 
   it("treats a natural 1 as an automatic miss", () => {
@@ -85,8 +85,8 @@ describe("Shadowdark combat resolution", () => {
       targetUnaware: false,
     });
 
-    expect(backstab.damage).toBe(27); // 4 x 6 dice, +3 DEX, crit doubles the Backstab dice too
-    expect(ordinary.damage).toBe(11); // 4 x 2 dice, +3 DEX, critical doubles the weapon die
+    expect(backstab.damage).toBe(24); // 4 x 6 dice; crit doubles the Backstab dice too
+    expect(ordinary.damage).toBe(8); // 4 x 2 dice; DEX applies to-hit only
   });
 
   it("resolves monster attack bonus, weapon damage, and critical damage dice", () => {

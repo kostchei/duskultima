@@ -586,7 +586,8 @@ export class Character {
   /**
    * What the wielded weapon actually adds up to, for display. Mirrors the stat
    * choice and modifier stack that `Engine.attack` rolls with, so a sheet built
-   * from this can never disagree with what the dice do.
+   * from this can never disagree with what the dice do. STR/DEX applies to
+   * to-hit only; damageBonus contains only explicit damage bonuses.
    */
   get attackProfile(): {
     weapon: ItemDef | null;
@@ -597,6 +598,18 @@ export class Character {
   } | null {
     const weapon = this.wieldedWeapon;
     if (!weapon || !weapon.damage) return null;
+    return this.attackProfileFor(weapon);
+  }
+
+  /** Calculate the same attack profile for a carried weapon without equipping it. */
+  attackProfileFor(weapon: ItemDef): {
+    weapon: ItemDef;
+    stat: StatName;
+    toHit: number;
+    damageDice: string;
+    damageBonus: number;
+  } {
+    if (!weapon.damage || !weapon.tags.includes("weapon")) throw new Error(`${weapon.name} is not an attackable weapon`);
     const ranged = weapon.tags.includes("ranged");
     const finesse = weapon.finesse === true && this.ancestry !== "dwarf";
     const stat: StatName = ranged || (finesse && this.mod("DEX") > this.mod("STR"))
@@ -611,8 +624,8 @@ export class Character {
       weapon,
       stat,
       toHit: this.mod(stat) + sumCheckBonus(this.effects, kind, this.level, weapon.id, stat) + magic + namedBladeBonus,
-      damageDice: this.effectiveWeaponDamage ?? weapon.damage,
-      damageBonus: this.mod(stat) + this.damageBonusWith(weapon.id) + magic + namedBladeBonus
+      damageDice: weapon.id === this.wieldedWeapon?.id ? (this.effectiveWeaponDamage ?? weapon.damage) : weapon.damage,
+      damageBonus: this.damageBonusWith(weapon.id) + magic + namedBladeBonus
         + (!ranged && this.ancestry === "half-orc" ? 1 : 0)
         + (!ranged ? sumMeleeDamageBonus(this.effects) : 0),
     };

@@ -28,9 +28,10 @@ CREATE TABLE IF NOT EXISTS roll_tables (
 CREATE TABLE IF NOT EXISTS ancestry_names (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ancestry TEXT NOT NULL,
-    type TEXT NOT NULL, -- 'standalone', 'part1', 'part2'
+    type TEXT NOT NULL, -- 'standalone', 'part1', 'part2', 'surname'
     name_part TEXT NOT NULL,
-    source TEXT NOT NULL
+    source TEXT NOT NULL,
+    region TEXT
 );
 
 CREATE TABLE IF NOT EXISTS backgrounds (

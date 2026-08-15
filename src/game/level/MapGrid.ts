@@ -1,17 +1,20 @@
 /**
  * MapGrid represents a 2D tile-based dungeon map for DuskUltima.
- * Dynamically carves rooms based on SiteDef room counts (Small: 1d4+2, Medium: 2d4+1, Large: 3d4).
+ * Dynamically carves rooms from a `SitePlan` (see roomGeneration.ts): 5 "beat"
+ * rooms wired together by one of 21 topologies, plus a size-dependent number
+ * of filler rooms, all monster-scaled in size and corridor width/length.
  */
 
 import { TileType } from "../renderer/TileSet";
-import { goalUsesChest, SiteDef } from "./Adventure";
-import { monster, monstersForBiome } from "../../data/monsters";
-import type { MonsterDef } from "../../engine/monster";
+import { SiteDef } from "./Adventure";
+import type { MonsterDef, MonsterSize } from "../../engine/monster";
 import type { ClassName } from "../../engine/character";
+import { Dice } from "../../engine/dice";
 import {
-  buildRoomPlans,
-  buildTravelSegments,
+  buildSitePlan,
+  type RoomContent,
   type RoomPlan,
+  type RoomRect,
   type TravelSegment,
 } from "./roomGeneration";
 
@@ -37,7 +40,7 @@ export interface MapEntity {
   rescueHeroName?: string;
   goalInteraction?: "rescue-companion" | "hostage" | "objective";
   isGoalTarget?: boolean;
-  monsterSize?: "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
+  monsterSize?: MonsterSize;
 }
 
 export interface CorridorTrapMarker {
@@ -47,12 +50,18 @@ export interface CorridorTrapMarker {
   triggered: boolean;
 }
 
+export interface TreasureChestMarker {
+  x: number;
+  y: number;
+  isGoal: boolean;
+}
+
 export class MapGrid {
-  readonly width: number;
-  readonly height: number;
-  readonly tiles: TileType[][];
-  readonly visited: boolean[][];
-  readonly visible: boolean[][];
+  width: number;
+  height: number;
+  tiles: TileType[][];
+  visited: boolean[][];
+  visible: boolean[][];
 
   public entities: MapEntity[] = [];
   public playerPos = { x: 4, y: 4 };
@@ -62,10 +71,18 @@ export class MapGrid {
   public roomPlans: readonly RoomPlan[] = [];
   public travelSegments: readonly TravelSegment[] = [];
   public corridorTraps: CorridorTrapMarker[] = [];
+  public treasureChests: TreasureChestMarker[] = [];
 
   constructor(width = 28, height = 28) {
     this.width = width;
     this.height = height;
+    this.tiles = [];
+    this.visited = [];
+    this.visible = [];
+    this.allocate(width, height);
+  }
+
+  private allocate(width: number, height: number): void {
     this.tiles = Array.from({ length: height }, () =>
       Array.from({ length: width }, () => TileType.WALL)
     );
@@ -75,6 +92,13 @@ export class MapGrid {
     this.visible = Array.from({ length: height }, () =>
       Array.from({ length: width }, () => false)
     );
+  }
+
+  /** Reallocates the tile grid to a new size, discarding prior contents. */
+  private resize(width: number, height: number): void {
+    this.width = width;
+    this.height = height;
+    this.allocate(width, height);
   }
 
   public getTile(x: number, y: number): TileType {
@@ -135,29 +159,22 @@ export class MapGrid {
     }
   }
 
-  public generateSite(siteDef: SiteDef): void {
+  public generateSite(siteDef: SiteDef, dice: Dice = new Dice()): void {
     this.siteDef = siteDef;
-    const roomCount = siteDef.roomCount;
 
-    // Reset grid to walls
-    for (let y = 0; y < this.height; y++) {
-      const row = this.tiles[y];
-      if (row) {
-        for (let x = 0; x < this.width; x++) {
-          row[x] = TileType.WALL;
-          this.visited[y]![x] = false;
-          this.visible[y]![x] = false;
-        }
-      }
-    }
-
-    this.roomPlans = buildRoomPlans(roomCount, siteDef.goal);
-    this.travelSegments = buildTravelSegments(this.roomPlans);
+    const plan = buildSitePlan(dice, siteDef.sizeCategory, siteDef.goal, siteDef.biome);
+    this.resize(plan.width, plan.height);
+    this.roomPlans = plan.rooms;
+    this.travelSegments = plan.edges;
     this.corridorTraps = [];
-    const roomRects = this.roomPlans.map((room) => room.rect);
+    this.treasureChests = [];
+    this.entities = [];
+
+    const roomById = new Map(plan.rooms.map((r) => [r.id, r]));
 
     // Carve floors for rooms
-    for (const r of roomRects) {
+    for (const room of plan.rooms) {
+      const r = room.rect;
       for (let y = r.y; y < r.y + r.h; y++) {
         const row = this.tiles[y];
         if (row) {
@@ -168,14 +185,12 @@ export class MapGrid {
       }
     }
 
-    // Connect explicit travel segments between consecutive rooms. The width
-    // is intentionally independent of room count: some routes must admit the
-    // largest creature the site can roll, while others may later become
-    // narrow squeeze routes as a deliberate hazard.
-    for (const segment of this.travelSegments) {
-      const i = segment.fromRoom;
-      const r1 = roomRects[i]!;
-      const r2 = roomRects[i + 1]!;
+    // Connect travel segments. Width comes from the largest monster in the
+    // site; length band (door/near/far) only shaped the layout positions
+    // already baked into each room's rect.
+    for (const segment of plan.edges) {
+      const r1 = roomById.get(segment.fromRoom)!.rect;
+      const r2 = roomById.get(segment.toRoom)!.rect;
       const cx1 = Math.floor(r1.x + r1.w / 2);
       const cy1 = Math.floor(r1.y + r1.h / 2);
       const cx2 = Math.floor(r2.x + r2.w / 2);
@@ -196,46 +211,54 @@ export class MapGrid {
       }
     }
 
-    // Room 1: Entrance -> Player spawn
-    const room1 = roomRects[0]!;
-    this.playerPos = { x: room1.x + 2, y: room1.y + 2 };
+    const entranceRoom = plan.rooms.find((r) => r.beatRole === "entrance")!;
+    const rewardRoom = plan.rooms.find((r) => r.beatRole === "reward")!;
+    const climaxRoom = plan.rooms.find((r) => r.beatRole === "climax")!;
 
-    // Last Room: Vault & Rest Spot
-    const lastRoom = roomRects[roomRects.length - 1]!;
-    this.setTile(lastRoom.x + 1, lastRoom.y + 1, TileType.CAMPFIRE);
-    this.setTile(lastRoom.x + 3, lastRoom.y + 3, TileType.STAIRS_DOWN);
-    this.stairsDownPos = { x: lastRoom.x + 3, y: lastRoom.y + 3 };
+    this.playerPos = rectCenter(entranceRoom.rect);
 
-    // Goal Chamber: Room N-1 (or room 2 if small)
-    const goalRoomIndex = Math.max(1, roomRects.length - 2);
-    const goalRoom = roomRects[goalRoomIndex]!;
-    const goalX = goalRoom.x + 2;
-    const goalY = goalRoom.y + 2;
+    // Reward beat: vault & rest spot, at opposite corners of the room from
+    // each other so its own d10-rolled content (which may include a
+    // guardian) has room to stand at the center.
+    this.setTile(rewardRoom.rect.x, rewardRoom.rect.y, TileType.CAMPFIRE);
+    const stairs = { x: rewardRoom.rect.x + rewardRoom.rect.w - 1, y: rewardRoom.rect.y + rewardRoom.rect.h - 1 };
+    this.setTile(stairs.x, stairs.y, TileType.STAIRS_DOWN);
+    this.stairsDownPos = stairs;
 
-    this.entities = [];
+    this.spawnClimaxEntity(climaxRoom, siteDef.goal.target, siteDef.goal.guardianName);
 
-    // Spawn Goal Entity
-    if (siteDef.goal.kind === "rescue-companion") {
+    for (const room of plan.rooms) {
+      if (room.id === climaxRoom.id) continue;
+      const spawnAt = room.id === entranceRoom.id ? offsetWithin(room.rect, 1, 0) : rectCenter(room.rect);
+      this.spawnRoomContent(room, spawnAt);
+    }
+  }
+
+  private spawnClimaxEntity(room: RoomPlan, target: string, guardianName: string | undefined): void {
+    const pos = rectCenter(room.rect);
+    const climax = room.content.climax;
+    if (!climax) return;
+    if (climax.kind === "rescue-companion") {
       this.entities.push({
         id: "rescue-npc",
-        name: siteDef.goal.target,
-        x: goalX,
-        y: goalY,
+        name: target,
+        ...pos,
         tileType: TileType.RESCUE_NPC,
         hp: 1,
         maxHp: 1,
         ac: 10,
         isHostile: false,
-        rescueClass: siteDef.goal.rescueClass,
-        rescueHeroName: siteDef.goal.rescueHeroName,
+        rescueClass: this.siteDef?.goal.rescueClass,
+        rescueHeroName: this.siteDef?.goal.rescueHeroName,
         goalInteraction: "rescue-companion",
       });
-    } else if (siteDef.goal.kind === "rescue-hostage") {
+      return;
+    }
+    if (climax.kind === "rescue-hostage") {
       this.entities.push({
         id: "hostage",
-        name: siteDef.goal.target,
-        x: goalX,
-        y: goalY,
+        name: target,
+        ...pos,
         tileType: TileType.RESCUE_NPC,
         hp: 1,
         maxHp: 1,
@@ -243,16 +266,14 @@ export class MapGrid {
         isHostile: false,
         goalInteraction: "hostage",
       });
-    } else if (siteDef.goal.kind === "assassinate-leader" || siteDef.goal.kind === "kill-boss") {
-      const bossDef = siteDef.goal.guardianMonsterId
-        ? monster(siteDef.goal.guardianMonsterId)
-        : monstersForBiome(siteDef.biome).find((m) => m.role === "champion" || m.role === "brute")
-          ?? monstersForBiome(siteDef.biome)[0];
+      return;
+    }
+    if (climax.kind === "boss") {
+      const bossDef = climax.monster;
       this.entities.push({
         id: "boss-monster",
-        name: siteDef.goal.target,
-        x: goalX,
-        y: goalY,
+        name: target,
+        ...pos,
         tileType: TileType.GLOOM_OGRE,
         monsterId: bossDef?.id,
         monsterDef: bossDef,
@@ -267,77 +288,117 @@ export class MapGrid {
         isGoalTarget: true,
         monsterSize: bossDef?.size ?? "large",
       });
-    } else if (goalUsesChest(siteDef.goal)) {
-      this.setTile(goalX, goalY, TileType.CHEST_CLOSED);
-      if (siteDef.goal.kind === "monster-eggs") {
-        const guardian = siteDef.goal.guardianMonsterId
-          ? monster(siteDef.goal.guardianMonsterId)
-          : monstersForBiome(siteDef.biome).find((m) => m.role === "brute")
-            ?? monstersForBiome(siteDef.biome)[0];
-        this.entities.push({
-          id: "nesting-mother",
-          name: siteDef.goal.guardianName ?? guardian?.name ?? "nesting mother",
-          x: goalX + 2,
-          y: goalY,
-          tileType: TileType.GLOOM_OGRE,
-          monsterId: guardian?.id,
-          monsterDef: guardian,
-          hp: guardian ? Math.max(24, guardian.level * 4) : 30,
-          maxHp: guardian ? Math.max(24, guardian.level * 4) : 30,
-          ac: guardian?.ac ?? 15,
-          isHostile: true,
-          attackBonus: guardian?.attackBonus ?? 5,
-          initiativeDexModifier: guardian ? Math.floor(guardian.level / 2) : 1,
-          damage: guardian?.damage ?? "2d8",
-          specialAbility: guardian?.specialAbility,
-          monsterSize: guardian?.size ?? "huge",
-        });
-      }
-    } else {
-      this.entities.push({
-        id: "goal-objective",
-        name: siteDef.goal.target,
-        x: goalX,
-        y: goalY,
-        tileType: TileType.RESCUE_NPC,
-        hp: 1,
-        maxHp: 1,
-        ac: 10,
-        isHostile: false,
-        goalInteraction: "objective",
-      });
+      return;
     }
+    if (climax.kind === "chest") {
+      const goal = this.siteDef!.goal;
+      if (!goal.isHidden) this.setTile(pos.x, pos.y, TileType.CHEST_CLOSED);
+      this.treasureChests.push({ x: pos.x, y: pos.y, isGoal: true });
+      this.spawnGuardianIfAny(room, climax.monster, guardianName, pos);
+      return;
+    }
+    // objective
+    this.entities.push({
+      id: "goal-objective",
+      name: target,
+      ...pos,
+      tileType: TileType.RESCUE_NPC,
+      hp: 1,
+      maxHp: 1,
+      ac: 10,
+      isHostile: false,
+      goalInteraction: "objective",
+    });
+    this.spawnGuardianIfAny(room, climax.monster, guardianName, pos);
+  }
 
-    // Spawn 1-3 wandering monsters in intermediate rooms
-    const biomeMonsters = monstersForBiome(siteDef.biome);
-    for (let i = 1; i < roomRects.length - 1; i++) {
-      if (i === goalRoomIndex) continue;
-      const r = roomRects[i]!;
-      const archetype = this.roomPlans[i]?.archetype;
-      const isElite = archetype === "elite";
-      const targetRole = isElite ? "soldier" : "skirmisher";
-      const mDef = biomeMonsters.find((m) => m.role === targetRole)
-        ?? biomeMonsters.find((m) => m.role === (isElite ? "brute" : "vermin"))
-        ?? biomeMonsters[i % biomeMonsters.length]!;
+  private spawnGuardianIfAny(
+    room: RoomPlan,
+    guardian: MonsterDef | undefined,
+    guardianName: string | undefined,
+    goalPos: { x: number; y: number },
+  ): void {
+    if (!guardian) return;
+    const pos = offsetWithin(room.rect, 2, 0, goalPos);
+    this.entities.push({
+      id: "goal-guardian",
+      name: guardianName ?? guardian.name,
+      ...pos,
+      tileType: TileType.GLOOM_OGRE,
+      monsterId: guardian.id,
+      monsterDef: guardian,
+      hp: Math.max(24, guardian.level * 4),
+      maxHp: Math.max(24, guardian.level * 4),
+      ac: guardian.ac,
+      isHostile: true,
+      attackBonus: guardian.attackBonus,
+      initiativeDexModifier: Math.floor(guardian.level / 2),
+      damage: guardian.damage,
+      specialAbility: guardian.specialAbility,
+      monsterSize: guardian.size,
+    });
+  }
 
-      this.entities.push({
-        id: `m-${i}`,
-        name: isElite ? `Elite ${mDef.name}` : mDef.name,
-        x: r.x + 2,
-        y: r.y + 2,
-        tileType: isElite ? TileType.ORC : TileType.GOBLIN,
-        monsterId: mDef.id,
-        monsterDef: mDef,
-        hp: isElite ? Math.max(10, mDef.level * 3) : Math.max(6, mDef.level * 2),
-        maxHp: isElite ? Math.max(10, mDef.level * 3) : Math.max(6, mDef.level * 2),
-        ac: mDef.ac,
-        isHostile: true,
-        attackBonus: mDef.attackBonus,
-        initiativeDexModifier: 2,
-        damage: mDef.damage,
-        specialAbility: mDef.specialAbility,
-        monsterSize: mDef.size,
-      });
+  private spawnRoomContent(room: RoomPlan, at: { x: number; y: number }): void {
+    const content: RoomContent = room.content;
+    switch (content.feature) {
+      case "empty":
+      case "minor-hazard":
+      case "major-hazard":
+        return;
+      case "trap": {
+        if (!content.trap) return;
+        this.setTile(at.x, at.y, TileType.TRAP);
+        this.corridorTraps.push({ x: at.x, y: at.y, trapId: content.trap.id, triggered: false });
+        return;
+      }
+      case "treasure": {
+        this.setTile(at.x, at.y, TileType.CHEST_CLOSED);
+        this.treasureChests.push({ x: at.x, y: at.y, isGoal: false });
+        return;
+      }
+      case "npc": {
+        this.entities.push({
+          id: `npc-${room.id}`,
+          name: "a stranger",
+          ...at,
+          tileType: TileType.RESCUE_NPC,
+          hp: 1,
+          maxHp: 1,
+          ac: 10,
+          isHostile: false,
+        });
+        return;
+      }
+      case "solo-monster":
+      case "monster-mob":
+      case "boss-monster": {
+        const isBoss = content.feature === "boss-monster";
+        const points = roomInteriorPoints(room.rect, content.monsters.length);
+        content.monsters.forEach((mDef, index) => {
+          const p = points[index] ?? at;
+          this.entities.push({
+            id: `m-${room.id}-${index}`,
+            name: isBoss ? `Elite ${mDef.name}` : mDef.name,
+            ...p,
+            tileType: isBoss ? TileType.ORC : TileType.GOBLIN,
+            monsterId: mDef.id,
+            monsterDef: mDef,
+            hp: isBoss ? Math.max(10, mDef.level * 3) : Math.max(6, mDef.level * 2),
+            maxHp: isBoss ? Math.max(10, mDef.level * 3) : Math.max(6, mDef.level * 2),
+            ac: mDef.ac,
+            isHostile: true,
+            attackBonus: mDef.attackBonus,
+            initiativeDexModifier: 2,
+            damage: mDef.damage,
+            specialAbility: mDef.specialAbility,
+            monsterSize: mDef.size,
+          });
+        });
+        return;
+      }
+      default:
+        return;
     }
   }
 
@@ -394,4 +455,31 @@ export class MapGrid {
       }
     }
   }
+}
+
+function rectCenter(rect: RoomRect): { x: number; y: number } {
+  return { x: rect.x + Math.floor(rect.w / 2), y: rect.y + Math.floor(rect.h / 2) };
+}
+
+/** A point within `rect`, offset from its center (or `from`) and clamped in bounds. */
+function offsetWithin(rect: RoomRect, dx: number, dy: number, from?: { x: number; y: number }): { x: number; y: number } {
+  const base = from ?? rectCenter(rect);
+  const x = Math.min(rect.x + rect.w - 1, Math.max(rect.x, base.x + dx));
+  const y = Math.min(rect.y + rect.h - 1, Math.max(rect.y, base.y + dy));
+  return { x, y };
+}
+
+/** Up to `count` distinct in-bounds points spread around a room's center. */
+function roomInteriorPoints(rect: RoomRect, count: number): { x: number; y: number }[] {
+  const center = rectCenter(rect);
+  const ring = [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: -1, y: 0 },
+    { x: 0, y: 1 },
+    { x: 0, y: -1 },
+    { x: 1, y: 1 },
+    { x: -1, y: -1 },
+  ];
+  return ring.slice(0, Math.max(1, count)).map((o) => offsetWithin(rect, o.x, o.y, center));
 }

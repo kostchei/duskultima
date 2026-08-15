@@ -64,7 +64,7 @@ body.crt-off::before {
 
 /* Container Frame */
 .ultima-container {
-  width: 1000px;
+  width: 1400px;
   max-width: 100%;
   display: flex;
   flex-direction: column;
@@ -85,12 +85,12 @@ body.crt-off::before {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  padding: 6px 16px;
 }
 
 .header-title {
   font-family: var(--font-title);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: bold;
   letter-spacing: 2px;
   color: #f39c12;
@@ -100,7 +100,7 @@ body.crt-off::before {
 .header-info {
   display: flex;
   gap: 20px;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .light-active {
@@ -108,16 +108,29 @@ body.crt-off::before {
   text-shadow: 0 0 6px rgba(241, 196, 15, 0.5);
 }
 
+.menu-btn {
+  font-size: 16px;
+}
+
 /* Main Layout */
 .ultima-main {
   display: flex;
   gap: 10px;
+  align-items: stretch;
+}
+
+.viewport-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
 }
 
 .viewport-wrapper {
   position: relative;
-  width: 580px;
-  height: 580px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -149,13 +162,28 @@ body.crt-off::before {
 #game-canvas {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
-  width: 576px;
-  height: 576px;
+  width: 100%;
+  height: 100%;
 }
 
-/* Party Sidebar */
-.party-sidebar {
+/* Log Sidebar (left) */
+.log-sidebar {
+  width: 260px;
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-sidebar .log-panel {
   flex: 1;
+  height: auto;
+}
+
+/* Party Sidebar (right) */
+.party-sidebar {
+  width: 260px;
+  flex: 0 0 260px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -175,7 +203,7 @@ body.crt-off::before {
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  max-height: 460px;
+  flex: 1;
 }
 
 .party-member-card {
@@ -264,13 +292,7 @@ body.crt-off::before {
   border: 1px solid var(--panel-border-inner);
 }
 
-/* Footer & Message Log */
-.ultima-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
+/* Message Log */
 .log-panel {
   height: 120px;
   overflow-y: auto;
@@ -280,7 +302,7 @@ body.crt-off::before {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .log-entry {

@@ -43,7 +43,7 @@ export interface SiteGoal {
   requiresAllHostilesDefeated: boolean;
   targetItemId?: string;
   requiredQuantity?: number;
-  treasureQuality?: "fabulous" | "legendary";
+  treasureQuality?: "poor" | "normal" | "fabulous" | "legendary";
   guardianName?: string;
   /** Species whose eggs are being harvested, distinct from the guardian. */
   eggSpeciesId?: string;
@@ -51,6 +51,12 @@ export interface SiteGoal {
   guardianMonsterId?: string;
   guardianSize?: EggGuardianSize;
   objectiveEntity?: GoalEntityKind;
+  /** Shadowdark treasure rules: objective hiddenness, traps, and guardians. */
+  isHidden?: boolean;
+  isTrapped?: boolean;
+  trapId?: number;
+  trapFound?: boolean;
+  trapDisabled?: boolean;
   isCompleted: boolean;
   description: string;
 }

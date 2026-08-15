@@ -2,9 +2,9 @@
 
 This document organizes extracted PDF contents from `docs/raw_source/` into 3 groups for user review:
 
-- **Tables**: 177 pages/sections (stat blocks, roll tables, catalogs)
-- **Rules**: 328 pages/sections (mechanics, action checks, game rules)
-- **Fluff**: 343 pages/sections (setting lore, world narrative, flavor text)
+- **Tables**: 350 pages/sections (stat blocks, roll tables, catalogs)
+- **Rules**: 422 pages/sections (mechanics, action checks, game rules)
+- **Fluff**: 391 pages/sections (setting lore, world narrative, flavor text)
 
 ---
 
@@ -20,6 +20,7 @@ This document organizes extracted PDF contents from `docs/raw_source/` into 3 gr
 | `Cursed Scroll 6 - City of Masks V1-1.pdf` | 9 | 20 | 31 | 60 |
 | `Hexcrawl_Guidebook_Desktop.pdf` | 11 | 8 | 44 | 63 |
 | `Player_s_Guide_to_the_Western_Reaches_V1.pdf` | 65 | 81 | 87 | 233 |
+| `Shadowdark RPG - V4-8.pdf` | 173 | 94 | 48 | 315 |
 | `SoloDark_V1_(PDF).pdf` | 5 | 2 | 4 | 11 |
 | `shadow-dark.pdf` | 35 | 99 | 46 | 180 |
 
@@ -132,6 +133,20 @@ Key dice tables, monster stat blocks, price lists, and random tables extracted:
 - **Page 33**: `33 d100 Details d100 Details 1-2 Ball of wax 51-52 High pitched whistle 3-4 Bag of bent nails 53-54 Stone chiseling set ...`
 - **Page 38**: `38 Delver Class Steely-eyed explorers who delve  the forgotten places of the earth.  They always have the right tool  or...`
 - *...and 55 more table pages.*
+
+### `Shadowdark RPG - V4-8.pdf` (173 table pages)
+
+- **Page 13**: `9 THE DICE You'll need a four-sided (d4), six- sided (d6), eight-sided (d8), ten- sided (d10), twelve-sided (d12)  and t...`
+- **Page 19**: `15 To determine your character’s  stats, roll 3d6 in order for  each one. Note each total and  modifier on your characte...`
+- **Page 22**: `1818 Blood-soaked gladiators in  dented armor, acrobatic duelists  with darting swords, or far-eyed  elven archers who c...`
+- **Page 34**: `3030 As you gain levels, your title  changes to reflect an increase in  your fame (or infamy). Your legend begins to pre...`
+- **Page 35**: `31 Level Lawful Chaotic Neutral 1-2 Footpad Thug Robber 3-4 Burglar Cutthroat Outlaw 5-6 Rook Shadow Rogue 7-8 Underboss...`
+- **Page 39**: `35 GEAR SLOTS You can carry a number of items equal to your Strength stat or 10,  whichever is higher.  Unless noted, al...`
+- **Page 44**: `4040 You can use these tables to  randomly generate a 0-level or  1st-level character.  Roll your stats (pg. 15),  backg...`
+- **Page 45**: `41 GEAR Random 1st-level characters  have a crawling kit, one weapon,  leather armor (if they can wear  it), and 5 gold ...`
+- **Page 63**: `59 DIMENSION DOOR Tier 4, wizard Duration: Instant Range: Self You teleport yourself and up to  one other willing creatu...`
+- **Page 66**: `62 HOLD MONSTER Tier 5, wizard Duration: Focus Range: Near You paralyze one creature  you can see within range.  If the ...`
+- *...and 163 more table pages.*
 
 ### `SoloDark_V1_(PDF).pdf` (5 table pages)
 
@@ -271,6 +286,20 @@ Gameplay instructions, check procedures, combat rules, light burn rules, and cla
 - **Page 46**: `46 Cursed knights who walk the  path of St. Ydris the Unholy,  the Possessed. They embrace  the darkness in order to fig...`
 - *...and 71 more rules pages.*
 
+### `Shadowdark RPG - V4-8.pdf` (94 rules pages)
+
+- **Page 3**: `Difficulty Class Spell Focus Morale Dying Distance/Movement Easy, DC 9. Leaping a narrow  chasm, sneaking up on an  inat...`
+- **Page 6**: `Contents Introduction  5 Shadowdark 7 The Basics 8 Characters 11 Overview 12 Starting Level 14 Stats 15 Ancestry 16 Figh...`
+- **Page 11**: `7 WHAT IS  SHADOWDARK? Shadowdark RPG is a fantasy  adventure game where you  and your companions delve  into buried rui...`
+- **Page 12**: `8 If this is your first time playing  Shadowdark RPG, it’s helpful to  start with a premade character.  The free digital...`
+- **Page 16**: `1212 To make a Shadowdark RPG  character (also called a player  character, or PC), grab your dice,  a blank character sh...`
+- **Page 17**: `13 AC Armor class (AC) is a type of  difficulty class that shows how  tough it is to injure you, whether  because you're...`
+- **Page 18**: `1414 0-LEVEL  CHARACTERS Some games begin with 0-level  characters — weak peasants  who have not yet attained the  skill...`
+- **Page 20**: `1616 DWARF Brave, stalwart folk as sturdy as  the stone kingdoms they carve  inside mountains. You know the Common and  ...`
+- **Page 24**: `2020 Crusading templars, prophetic  shamans, or mad-eyed zealots  who wield the power of their  gods to cleanse the unho...`
+- **Page 26**: `2222 Rooftop assassins, grinning con  artists, or cloaked cat burglars  who can pluck a gem from the  claws of a sleepin...`
+- *...and 84 more rules pages.*
+
 ### `SoloDark_V1_(PDF).pdf` (2 rules pages)
 
 - **Page 4**: `1 Solo Gameplay MODIFIED RULES SoloDark modifies some of  Shadowdark RPG's normal rules. Group Initiative. Choose one  c...`
@@ -360,6 +389,14 @@ World lore, flavor descriptions, narrative vignettes:
 - **Page 5**: `Player's Guide to the  Western Reaches Writing, Design, Layout  Kelsey Dionne. Roustabout class designed with Michael Pu...`
 - **Page 7**: `7 WHAT ARE THE  WESTERN REACHES? The Western Reaches are a  place of dangerous fantasy  adventuring where heroes can  st...`
 - **Page 9**: `9 Witch Class 70 Wyrdling Class 72 Backgrounds 74 Secrets 78 Titles 82 Factions 90 GEAR 105 Basic Gear 106 Weapons 110 A...`
+
+### `Shadowdark RPG - V4-8.pdf` (48 fluff pages)
+
+- **Page 2**: `Item Cost Gear Slots AC Properties Leather armor 10 gp 1 11 + DEX  mod - Chainmail 60 gp 2 13 + DEX  mod Disadv on  stea...`
+- **Page 5**: `ShadowDark Writing, Design, Layout  Kelsey Dionne Art Lucas Korte: cover, pgs. 4, 10, 29, 42, 45, 74, 87, 100, 108,  186...`
+- **Page 7**: `Modes of Play 111 Random Encounters 112 Traps 114 Hazards 115 The Gauntlet 116 Awarding XP 117 Something Happens! 118 Ru...`
+- **Page 9**: `5 Introduction  In these nighted halls, doom and glory bloom  eternal. This is the story of the Shadowdark....`
+- **Page 10**: `6 T hey were crawlers,  and so they dared  the lost halls of  the Shadowdark. They went down through  the old trapdoor i...`
 
 ### `SoloDark_V1_(PDF).pdf` (4 fluff pages)
 

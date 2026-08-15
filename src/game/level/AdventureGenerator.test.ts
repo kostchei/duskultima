@@ -85,9 +85,8 @@ describe("AdventureGenerator goals", () => {
       const site = generator.parseSiteFromPrompt("rescue the thief <name> from the small rimesea caves");
 
       expect(site.sizeCategory).toBe("small");
-      // Room count rolled dynamically for small: 1d4 + 2 (3 to 6 rooms)
-      expect(site.roomCount).toBeGreaterThanOrEqual(3);
-      expect(site.roomCount).toBeLessThanOrEqual(6);
+      // 5 beat rooms, no filler rooms on small sites.
+      expect(site.roomCount).toBe(5);
       expect(site.biome).toBe("midnight-sun");
       expect(site.goal.kind).toBe("rescue-companion");
       expect(site.goal.rescueClass).toBe("thief");
@@ -110,9 +109,9 @@ describe("AdventureGenerator goals", () => {
       const site = generator.parseSiteFromPrompt("gather the dargon eggs from the medium hazardous approach");
 
       expect(site.sizeCategory).toBe("medium");
-      // Room count rolled dynamically for medium: 2d4 + 1 (3 to 9 rooms)
-      expect(site.roomCount).toBeGreaterThanOrEqual(3);
-      expect(site.roomCount).toBeLessThanOrEqual(9);
+      // 5 beat rooms plus 0-2 filler rooms on medium sites.
+      expect(site.roomCount).toBeGreaterThanOrEqual(5);
+      expect(site.roomCount).toBeLessThanOrEqual(7);
       expect(site.biome).toBe("red-sands");
       expect(site.goal.kind).toBe("monster-eggs");
       expect(site.goal.target).toContain("Dragon eggs");

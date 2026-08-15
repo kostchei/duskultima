@@ -232,7 +232,8 @@ export function createCharacter(
 
   const conMod = Math.floor((stats.CON - 10) / 2);
   const hitDieSides = parseInt(def.hitDie.split("d")[1] || "8", 10);
-  const maxHp = Math.max(1, hitDieSides + conMod);
+  // At level 1, Shadowdark treats any CON modifier below +1 as +1.
+  const maxHp = hitDieSides + Math.max(1, conMod);
   const c = new Character({
     id,
     name,

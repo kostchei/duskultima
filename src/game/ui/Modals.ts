@@ -48,6 +48,19 @@ export class Modals {
     this.overlay.classList.add("hidden");
   }
 
+  public isOpen(): boolean {
+    return !this.overlay.classList.contains("hidden");
+  }
+
+  /** Opens the Quest Log / Controls menu, or closes it (or any dismissable modal) if already open. */
+  public toggleMenu(questInfoHtml: string): void {
+    if (this.isOpen()) {
+      if (!this.blockDismiss) this.hide();
+      return;
+    }
+    this.showMenu(questInfoHtml);
+  }
+
   /** Equip-state badge for a carried item: what's wielded/worn/readied vs just carried. */
   private equipBadge(char: Character, def: ItemDef): string {
     if (char.wieldedWeapon?.id === def.id && def.tags.includes("weapon")) {
@@ -89,6 +102,22 @@ export class Modals {
       <div class="modal-title">${char.name}'s Inventory (Slots: ${usedSlots}/${maxSlots})</div>
       <div style="font-size: 18px; margin-bottom: 12px;">Luck Token: ${char.luckToken ? "★ Available" : "Spent"}</div>
       <div>${itemsHtml || "<p style='color: #888;'>No items in inventory.</p>"}</div>
+    `;
+  }
+
+  public showMenu(questInfoHtml: string): void {
+    this.overlay.classList.remove("hidden");
+    this.body.innerHTML = `
+      <div class="modal-title">QUEST LOG</div>
+      <div style="font-size: 18px; margin-bottom: 20px;">${questInfoHtml}</div>
+      <div class="modal-title">CONTROLS</div>
+      <div style="font-size: 16px; line-height: 1.6;">
+        <div><span class="key-badge">Arrows</span> / <span class="key-badge">WASD</span> Move &nbsp; <span class="key-badge">Shift</span>+direction Double move</div>
+        <div><span class="key-badge">A</span>ttack &nbsp; <span class="key-badge">C</span>ast &nbsp; <span class="key-badge">L</span>ook &nbsp; <span class="key-badge">T</span>orch &nbsp; <span class="key-badge">U</span>se Item</div>
+        <div><span class="key-badge">I</span>nventory &nbsp; <span class="key-badge">R</span>est &nbsp; <span class="key-badge">P</span>ass Turn &nbsp; <span class="key-badge">S</span>tats &nbsp; <span class="key-badge">N</span>ew Quest</div>
+        <div><span class="key-badge">E</span> / <span class="key-badge">Enter</span> Interact &nbsp; <span class="key-badge">V</span>ideo (CRT toggle)</div>
+        <div><span class="key-badge">1-4</span> Swap leader &nbsp; <span class="key-badge">Esc</span> This menu</div>
+      </div>
     `;
   }
 

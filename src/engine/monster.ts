@@ -111,6 +111,17 @@ export const MONSTER_SIZE_PX: Record<MonsterSize, { w: number; h: number }> = {
   gargantuan: { w: 76, h: 68 },
 };
 
+/** Space a creature needs on the grid, in 5ft tiles (tiny/small/medium share
+ * a square; large/huge/gargantuan scale up per Shadowdark's size rules). */
+export const MONSTER_SIZE_TILES: Record<MonsterSize, number> = {
+  tiny: 1,
+  small: 1,
+  medium: 1,
+  large: 2,
+  huge: 3,
+  gargantuan: 4,
+};
+
 const LEVEL_DAMAGE = [
   "1d4", "1d6", "1d6", "1d8", "1d10", "2d6", "2d6", "2d8", "2d10", "3d8", "3d10",
   "3d12", "4d10", "4d12", "5d10", "5d12", "6d12", "7d12", "8d12", "10d12", "12d12",

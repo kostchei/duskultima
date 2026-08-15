@@ -1,7 +1,8 @@
 /**
  * Advancement: XP comes from treasure and boons only. The source advancement
  * table sets XP by destination level, and XP resets when that level is gained.
- * Level-up rolls HP (class hit die + CON) and 2d6 on the class talent table.
+ * Level-up rolls HP (class hit die) and 2d6 on the class talent table. The CON
+ * modifier is included only in the level-1 starting HP calculation.
  */
 
 import type { Character } from "./character";
@@ -79,7 +80,9 @@ export function levelUp(
   const hpRolled = character.ancestry === "dwarf"
     ? Math.max(dice.roll(hitDie), dice.roll(hitDie))
     : dice.roll(hitDie);
-  const hpGained = Math.max(1, hpRolled + character.mod("CON"));
+  // Shadowdark adds CON to starting HP only. Later levels add the hit-die roll
+  // by itself (minimum 1), so a high CON does not compound every level.
+  const hpGained = Math.max(1, hpRolled);
   character.increaseMaxHp(hpGained);
   applyClassLevelProgression(character);
   // Leveling restores the character to full (and pulls a dying one back up).

@@ -18,6 +18,7 @@ export interface CommandCallbacks {
   onInteract: () => void;
   onToggleCrt: () => void;
   onCustomPrompt?: () => void;
+  onMenu: () => void;
 }
 
 export class InputHandler {
@@ -27,6 +28,9 @@ export class InputHandler {
     this.callbacks = callbacks;
     this.attachEventListeners();
   }
+
+  private lastMoveTime = 0;
+  private readonly moveCooldownMs = 150;
 
   private attachEventListeners(): void {
     window.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -38,34 +42,39 @@ export class InputHandler {
       const key = e.key;
       const movementBands = e.shiftKey ? 2 : 1;
 
+      const tryMove = (dx: number, dy: number): boolean => {
+        const now = performance.now();
+        if (now - this.lastMoveTime < this.moveCooldownMs) {
+          return true; // Input handled but throttled
+        }
+        this.lastMoveTime = now;
+        this.callbacks.onMove(dx, dy, movementBands);
+        return true;
+      };
+
       // Directional Movement
-      if (key === "ArrowUp" || key === "w" || key === "W" || key === "8") {
-        this.callbacks.onMove(0, -1, movementBands);
+      if (key === "ArrowUp" || key === "8") {
+        tryMove(0, -1);
         return;
       }
-      if (key === "ArrowDown" || key === "s" || key === "S" || key === "2") {
-        this.callbacks.onMove(0, 1, movementBands);
+      if (key === "ArrowDown" || key === "2") {
+        tryMove(0, 1);
         return;
       }
-      if (key === "ArrowLeft" || key === "a" || key === "A" || key === "4") {
-        // Distinguish between 'a' (attack) vs arrow movement: WASD vs Arrow keys
-        if (key === "ArrowLeft" || key === "4") {
-          this.callbacks.onMove(-1, 0, movementBands);
-          return;
-        }
+      if (key === "ArrowLeft" || key === "4") {
+        tryMove(-1, 0);
+        return;
       }
-      if (key === "ArrowRight" || key === "d" || key === "D" || key === "6") {
-        if (key === "ArrowRight" || key === "6") {
-          this.callbacks.onMove(1, 0, movementBands);
-          return;
-        }
+      if (key === "ArrowRight" || key === "6") {
+        tryMove(1, 0);
+        return;
       }
 
       // WASD movement when not triggering action shortcuts
-      if (key === "w" || key === "W") { this.callbacks.onMove(0, -1, movementBands); return; }
+      if (key === "w" || key === "W") { tryMove(0, -1); return; }
       if (key === "a" || key === "A") { this.callbacks.onAttack(); return; }
       if (key === "s" || key === "S") { this.callbacks.onStats(); return; }
-      if (key === "d" || key === "D") { this.callbacks.onMove(1, 0, movementBands); return; }
+      if (key === "d" || key === "D") { tryMove(1, 0); return; }
 
       // Ultima V Single-Key Action Shortcuts
       switch (key.toLowerCase()) {
@@ -101,6 +110,9 @@ export class InputHandler {
         case "v":
           this.callbacks.onToggleCrt();
           break;
+        case "escape":
+          this.callbacks.onMenu();
+          break;
         case "1":
           this.callbacks.onSelectLeader(0);
           break;
@@ -133,6 +145,7 @@ export class InputHandler {
           case "pass": this.callbacks.onPass(); break;
           case "stats": this.callbacks.onStats(); break;
           case "prompt": this.callbacks.onCustomPrompt?.(); break;
+          case "menu": this.callbacks.onMenu(); break;
         }
       });
     });

@@ -34,6 +34,7 @@ class TableDatabaseCompletenessTests(unittest.TestCase):
     def test_manifest_roll_expectations_match_pdf_rows(self):
         for document, source, adapters in (
             ("shadow-dark.pdf.json", "Shadowdark Core", {"roll", "backgrounds"}),
+            ("Shadowdark RPG - V4-8.pdf.json", "Shadowdark RPG V4-8", {"roll", "backgrounds"}),
             ("Player_s_Guide_to_the_Western_Reaches_V1.pdf.json", "Player's Guide", {"roll", "raw", "backgrounds", "trinkets"}),
         ):
             expected = sum(row["expected_rows"] for row in self.manifest if row["document"] == document and row["adapter"] in adapters and row["adapter"] != "backgrounds" and row["adapter"] != "trinkets")

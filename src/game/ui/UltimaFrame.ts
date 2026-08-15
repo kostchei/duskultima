@@ -10,20 +10,24 @@ import { Character } from "../../engine/character";
 import { classDef } from "../../data/classes";
 
 export class UltimaFrame {
-  private locDisplay: HTMLElement;
   private turnDisplay: HTMLElement;
   private lightDisplay: HTMLElement;
   private partyList: HTMLElement;
   private logPanel: HTMLElement;
   private viewportOverlay: HTMLElement;
+  private questInfoHtml = "";
 
   constructor() {
-    this.locDisplay = document.getElementById("loc-display")!;
     this.turnDisplay = document.getElementById("turn-display")!;
     this.lightDisplay = document.getElementById("light-display")!;
     this.partyList = document.getElementById("party-list")!;
     this.logPanel = document.getElementById("log-panel")!;
     this.viewportOverlay = document.getElementById("viewport-overlay")!;
+  }
+
+  /** Quest Log content (Adventure/Site/Goal/Gold) for display in the Esc menu. */
+  public getQuestInfoHtml(): string {
+    return this.questInfoHtml;
   }
 
   public showMovementTooltip(text: string): void {
@@ -50,7 +54,7 @@ export class UltimaFrame {
     gold: number,
     movementStatus = ""
   ): void {
-    this.locDisplay.innerHTML = `
+    this.questInfoHtml = `
       <div><strong>Adv:</strong> ${advName}</div>
       <div><strong>Site ${siteIndex}/${totalSites}:</strong> ${siteName} (${sizeCategory.toUpperCase()}, ${roomCount} Rooms)</div>
       <div style="color: #f1c40f;"><strong>Goal:</strong> ${goalDesc}</div>

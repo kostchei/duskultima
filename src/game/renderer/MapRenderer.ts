@@ -6,6 +6,7 @@
 import { MapGrid, type MapEntity } from "../level/MapGrid";
 import { TileSet, TileType, TILE_SIZE } from "./TileSet";
 import { monsterSpriteDrawer } from "./MonsterSprite";
+import { heroSpriteDrawer } from "./HeroSprite";
 import { monster } from "../../data/monsters";
 import type { Character } from "../../engine/character";
 import type { MonsterBiome } from "../../engine/monster";
@@ -19,6 +20,10 @@ export class MapRenderer {
   private cursorX: number | null = null;
   private cursorY: number | null = null;
   private lastBiome: string | null = null;
+
+  private displayPlayerX: number | null = null;
+  private displayPlayerY: number | null = null;
+  private animFrameId: number | null = null;
 
   constructor(canvasId: string) {
     this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
@@ -48,20 +53,40 @@ export class MapRenderer {
       this.tileSet.setBiome(grid.siteDef.biome);
     }
 
+    // Smooth position interpolation for walking visual
+    if (this.displayPlayerX === null || this.displayPlayerY === null || Math.abs(this.displayPlayerX - grid.playerPos.x) > 6) {
+      this.displayPlayerX = grid.playerPos.x;
+      this.displayPlayerY = grid.playerPos.y;
+    } else {
+      this.displayPlayerX += (grid.playerPos.x - this.displayPlayerX) * 0.35;
+      this.displayPlayerY += (grid.playerPos.y - this.displayPlayerY) * 0.35;
+      if (Math.abs(this.displayPlayerX - grid.playerPos.x) < 0.02) this.displayPlayerX = grid.playerPos.x;
+      if (Math.abs(this.displayPlayerY - grid.playerPos.y) < 0.02) this.displayPlayerY = grid.playerPos.y;
+    }
+
+    const dispX = this.displayPlayerX;
+    const dispY = this.displayPlayerY;
+    const isAnimating = dispX !== grid.playerPos.x || dispY !== grid.playerPos.y;
+
     const ctx = this.ctx;
     ctx.fillStyle = "#000000";
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Calculate view offset to center on player
-    const startX = grid.playerPos.x - Math.floor(this.viewportCols / 2);
-    const startY = grid.playerPos.y - Math.floor(this.viewportRows / 2);
+    // Calculate view offset centered on interpolated display position
+    const startX = dispX - Math.floor(this.viewportCols / 2);
+    const startY = dispY - Math.floor(this.viewportRows / 2);
 
-    for (let vy = 0; vy < this.viewportRows; vy++) {
-      for (let vx = 0; vx < this.viewportCols; vx++) {
-        const gx = startX + vx;
-        const gy = startY + vy;
-        const screenX = vx * TILE_SIZE;
-        const screenY = vy * TILE_SIZE;
+    const minVx = -1;
+    const maxVx = this.viewportCols + 1;
+    const minVy = -1;
+    const maxVy = this.viewportRows + 1;
+
+    for (let vy = minVy; vy <= maxVy; vy++) {
+      for (let vx = minVx; vx <= maxVx; vx++) {
+        const gx = Math.floor(startX + vx);
+        const gy = Math.floor(startY + vy);
+        const screenX = Math.round((vx - (startX - Math.floor(startX))) * TILE_SIZE);
+        const screenY = Math.round((vy - (startY - Math.floor(startY))) * TILE_SIZE);
 
         if (gx < 0 || gx >= grid.width || gy < 0 || gy >= grid.height) {
           continue;
@@ -93,10 +118,12 @@ export class MapRenderer {
             // Draw HP bar for monsters
             if (entity.isHostile && entity.hp < entity.maxHp) {
               const hpPct = Math.max(0, entity.hp / entity.maxHp);
+              const barW = TILE_SIZE - 4;
+              const barY = screenY + TILE_SIZE - 4;
               ctx.fillStyle = "#000";
-              ctx.fillRect(screenX + 2, screenY + 28, 28, 3);
+              ctx.fillRect(screenX + 2, barY, barW, 3);
               ctx.fillStyle = entity.hp > entity.maxHp * 0.4 ? "#2ecc71" : "#e74c3c";
-              ctx.fillRect(screenX + 2, screenY + 28, 28 * hpPct, 3);
+              ctx.fillRect(screenX + 2, barY, barW * hpPct, 3);
             }
           }
 
@@ -104,7 +131,7 @@ export class MapRenderer {
           if (gx === grid.playerPos.x && gy === grid.playerPos.y) {
             const leaderChar = party[leaderIndex];
             const playerCvs = leaderChar
-              ? this.tileSet.getHeroTileCanvas(leaderChar.className, leaderChar.method)
+              ? heroSpriteDrawer.getHeroTileCanvas(leaderChar, currentBiome)
               : this.tileSet.getTileCanvas(TileType.FIGHTER);
             ctx.drawImage(playerCvs, screenX, screenY, TILE_SIZE, TILE_SIZE);
           }
@@ -112,7 +139,7 @@ export class MapRenderer {
             if (gx === position.x && gy === position.y) {
               const followerChar = party.find((member) => member.id === charId);
               const followerCvs = followerChar
-                ? this.tileSet.getHeroTileCanvas(followerChar.className, followerChar.method)
+                ? heroSpriteDrawer.getHeroTileCanvas(followerChar, currentBiome)
                 : this.tileSet.getTileCanvas(TileType.PRIEST);
               ctx.drawImage(followerCvs, screenX, screenY, TILE_SIZE, TILE_SIZE);
               break;
@@ -132,6 +159,11 @@ export class MapRenderer {
           ctx.drawImage(cursorCvs, screenX, screenY, TILE_SIZE, TILE_SIZE);
         }
       }
+    }
+
+    if (isAnimating) {
+      if (this.animFrameId !== null) cancelAnimationFrame(this.animFrameId);
+      this.animFrameId = requestAnimationFrame(() => this.render(grid, party, leaderIndex));
     }
   }
 }

@@ -58,6 +58,7 @@ Systematically implement the complete mechanics, flavour, quirks, visual aesthet
 - [x] Shadowdark Goal Generator with 50% Party Rescue Goal rule until 4 party members.
 - [x] Biome Palette TileSet switching for all 6 Cursed Scroll zones (`TileSet.ts`, `MapRenderer.ts`).
 - [x] Shadowdark range bands (close/near/double near/far/out of sight), two-band turn movement, and leader-driven follower auto-support (`rangeBands.ts`, `partyAutomation.ts`).
+- [x] 5ft single-square step movement pacing, input rate throttling, visual lerp walking animation, and Shadowdark rules for hidden, guarded, and trapped non-kill treasure objectives (`InputHandler.ts`, `MapRenderer.ts`, `AdventureGenerator.ts`, `MapGrid.ts`, `main.ts`).
 
 ### Phase 1: Zone 1 — Diablerie (Swamp & Rot-Bramble)
 - [x] Basic 5-room dungeon layout generator with torch light FOV.

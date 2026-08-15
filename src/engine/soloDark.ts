@@ -112,6 +112,38 @@ export interface GroupInitiativeResult {
   enemies: InitiativeCheck;
 }
 
+export interface IndividualInitiativeCheck {
+  id: string;
+  group: "party" | "enemies";
+  natural: number;
+  modifier: number;
+  total: number;
+  advantage: Advantage;
+}
+
+/** Roll one DEX initiative check for every combatant and sort highest first. */
+export function individualInitiative(
+  dice: Dice,
+  participants: readonly (InitiativeParticipant & { group: "party" | "enemies" })[],
+): IndividualInitiativeCheck[] {
+  if (!participants.length) throw new Error("Individual initiative needs at least one participant");
+  return participants
+    .map((participant, index) => {
+      const roll = dice.d20(hasInitiativeAdvantage(participant) ? "advantage" : "normal");
+      return {
+        id: participant.id,
+        group: participant.group,
+        natural: roll.natural,
+        modifier: participant.mod("DEX"),
+        total: roll.natural + participant.mod("DEX"),
+        advantage: roll.mode,
+        index,
+      };
+    })
+    .sort((a, b) => b.total - a.total || b.natural - a.natural || a.index - b.index)
+    .map(({ index: _index, ...result }) => result);
+}
+
 /** SoloDark Chaos Mode: call rollRound at the start of every combat round. */
 export class ChaosInitiative {
   constructor(

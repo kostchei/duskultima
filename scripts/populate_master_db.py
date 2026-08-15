@@ -22,6 +22,8 @@ RAW_PDF_DIR = ROOT / "docs" / "extracted" / "raw"
 SDTOOLS_DIR = ROOT / "docs" / "raw_source" / "SDtools_extracted" / "data"
 PLAYERS_GUIDE_PATH = RAW_PDF_DIR / "Player_s_Guide_to_the_Western_Reaches_V1.pdf.json"
 SHADOWDARK_PATH = RAW_PDF_DIR / "shadow-dark.pdf.json"
+SHADOWDARK_V48_PATH = RAW_PDF_DIR / "Shadowdark RPG - V4-8.pdf.json"
+CURSED_SCROLL_3_PATH = RAW_PDF_DIR / "Cursed Scroll 3 - Midnight Sun V3-5.pdf.json"
 MASTER_EXPORT_PATH = ROOT / "src" / "data" / "db" / "master_tables.json"
 MANIFEST_EXPORT_PATH = ROOT / "src" / "data" / "db" / "source_manifest.json"
 TABLES_MANIFEST_PATH = ROOT / "src" / "data" / "db" / "tables_manifest.json"
@@ -180,9 +182,56 @@ def table_specs() -> list[dict[str, Any]]:
         ([207, 208, 209, 210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 220, 221, 222, 223], "Patron Boons", "2d6", "Patron Boons", "patron,roll,boon", "roll"),
         ([226, 227, 228, 229, 230, 231, 232], "Hexcrawl and Weather", "d6/d20", "Hexcrawl", "step,terrain,weather,encounter", "raw"),
         ([236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247], "Downtime, Carousing and Bastions", "d8/d100", "Downtime & Bastions", "roll,result,benefit,cost", "roll"),
-        ([250, 251], "Warbands", None, "Warbands", "type,ac,hp,attack,upgrades", "raw"),
     ]:
         add(pg, pages, heading, die, category, shape, adapter)
+
+    # Shadowdark RPG V4-8 Core Rulebook tables.
+    sd_v48 = SHADOWDARK_V48_PATH.name
+    for pages, heading, die, category, shape, adapter in [
+        ([30], "Backgrounds V4-8", "d20", "Backgrounds", "roll,name,description", "backgrounds"),
+        ([34, 35], "Core Class Titles V4-8", "level bands", "Titles", "level,alignment,title", "roll"),
+        ([37], "Core Starting Gear V4-8", "d12", "Starting Gear", "roll,result", "roll"),
+        ([42, 331], "Core Character Names V4-8", "d20", "Names", "roll,ancestry,name", "names_core"),
+        ([44, 45], "Core Random Character Tables V4-8", "d4-d12", "Random Characters", "roll,result", "roll"),
+        ([50, 51], "Wizard Mishaps V4-8", "d12", "Mishaps", "roll,effect", "roll"),
+        ([96, 97], "Core Carousing Outcomes V4-8", "d20", "Carousing", "roll,outcome,benefit", "roll"),
+        ([118], "Core Traps V4-8", "3d12", "Traps & Hazards", "roll,trigger,damage_effect", "roll"),
+        ([119], "Core Hazards V4-8", "d12", "Traps & Hazards", "roll,movement,damage,weaken", "roll"),
+        ([122, 123], "Something Happens V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([124, 125], "Core Rumors V4-8", "d100", "Rumors", "roll,rumor", "roll"),
+        ([146, 147], "Arctic Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([148, 149], "Artisan District Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([150, 151], "Castle District Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([152, 153], "Cave Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([154, 155], "Deep Tunnels Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([156, 157], "Desert Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([158, 159], "Forest Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([160, 161], "Grassland Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([162, 163], "High District Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([164, 165], "Jungle Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([166, 167], "Low District Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([168, 169], "Market District Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([170, 171], "Mountain Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([172, 173], "Ocean Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([174, 175], "River and Coast Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([176, 177], "Ruins Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([178, 179], "Slums Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([180, 181], "Swamp Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([182, 183], "Tavern Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([184, 185], "Temple District Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([186, 187], "Tomb Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([188, 189], "University District Encounters V4-8", "d100", "Encounters", "roll,event", "roll"),
+        ([194], "Monster Generator V4-8", "4d20", "Monster Generator", "roll,combat,quality,strength,weakness", "roll"),
+        ([195], "Monster Mutations V4-8", "3d12", "Monster Generator", "roll,mutation_1,mutation_2,mutation_3", "roll"),
+        ([274, 275], "Treasure 0-3 V4-8", "d100", "Treasure", "roll,rarity,details", "roll"),
+        ([276, 277], "Treasure 4-6 V4-8", "d100", "Treasure", "roll,rarity,details", "roll"),
+        ([278, 279], "Treasure 7-9 V4-8", "d100", "Treasure", "roll,rarity,details", "roll"),
+        ([280, 281], "Treasure 10+ V4-8", "d100", "Treasure", "roll,rarity,details", "roll"),
+        ([283], "Luxury Items V4-8", "2d20", "Treasure", "roll,feature,item", "roll"),
+        ([284, 285], "Boons V4-8", "d8", "Boons", "roll,details", "roll"),
+        ([287], "Magic Item Idea Generator V4-8", "3d20", "Magic Items", "roll,name_part", "roll"),
+    ]:
+        add(sd_v48, pages, heading, die, category, shape, adapter)
     return specs
 
 
@@ -212,7 +261,7 @@ def source_page_manifest(path: Path, pages: dict[int, dict[str, Any]]) -> list[d
 def insert_manifest(conn: sqlite3.Connection, specs: list[dict[str, Any]], pdfs: dict[str, dict[int, dict[str, Any]]]) -> list[dict[str, Any]]:
     rows = []
     all_specs = specs[:]
-    for path in [PLAYERS_GUIDE_PATH, SHADOWDARK_PATH]:
+    for path in [PLAYERS_GUIDE_PATH, SHADOWDARK_PATH, SHADOWDARK_V48_PATH]:
         all_specs.extend(source_page_manifest(path, pdfs[path.name]))
     seen = set()
     for spec in all_specs:
@@ -275,9 +324,13 @@ def add_roll_table(conn: sqlite3.Connection, name: str, die: str, category: str,
 
 def ingest_named_tables(conn: sqlite3.Connection, specs: list[dict[str, Any]], pdfs: dict[str, dict[int, dict[str, Any]]]) -> None:
     for spec in specs:
-        source_path = SHADOWDARK_PATH if spec["document"] == SHADOWDARK_PATH.name else PLAYERS_GUIDE_PATH
+        if spec["document"] == SHADOWDARK_V48_PATH.name:
+            source = "Shadowdark RPG V4-8"
+        elif spec["document"] == SHADOWDARK_PATH.name:
+            source = "Shadowdark Core"
+        else:
+            source = "Player's Guide"
         pages = pdfs[spec["document"]]
-        source = "Shadowdark Core" if source_path == SHADOWDARK_PATH else "Player's Guide"
         if spec["adapter"] in {"equipment", "names_parts", "names_core", "backgrounds", "trinkets"}:
             continue
         texts = [pages[p]["text"] for p in spec["pages"] if p in pages]
@@ -298,12 +351,21 @@ def ingest_named_tables(conn: sqlite3.Connection, specs: list[dict[str, Any]], p
         add_roll_table(conn, name, spec.get("die_expression") or "raw", spec["category"], source, spec["pages"][0], rows, {"schema_shape": spec["schema_shape"], "adapter": spec["adapter"]})
 
 
-def ingest_names(conn: sqlite3.Connection, pages: dict[int, dict[str, Any]]) -> None:
+def ingest_names(conn: sqlite3.Connection, pages: dict[int, dict[str, Any]], cs3_pages: dict[int, dict[str, Any]]) -> None:
     page_map = {"Dwarf": 18, "Elf": 20, "Goblin": 22, "Half-Elf": 24, "Half-Orc": 26, "Halfling": 28, "Human": 30, "Kobold": 32}
     for ancestry, page in page_map.items():
         for _, part1, part2 in parse_name_parts(pages[page]["text"]):
             conn.execute("INSERT OR IGNORE INTO ancestry_names(ancestry,type,name_part,source) VALUES (?,?,?,?)", (ancestry, "part1", part1, "Player's Guide"))
             conn.execute("INSERT OR IGNORE INTO ancestry_names(ancestry,type,name_part,source) VALUES (?,?,?,?)", (ancestry, "part2", part2, "Player's Guide"))
+    if 16 in cs3_pages:
+        for line in cs3_pages[16]["text"].splitlines():
+            line = normalize_text(line)
+            tokens = line.split()
+            if len(tokens) >= 5 and tokens[0].isdigit():
+                male, female, surname = tokens[1], tokens[2], tokens[3]
+                conn.execute("INSERT OR IGNORE INTO ancestry_names(ancestry,type,name_part,source,region) VALUES (?,?,?,?,?)", ("Human", "standalone", male, "Cursed Scroll 3", "Midnight Sun"))
+                conn.execute("INSERT OR IGNORE INTO ancestry_names(ancestry,type,name_part,source,region) VALUES (?,?,?,?,?)", ("Human", "standalone", female, "Cursed Scroll 3", "Midnight Sun"))
+                conn.execute("INSERT OR IGNORE INTO ancestry_names(ancestry,type,name_part,source,region) VALUES (?,?,?,?,?)", ("Human", "surname", surname, "Cursed Scroll 3", "Midnight Sun"))
 
 
 def ingest_trinkets(conn: sqlite3.Connection, pages: dict[int, dict[str, Any]]) -> None:
@@ -314,14 +376,19 @@ def ingest_trinkets(conn: sqlite3.Connection, pages: dict[int, dict[str, Any]]) 
             conn.execute("INSERT OR IGNORE INTO trinkets(ancestry,roll_min,roll_max,result_text,source) VALUES (?,?,?,?,?)", (ancestry, row["roll_min"], row["roll_max"], row["result_text"], "Player's Guide"))
 
 
-def ingest_backgrounds(conn: sqlite3.Connection, sd_pages: dict[int, dict[str, Any]], pg_pages: dict[int, dict[str, Any]]) -> None:
-    # The source JSON's extracted page 25 contains printed page 30.
+def ingest_backgrounds(conn: sqlite3.Connection, sd_pages: dict[int, dict[str, Any]], pg_pages: dict[int, dict[str, Any]], v48_pages: dict[int, dict[str, Any]]) -> None:
     for row in parse_roll_rows(sd_pages[25]["text"], 20):
         result = row["result_text"]
         if "." not in result:
             continue
         name, description = result.split(".", 1)
         conn.execute("INSERT OR IGNORE INTO backgrounds(roll_val,name,description,source) VALUES (?,?,?,?)", (row["roll_min"], name.strip(), description.strip(), "Shadowdark Core"))
+    for row in parse_roll_rows(v48_pages[30]["text"], 20):
+        result = row["result_text"]
+        if "." not in result:
+            continue
+        name, description = result.split(".", 1)
+        conn.execute("INSERT OR IGNORE INTO backgrounds(roll_val,name,description,source) VALUES (?,?,?,?)", (row["roll_min"], name.strip(), description.strip(), "Shadowdark RPG V4-8"))
     for page in [74, 75, 76, 77]:
         for row in parse_roll_rows(pg_pages[page]["text"], 100):
             result = row["result_text"]
@@ -497,7 +564,7 @@ def export_bundle(conn: sqlite3.Connection, manifest_rows: list[dict[str, Any]])
         "metadata": {"database": "shadowdork.db", "status": "source_manifest_backed"},
         "tables_meta": rows("tables_meta", "name,die_type,category,description,source"),
         "roll_tables": rows("roll_tables", "table_name,die_type,roll_min,roll_max,result_text,roll_label,category,source,page,metadata_json"),
-        "ancestry_names": rows("ancestry_names", "ancestry,type,name_part,source"),
+        "ancestry_names": rows("ancestry_names", "ancestry,type,name_part,source,region"),
         "backgrounds": rows("backgrounds", "roll_val,name,description,source"),
         "trinkets": rows("trinkets", "ancestry,roll_min,roll_max,result_text,source"),
         "items": rows("items", "name,cost,slot_cost,category,properties,item_type,rarity,range,damage,ac,speed,hp,gear_slots,metadata_json,source,page"),
@@ -536,14 +603,16 @@ def populate() -> None:
     conn.row_factory = sqlite3.Row
     conn.executescript(SCHEMA_PATH.read_text(encoding="utf-8"))
     sd_pages = load_pdf(SHADOWDARK_PATH)
+    v48_pages = load_pdf(SHADOWDARK_V48_PATH)
     pg_pages = load_pdf(PLAYERS_GUIDE_PATH)
-    pdfs = {SHADOWDARK_PATH.name: sd_pages, PLAYERS_GUIDE_PATH.name: pg_pages}
+    cs3_pages = load_pdf(CURSED_SCROLL_3_PATH)
+    pdfs = {SHADOWDARK_PATH.name: sd_pages, SHADOWDARK_V48_PATH.name: v48_pages, PLAYERS_GUIDE_PATH.name: pg_pages, CURSED_SCROLL_3_PATH.name: cs3_pages}
     specs = table_specs()
     manifest_rows = insert_manifest(conn, specs, pdfs)
     ingest_named_tables(conn, specs, pdfs)
-    ingest_names(conn, pg_pages)
+    ingest_names(conn, pg_pages, cs3_pages)
     ingest_trinkets(conn, pg_pages)
-    ingest_backgrounds(conn, sd_pages, pg_pages)
+    ingest_backgrounds(conn, sd_pages, pg_pages, v48_pages)
     ingest_equipment(conn, sd_pages, pg_pages)
     ingest_sdtools(conn)
     ingest_rules(conn, ROOT / "docs" / "extracted" / "classified_data.json")

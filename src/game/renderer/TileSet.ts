@@ -5,7 +5,10 @@
 
 import type { MonsterBiome, ClassName, StatGenerationMethod } from "../../engine";
 
-export const TILE_SIZE = 32;
+/** Sprites are drawn in a logical 32x32 grid, then supersampled onto a 2x-resolution
+ *  physical canvas so the map viewport can display crisper, larger tiles. */
+const RENDER_SCALE = 2;
+export const TILE_SIZE = 32 * RENDER_SCALE;
 
 export enum TileType {
   FLOOR = 0,
@@ -175,6 +178,7 @@ export class TileSet {
     cvs.height = TILE_SIZE;
     const ctx = cvs.getContext("2d")!;
     ctx.imageSmoothingEnabled = false;
+    ctx.scale(RENDER_SCALE, RENDER_SCALE);
     return { cvs, ctx };
   }
 

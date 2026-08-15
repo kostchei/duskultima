@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Character } from "./character";
 import { Dice } from "./dice";
-import { awardNaturalTwentyLuck, ChaosInitiative, groupInitiative, oracleCheck, prompt } from "./soloDark";
+import { awardNaturalTwentyLuck, ChaosInitiative, groupInitiative, individualInitiative, oracleCheck, prompt } from "./soloDark";
 
 function character(id: string, dex = 10): Character {
   return new Character({
@@ -32,6 +32,19 @@ describe("SoloDark rules", () => {
     expect(["party", "enemies"]).toContain(result.first);
     expect(result.party.representativeId).toBe("hero");
     expect(result.enemies.representativeId).toBe("goblin");
+  });
+
+  it("rolls and orders every individual combatant", () => {
+    const slow = character("slow", 8);
+    const fast = character("fast", 16);
+    const result = individualInitiative(new Dice(11), [
+      { id: slow.id, group: "party", mod: (stat: "DEX") => slow.mod(stat), effects: slow.effects },
+      { id: fast.id, group: "party", mod: (stat: "DEX") => fast.mod(stat), effects: fast.effects },
+      { id: "enemy", group: "enemies", mod: () => 0 },
+    ]);
+    expect(result).toHaveLength(3);
+    expect(new Set(result.map((entry) => entry.id)).size).toBe(3);
+    expect(result.every((entry) => entry.total === entry.natural + entry.modifier)).toBe(true);
   });
 
   it("awards natural-20 luck up to the number of PCs", () => {
