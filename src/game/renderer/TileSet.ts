@@ -39,14 +39,14 @@ export enum TileType {
   CURSOR = 40,
 }
 
-interface BiomePalette {
+export interface BiomePalette {
   floorBg: string;
   floorDetail: string;
   wallBg: string;
   wallDetail: string;
 }
 
-const BIOME_PALETTES: Record<MonsterBiome, BiomePalette> = {
+export const BIOME_PALETTES: Record<MonsterBiome, BiomePalette> = {
   "diablerie": { floorBg: "#1a2418", floorDetail: "#27ae60", wallBg: "#2c3b28", wallDetail: "#1e2a1b" },
   "red-sands": { floorBg: "#3d2216", floorDetail: "#e67e22", wallBg: "#5c331e", wallDetail: "#3d1f11" },
   "midnight-sun": { floorBg: "#162836", floorDetail: "#3498db", wallBg: "#2c3e50", wallDetail: "#1a252f" },

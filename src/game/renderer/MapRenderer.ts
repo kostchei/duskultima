@@ -3,9 +3,12 @@
  * Handles grid rendering, FOV lighting mask, entity sprites, and biome palette switching.
  */
 
-import { MapGrid } from "../level/MapGrid";
+import { MapGrid, type MapEntity } from "../level/MapGrid";
 import { TileSet, TileType, TILE_SIZE } from "./TileSet";
+import { monsterSpriteDrawer } from "./MonsterSprite";
+import { monster } from "../../data/monsters";
 import type { Character } from "../../engine/character";
+import type { MonsterBiome } from "../../engine/monster";
 
 export class MapRenderer {
   private canvas: HTMLCanvasElement;
@@ -29,8 +32,17 @@ export class MapRenderer {
     this.cursorY = y;
   }
 
+  private getEntityCanvas(entity: MapEntity, biome: MonsterBiome): HTMLCanvasElement {
+    const mDef = entity.monsterDef || (entity.monsterId ? monster(entity.monsterId) : undefined);
+    if (mDef) {
+      return monsterSpriteDrawer.getMonsterTileCanvas(mDef, biome);
+    }
+    return this.tileSet.getTileCanvas(entity.tileType);
+  }
+
   public render(grid: MapGrid, party: Character[] = [], leaderIndex = 0): void {
     // Update biome palette if site biome changed
+    const currentBiome: MonsterBiome = grid.siteDef?.biome ?? "diablerie";
     if (grid.siteDef && grid.siteDef.biome !== this.lastBiome) {
       this.lastBiome = grid.siteDef.biome;
       this.tileSet.setBiome(grid.siteDef.biome);
@@ -75,7 +87,7 @@ export class MapRenderer {
           // Draw monsters or items
           const entity = grid.getEntityAt(gx, gy);
           if (entity) {
-            const entityCvs = this.tileSet.getTileCanvas(entity.tileType);
+            const entityCvs = this.getEntityCanvas(entity, currentBiome);
             ctx.drawImage(entityCvs, screenX, screenY, TILE_SIZE, TILE_SIZE);
 
             // Draw HP bar for monsters

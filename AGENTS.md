@@ -93,6 +93,7 @@ Systematically implement the complete mechanics, flavour, quirks, visual aesthet
 ### Phase 7: Audio & Visual Polish
 - [x] Procedural Web Audio engine for zone ambience & retro combat SFX.
 - [x] CRT scanline toggle & Ultima V HUD enhancements.
+- [x] Parametric procedural monster sprite renderer & hand-curated Kenney raster tile overrides for all 248 monster definitions (`MonsterSprite.ts`, `MapGrid.ts`, `MapRenderer.ts`).
 
 ### Rule Coverage Closure — `docs/extracted/CATEGORIZATION_REVIEW.md`
 - [x] SoloDark oracle, prompts, group initiative, chaos-ready rerolls, and natural-20 luck pool (`src/engine/soloDark.ts`).

@@ -5,7 +5,8 @@
 
 import { TileType } from "../renderer/TileSet";
 import { goalUsesChest, SiteDef } from "./Adventure";
-import { monster } from "../../data/monsters";
+import { monster, monstersForBiome } from "../../data/monsters";
+import type { MonsterDef } from "../../engine/monster";
 import type { ClassName } from "../../engine/character";
 import {
   buildRoomPlans,
@@ -20,6 +21,8 @@ export interface MapEntity {
   x: number;
   y: number;
   tileType: TileType;
+  monsterId?: string;
+  monsterDef?: MonsterDef;
   hp: number;
   maxHp: number;
   ac: number;
@@ -34,7 +37,7 @@ export interface MapEntity {
   rescueHeroName?: string;
   goalInteraction?: "rescue-companion" | "hostage" | "objective";
   isGoalTarget?: boolean;
-  monsterSize?: "medium" | "large" | "huge" | "gargantuan";
+  monsterSize?: "tiny" | "small" | "medium" | "large" | "huge" | "gargantuan";
 }
 
 export interface CorridorTrapMarker {
@@ -241,32 +244,44 @@ export class MapGrid {
         goalInteraction: "hostage",
       });
     } else if (siteDef.goal.kind === "assassinate-leader" || siteDef.goal.kind === "kill-boss") {
+      const bossDef = siteDef.goal.guardianMonsterId
+        ? monster(siteDef.goal.guardianMonsterId)
+        : monstersForBiome(siteDef.biome).find((m) => m.role === "champion" || m.role === "brute")
+          ?? monstersForBiome(siteDef.biome)[0];
       this.entities.push({
         id: "boss-monster",
         name: siteDef.goal.target,
         x: goalX,
         y: goalY,
         tileType: TileType.GLOOM_OGRE,
-        hp: 24,
-        maxHp: 24,
-        ac: 14,
+        monsterId: bossDef?.id,
+        monsterDef: bossDef,
+        hp: bossDef ? Math.max(24, bossDef.level * 4) : 24,
+        maxHp: bossDef ? Math.max(24, bossDef.level * 4) : 24,
+        ac: bossDef?.ac ?? 14,
         isHostile: true,
-        attackBonus: 4,
+        attackBonus: bossDef?.attackBonus ?? 4,
         initiativeDexModifier: 0,
-        damage: "1d10",
+        damage: bossDef?.damage ?? "1d10",
+        specialAbility: bossDef?.specialAbility,
         isGoalTarget: true,
-        monsterSize: "large",
+        monsterSize: bossDef?.size ?? "large",
       });
     } else if (goalUsesChest(siteDef.goal)) {
       this.setTile(goalX, goalY, TileType.CHEST_CLOSED);
       if (siteDef.goal.kind === "monster-eggs") {
-        const guardian = siteDef.goal.guardianMonsterId ? monster(siteDef.goal.guardianMonsterId) : undefined;
+        const guardian = siteDef.goal.guardianMonsterId
+          ? monster(siteDef.goal.guardianMonsterId)
+          : monstersForBiome(siteDef.biome).find((m) => m.role === "brute")
+            ?? monstersForBiome(siteDef.biome)[0];
         this.entities.push({
           id: "nesting-mother",
           name: siteDef.goal.guardianName ?? guardian?.name ?? "nesting mother",
           x: goalX + 2,
           y: goalY,
           tileType: TileType.GLOOM_OGRE,
+          monsterId: guardian?.id,
+          monsterDef: guardian,
           hp: guardian ? Math.max(24, guardian.level * 4) : 30,
           maxHp: guardian ? Math.max(24, guardian.level * 4) : 30,
           ac: guardian?.ac ?? 15,
@@ -274,7 +289,8 @@ export class MapGrid {
           attackBonus: guardian?.attackBonus ?? 5,
           initiativeDexModifier: guardian ? Math.floor(guardian.level / 2) : 1,
           damage: guardian?.damage ?? "2d8",
-          monsterSize: siteDef.goal.guardianSize ?? "huge",
+          specialAbility: guardian?.specialAbility,
+          monsterSize: guardian?.size ?? "huge",
         });
       }
     } else {
@@ -293,24 +309,34 @@ export class MapGrid {
     }
 
     // Spawn 1-3 wandering monsters in intermediate rooms
+    const biomeMonsters = monstersForBiome(siteDef.biome);
     for (let i = 1; i < roomRects.length - 1; i++) {
       if (i === goalRoomIndex) continue;
       const r = roomRects[i]!;
       const archetype = this.roomPlans[i]?.archetype;
+      const isElite = archetype === "elite";
+      const targetRole = isElite ? "soldier" : "skirmisher";
+      const mDef = biomeMonsters.find((m) => m.role === targetRole)
+        ?? biomeMonsters.find((m) => m.role === (isElite ? "brute" : "vermin"))
+        ?? biomeMonsters[i % biomeMonsters.length]!;
+
       this.entities.push({
         id: `m-${i}`,
-        name: archetype === "elite" ? "Elite Goblin Guard" : "Goblin Scout",
+        name: isElite ? `Elite ${mDef.name}` : mDef.name,
         x: r.x + 2,
         y: r.y + 2,
-        tileType: archetype === "elite" ? TileType.ORC : TileType.GOBLIN,
-        hp: archetype === "elite" ? 10 : 6,
-        maxHp: archetype === "elite" ? 10 : 6,
-        ac: archetype === "elite" ? 13 : 11,
+        tileType: isElite ? TileType.ORC : TileType.GOBLIN,
+        monsterId: mDef.id,
+        monsterDef: mDef,
+        hp: isElite ? Math.max(10, mDef.level * 3) : Math.max(6, mDef.level * 2),
+        maxHp: isElite ? Math.max(10, mDef.level * 3) : Math.max(6, mDef.level * 2),
+        ac: mDef.ac,
         isHostile: true,
-        attackBonus: archetype === "elite" ? 3 : 1,
+        attackBonus: mDef.attackBonus,
         initiativeDexModifier: 2,
-        damage: "1d6",
-        monsterSize: archetype === "elite" ? "large" : "medium",
+        damage: mDef.damage,
+        specialAbility: mDef.specialAbility,
+        monsterSize: mDef.size,
       });
     }
   }
