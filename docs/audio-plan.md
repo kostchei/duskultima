@@ -1,5 +1,12 @@
 # Procedural Audio Plan — sound from primitives
 
+> **Superseded (2026-08-15):** this doc describes files and hook points
+> (`src/game/scenes/Dungeon.ts`, `CharacterSprite.ts`, `combat.ts`,
+> `Hud.ts`) that no longer exist after the scene-based architecture was
+> rewritten into `src/main.ts`. None of `context.ts`/`noise.ts`/`sfx.ts`/
+> `ambience.ts`/`spatial.ts`/`voice.ts` are present in the current tree.
+> See [audio-plan-2026.md](audio-plan-2026.md) for the current plan.
+
 > **Status (2026-07-18):** Checkpoints 1–4 implemented and verified. Checkpoint 5
 > (narrative voice) remains a decision gate. A dev handle `window.__audio`
 > (main.ts) exposes the context/sfx/ambience modules for tooling and tuning.
