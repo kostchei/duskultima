@@ -1,7 +1,32 @@
 # Monster Sprite Packs — Audit and Implementation Plan
 
-Status: draft / 2026-08-15
+Status: **Phases 1 and 2 implemented** (`src/game/renderer/MonsterSprite.ts`, wired
+into `MapGrid`/`MapRenderer` — see 2026-08-16 note below) / originally drafted 2026-08-15
 Scope: monster visual identity only — no rules, stats, spawn, or combat-math changes
+
+## 2026-08-16 — implementation note
+
+This plan was drafted from an audit that missed `MonsterSprite.ts` (case-sensitive
+grep gap, not a real gap in the code) — it already existed, built in
+commits `bb95425` ("feat: render monsters with procedural sprites") and `a7d511a`
+("dungeon"), predating this doc. Both phases below are done:
+
+- **Phase 1**: `MonsterSpriteDrawer.getMonsterTileCanvas` draws all 15
+  `MonsterArchetype`s plus all 9 `MonsterFeature` overlays from each monster's
+  `art`/`size` data, with a shared ink-outline pass. `MapEntity` carries
+  `monsterId`/`monsterDef`, `MapGrid` sets them on every spawn path (regular
+  room content, boss/climax, rescue guardian), and `MapRenderer.getEntityCanvas`
+  always resolves through the real `MonsterDef` when present — the old 4-glyph
+  `TileType.GOBLIN/ORC/SKELETON/GLOOM_OGRE` fallback is effectively dead code now.
+- **Phase 2**: `CURATED_MONSTER_IDS` (175 ids, all verified present as
+  `public/assets/monsters/<id>.png`) triggers a non-blocking `Image` load that
+  overwrites the procedural canvas once decoded, upscaling the 16×16 Kenney tile
+  with `imageSmoothingEnabled = false`. Every other monster keeps the Phase 1
+  procedural sprite.
+
+Remaining item from the original plan: **Phase 3** (bestiary/combat-portrait UI)
+is still not built — no such screen exists yet. Not a blocker; the art from
+Phases 1–2 is already the right shape to reuse there if that UI gets built.
 
 ## Audit — what's actually in the repo
 
@@ -71,7 +96,7 @@ shapes, a 1–2px outline, `imageSmoothingEnabled = false`, 32×32 canvas).
 
 ## Recommended plan
 
-### Phase 1 — Parametric monster sprite generator (primary, full coverage)
+### Phase 1 — Parametric monster sprite generator (primary, full coverage) — ✅ done
 
 1. Add `src/game/renderer/MonsterSprite.ts` with one entry point,
    `drawMonsterTile(def: MonsterDef, palette: BiomePalette): HTMLCanvasElement`.
@@ -101,7 +126,7 @@ shapes, a 1–2px outline, `imageSmoothingEnabled = false`, 32×32 canvas).
    doing carefully since `TileType` may be used elsewhere for collision/FOV
    logic, not just art.
 
-### Phase 2 — Kenney tiles as curated overrides (optional polish, ~half coverage)
+### Phase 2 — Kenney tiles as curated overrides (optional polish, ~half coverage) — ✅ done
 
 The 116 already-mapped Kenney tiles are hand-picked for thematic fit and are
 a stylistic notch above anything a generator produces procedurally. Once
