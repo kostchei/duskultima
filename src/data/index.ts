@@ -1,6 +1,9 @@
 import {
   Character,
   applyTalentResult,
+  applyTalentResultForLevelUp,
+  rollAndApplyTalentWithChoices,
+  rollAndApplyTalents,
   getBaseRole,
   initializeClassState,
   rollAlignment,
@@ -16,6 +19,7 @@ import {
   type Ancestry,
   type Effect,
   type MonsterBiome,
+  type TalentChoice,
   chooseWarlockPatron,
   warlockPatronOptions,
   type WarlockPatronId,
@@ -164,10 +168,9 @@ export function isClassQualified(stats: Stats, cls: ClassName): boolean {
 
 /**
  * Roll a stat array for this class with the chosen generation method, silently
- * rerolling the whole array in the background until it clears the class's
- * minimum requirements (if any) — only the finished character is ever shown.
- * Unearthed Arcana assigns stats in the class's own priority order (see
- * statPriorityForClass); Iron Man rolls a flat STR-through-CHA array.
+ * rerolling the whole array until it clears the class's minimum requirements.
+ * The requirements remain an internal eligibility gate for both methods; UA
+ * simply does not print them in its class-selection UI.
  */
 function rollStatsForClass(dice: Engine["dice"], cls: ClassName, method: StatGenerationMethod): Stats {
   const requirements = CLASS_STAT_REQUIREMENTS[cls];
@@ -224,6 +227,7 @@ export function createCharacter(
   customStats?: Stats,
   namedBladeSwordId?: string,
   warlockPatronId?: WarlockPatronId,
+  deferStartingTalentChoices = false,
 ): Character {
   const def = classDef(cls);
   const resolvedAncestry = ancestry ?? rollAncestry(engine.dice);
@@ -269,9 +273,15 @@ export function createCharacter(
 
   for (const spellId of def.startingSpellIds) c.learnSpell(spellId);
   advanceKnownSpells(c);
+  const startingTalentChoices: TalentChoice[] = [];
   if (cls === "ras-godai") {
     const blackLotus = engine.tables.roll(engine.dice, "black-lotus-talents");
-    applyTalentResult(engine.dice, engine.tables, c, blackLotus, "talent-black-lotus-start");
+    if (deferStartingTalentChoices) {
+      const application = applyTalentResultForLevelUp(engine.dice, engine.tables, c, blackLotus, "talent-black-lotus-start");
+      startingTalentChoices.push(...application.pendingChoices);
+    } else {
+      applyTalentResult(engine.dice, engine.tables, c, blackLotus, "talent-black-lotus-start");
+    }
   }
   // Named Blade: a Paladin's 1st-level feature grants a sword of their choice as a
   // +0 magic weapon. Dwarves can wield finesse weapons same as anyone — they just
@@ -316,11 +326,17 @@ export function createCharacter(
   if (cls === "ras-godai") c.inventory.add(item("shortbow"), 1, true);
   if (cls === "wizard" || cls === "witch") c.inventory.add(item("dagger"), 2, true);
 
-  // Roll starting talents (1 + 1 extra if human/ambitious)
+  // Roll starting talents (1 + 1 extra if human/ambitious). Each roll consumes
+  // the shared Dice stream independently; duplicate table results are allowed.
   const talentCount = resolvedAncestry === "human" ? 2 : 1;
-  for (let i = 0; i < talentCount; i++) {
-    const talent = engine.tables.roll(engine.dice, def.talentTableId);
-    applyTalentResult(engine.dice, engine.tables, c, talent, `talent-start-${i}`);
+  if (deferStartingTalentChoices) {
+    for (let index = 0; index < talentCount; index++) {
+      const application = rollAndApplyTalentWithChoices(engine.dice, engine.tables, c, def.talentTableId, `talent-start-${index}`);
+      startingTalentChoices.push(...application.pendingChoices);
+    }
+    c.pendingTalentChoices = startingTalentChoices;
+  } else {
+    rollAndApplyTalents(engine.dice, engine.tables, c, def.talentTableId, talentCount, "talent-start");
   }
 
   engine.registerCharacter(c);

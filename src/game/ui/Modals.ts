@@ -1,5 +1,5 @@
-import { ANCESTRIES, Character, STAT_NAMES, rollAncestry, rollStatsIronMan, Dice } from "../../engine/character";
-import type { Ancestry, ClassName, StatGenerationMethod, Stats, StatName } from "../../engine/character";
+import { ANCESTRIES, Character, STAT_NAMES, alignmentLabel, rollAncestry, rollStatsIronMan, Dice } from "../../engine/character";
+import type { Alignment, Ancestry, ClassName, StatGenerationMethod, Stats, StatName } from "../../engine/character";
 import type { Engine } from "../../engine";
 import type { MonsterBiome } from "../../engine/monster";
 import type { CarouseTier } from "../../engine/downtime";
@@ -464,10 +464,11 @@ export class Modals {
     this.overlay.classList.remove("hidden");
 
     const allBiomes = Object.keys(BIOME_DISPLAY_NAMES) as MonsterBiome[];
-    let step: "method" | "details" | "results" = "method";
+    let step: "method" | "details" | "choices" | "results" = "method";
     let selectedMethod: StatGenerationMethod = "iron-man";
     let ironmanStats: Stats | null = null;
     let selectedAncestry: Ancestry = "human";
+    let selectedAlignment: Alignment = "law";
     let selectedNamedBladeSword = "longsword";
     let selectedClass: ClassName = ALL_CREATION_CLASSES[0]!;
     let selectedBiome: MonsterBiome = zoneLockedBiomeForClass(selectedClass) ?? allBiomes[0]!;
@@ -529,6 +530,7 @@ export class Modals {
             <span class="${fontClass}" style="font-size: 20px;">${c.name}</span>
             <span style="color: #aaa; font-size: 13px;">${classDef(c.className).displayName} — ${ANCESTRY_DISPLAY_NAMES[c.ancestry]}</span>
           </div>
+          <div style="margin-top: 6px; color: #ccc; font-size: 13px;">Alignment: <strong style="color: #f1c40f;">${alignmentLabel(c.alignment)}</strong></div>
           ${c.background ? `<div style="margin-top: 6px; color: #ccc; font-size: 13px;">Background: <strong style="color: #f1c40f;">${c.background}</strong></div>` : ""}
         </div>
 
@@ -550,6 +552,30 @@ export class Modals {
         </div>
 
         <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalCreateCharacter()">Begin the Journey</button>
+      `;
+    };
+
+    const renderTalentChoices = () => {
+      const c = builtCharacter!;
+      const fontClass = selectedMethod === "iron-man" ? "font-ironman" : "font-unearthed-arcana";
+      this.body.innerHTML = `
+        <div style="text-align: center; margin-bottom: 14px;">
+          <div class="modal-title" style="font-size: 22px; letter-spacing: 0.18em; border-bottom: none; margin-bottom: 4px;">CHARACTER CREATION</div>
+          <div style="color: #8b8f9c; font-size: 12px; letter-spacing: 0.16em; margin-bottom: 6px;">${selectedMethod === "iron-man" ? "IRONMAN" : "UNEARTHED ARCANA"}</div>
+          <p style="color: #d8d5cd; font-size: 15px; margin: 0;">${c.name} <span class="${fontClass}">has decisions to make</span></p>
+        </div>
+        <div style="background: #191210; border: 1px solid #4a3810; border-radius: 4px; padding: 10px 14px; margin-bottom: 18px;">
+          <div style="margin-bottom: 10px; color: #f1c40f; font-weight: bold;">CHOOSE TALENT BENEFITS</div>
+          ${c.pendingTalentChoices.map((choice, index) => `
+            <label style="display: block; margin: 12px 0;">
+              <span style="display: block; margin-bottom: 5px; color: #ddd;">${choice.label}</span>
+              <select id="creation-talent-choice-${index}" class="cmd-btn" style="width: 100%; padding: 7px;">
+                ${choice.options.map((option) => `<option value="${option.value}">${option.label}</option>`).join("")}
+              </select>
+            </label>
+          `).join("")}
+        </div>
+        <button class="cmd-btn" style="font-size: 20px; width: 100%; padding: 10px;" onclick="window.onModalProceedCreationChoices()">Continue</button>
       `;
     };
 
@@ -576,6 +602,11 @@ export class Modals {
 
       if (step === "results") {
         renderResults();
+        return;
+      }
+
+      if (step === "choices") {
+        renderTalentChoices();
         return;
       }
 
@@ -619,16 +650,16 @@ export class Modals {
 
             const isPicked = c === selectedClass;
             return `
-              <button class="cmd-btn" style="font-size: 14px; padding: 8px; text-align: left; ${isPicked ? "border-color: #f1c40f; background: #2a2010;" : "border-color: #2ecc71;"}" onclick="window.onModalPickClass('${c}')">
+              <button class="cmd-btn creation-choice ${isPicked ? "creation-choice-selected-ironman" : ""}" style="font-size: 14px; padding: 8px; text-align: left;" onclick="window.onModalPickClass('${c}')">
                 ${classDef(c).displayName}${regionSuffix} <span style="color: #2ecc71; font-size: 12px;">★ Qualified (${reqText || "No min"})</span>
               </button>
             `;
           }
 
           // Unearthed Arcana
-          const suffix = reqs ? ` (${Object.entries(reqs).map(([s, min]) => `${s} ${min}+`).join(", ")})` : "";
+          const isPicked = c === selectedClass;
           return `
-            <button class="cmd-btn" style="font-size: 14px; padding: 8px; text-align: left; ${c === selectedClass ? "border-color: #f1c40f;" : ""}" onclick="window.onModalPickClass('${c}')">${classDef(c).displayName}${regionSuffix}${suffix}</button>
+            <button class="cmd-btn creation-choice ${isPicked ? "creation-choice-selected-ua" : ""}" style="font-size: 14px; padding: 8px; text-align: left;" onclick="window.onModalPickClass('${c}')">${classDef(c).displayName}${regionSuffix}</button>
           `;
         })
         .join("");
@@ -638,7 +669,7 @@ export class Modals {
         : `<div style="display: flex; flex-wrap: wrap; gap: 6px;">${allBiomes
             .map(
               (b) => `
-          <button class="cmd-btn" style="font-size: 13px; padding: 6px 10px; ${b === selectedBiome ? "border-color: #f1c40f;" : ""}" onclick="window.onModalPickBiome('${b}')">${BIOME_DISPLAY_NAMES[b]}</button>
+          <button class="cmd-btn creation-choice ${b === selectedBiome ? selectedMethod === "unearthed-arcana" ? "creation-choice-selected-ua" : "creation-choice-selected-ironman" : ""}" style="font-size: 13px; padding: 6px 10px;" onclick="window.onModalPickBiome('${b}')">${BIOME_DISPLAY_NAMES[b]}</button>
         `
             )
             .join("")}</div>`;
@@ -649,13 +680,24 @@ export class Modals {
           ${ancestryChoices
             .map(
               (a) => `
-            <button class="cmd-btn" style="font-size: 13px; padding: 6px 10px; ${a === selectedAncestry ? "border-color: #f1c40f;" : ""}" onclick="window.onModalPickAncestry('${a}')">${ANCESTRY_DISPLAY_NAMES[a]}</button>
+            <button class="cmd-btn creation-choice ${a === selectedAncestry ? selectedMethod === "unearthed-arcana" ? "creation-choice-selected-ua" : "creation-choice-selected-ironman" : ""}" style="font-size: 13px; padding: 6px 10px;" onclick="window.onModalPickAncestry('${a}')">${ANCESTRY_DISPLAY_NAMES[a]}</button>
           `
             )
             .join("")}
           <button class="cmd-btn" style="font-size: 13px; padding: 6px 10px; color: #ffd45f;" onclick="window.onModalRollAncestry()">🎲 Roll</button>
           ${!ancestryChoices.includes(selectedAncestry) ? `<span style="color: #f1c40f; font-size: 13px;">Rolled: ${ANCESTRY_DISPLAY_NAMES[selectedAncestry]}</span>` : ""}
         </div>
+      `;
+
+      const alignmentSection = `
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center;">
+          ${(["law", "neutral", "chaos"] as const)
+            .map((alignment) => `
+            <button class="cmd-btn creation-choice ${alignment === selectedAlignment ? selectedMethod === "unearthed-arcana" ? "creation-choice-selected-ua" : "creation-choice-selected-ironman" : ""}" style="font-size: 13px; padding: 6px 10px;" onclick="window.onModalPickAlignment('${alignment}')">${alignment === "law" ? "Law" : alignment === "neutral" ? "Neutral" : "Chaos"}</button>
+          `)
+            .join("")}
+        </div>
+        ${selectedMethod === "unearthed-arcana" ? `<div style="margin-top: 5px; color: #8b8f9c; font-size: 12px;">Unearthed Arcana default: Law</div>` : ""}
       `;
 
       const namedBladeSection = selectedClass === "paladin"
@@ -666,7 +708,7 @@ export class Modals {
               ${NAMED_BLADE_SWORD_IDS
                 .map(
                   (swordId) => `
-                <button class="cmd-btn" style="font-size: 13px; padding: 6px 10px; ${swordId === selectedNamedBladeSword ? "border-color: #f1c40f;" : ""}" onclick="window.onModalPickNamedBladeSword('${swordId}')">${item(swordId).name}</button>
+                <button class="cmd-btn creation-choice ${swordId === selectedNamedBladeSword ? selectedMethod === "unearthed-arcana" ? "creation-choice-selected-ua" : "creation-choice-selected-ironman" : ""}" style="font-size: 13px; padding: 6px 10px;" onclick="window.onModalPickNamedBladeSword('${swordId}')">${item(swordId).name}</button>
               `
                 )
                 .join("")}
@@ -696,6 +738,11 @@ export class Modals {
         <div style="margin-bottom: 14px;">
           <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 6px;">Ancestry:</label>
           ${ancestrySection}
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-weight: bold; color: #f1c40f; display: block; margin-bottom: 6px;">Alignment:</label>
+          ${alignmentSection}
         </div>
 
         ${namedBladeSection}
@@ -755,6 +802,10 @@ export class Modals {
       refreshSuggestedName();
       render();
     };
+    (window as any).onModalPickAlignment = (alignment: string) => {
+      selectedAlignment = alignment as Alignment;
+      render();
+    };
     (window as any).onModalRollAncestry = () => {
       selectedAncestry = rollAncestry(engine.dice);
       refreshSuggestedName();
@@ -767,6 +818,7 @@ export class Modals {
     (window as any).onModalPickMethod = (method: string) => {
       selectedMethod = method as StatGenerationMethod;
       selectedAncestry = "human";
+      selectedAlignment = selectedMethod === "unearthed-arcana" ? "law" : "neutral";
       selectedNamedBladeSword = "longsword";
       userEditedName = false;
       refreshSuggestedName();
@@ -791,13 +843,28 @@ export class Modals {
         name,
         selectedClass,
         selectedAncestry,
-        undefined,
+        selectedAlignment,
         selectedBiome,
         selectedMethod,
         selectedMethod === "iron-man" ? ironmanStats! : undefined,
-        selectedClass === "paladin" ? selectedNamedBladeSword : undefined
+        selectedClass === "paladin" ? selectedNamedBladeSword : undefined,
+        undefined,
+        true,
       );
-      step = "results";
+      step = builtCharacter.pendingTalentChoices.length > 0 ? "choices" : "results";
+      render();
+    };
+    (window as any).onModalProceedCreationChoices = () => {
+      const currentChoices = builtCharacter?.pendingTalentChoices ?? [];
+      const nextChoices = [];
+      for (let index = 0; index < currentChoices.length; index++) {
+        const choice = currentChoices[index]!;
+        const select = document.getElementById(`creation-talent-choice-${index}`) as HTMLSelectElement | null;
+        if (!select?.value) continue;
+        nextChoices.push(...applyTalentChoice(builtCharacter!, choice, select.value, engine.dice, engine.tables));
+      }
+      builtCharacter!.pendingTalentChoices = nextChoices;
+      step = nextChoices.length > 0 ? "choices" : "results";
       render();
     };
     (window as any).onModalCreateCharacter = () => {

@@ -1,4 +1,5 @@
-import { getBaseRole, type Character, type SpellClass, type SpellDef } from "../engine";
+import { ALIGNMENT_SPELLS, type SpellClass, type SpellDef } from "../engine/spells";
+import { getBaseRole, type Character } from "../engine/character";
 
 const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
   {
@@ -507,6 +508,17 @@ const IMPLEMENTED_SPELL_LIST: readonly SpellDef[] = [
   },
 ];
 
+const ALIGNMENT_SPELL_DEFS: readonly SpellDef[] = ALIGNMENT_SPELLS.map((entry) => ({
+  id: entry.id,
+  name: entry.name,
+  tier: entry.tier,
+  class: entry.class,
+  range: "near",
+  focus: false,
+  description: `${entry.name}, an ${entry.alignment} alignment spell.`,
+  alignment: entry.alignment,
+}));
+
 /** Exact d12 spell faces from the core Scrolls and Wands table (pp. 288-289). */
 export const MAGIC_ITEM_SPELL_IDS_BY_TIER: Readonly<Record<number, readonly string[]>> = {
   1: ["alarm", "burning-hands", "charm-person", "detect-magic", "feather-fall", "floating-disk", "hold-portal", "light", "mage-armor", "magic-missile", "protection-from-evil", "sleep"],
@@ -533,7 +545,7 @@ const GENERATED_MAGIC_ITEM_SPELLS: readonly SpellDef[] = Object.entries(MAGIC_IT
   })),
 );
 
-const SPELL_LIST: readonly SpellDef[] = [...IMPLEMENTED_SPELL_LIST, ...GENERATED_MAGIC_ITEM_SPELLS];
+const SPELL_LIST: readonly SpellDef[] = [...IMPLEMENTED_SPELL_LIST, ...ALIGNMENT_SPELL_DEFS, ...GENERATED_MAGIC_ITEM_SPELLS];
 const SPELLS = new Map(SPELL_LIST.map((s) => [s.id, s]));
 if (SPELLS.size !== SPELL_LIST.length) throw new Error("Duplicate spell ids in data");
 

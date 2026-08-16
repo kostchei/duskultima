@@ -4,6 +4,7 @@ import type { Character, StatName } from "./character";
 import type { Dice } from "./dice";
 import type { TableRegistry, TableRollResult } from "./tables";
 import type { EffectHook } from "./effects";
+import { alignmentSpellOptionsFor } from "./spells";
 
 export interface AppliedTalent {
   result: TableRollResult;
@@ -169,9 +170,14 @@ function applyTalentResultInternal(
     for (const instruction of result.entry.talent ?? []) {
       if (instruction.kind === "learnSpell") {
         const maxTier = Math.min(5, Math.ceil(character.level / 2));
-        const choices = instruction.spells.filter((spell) => spell.tier <= maxTier && !character.knownSpells.some((known) => known.spellId === spell.id));
+        const spellLabel = (id: string): string => id.split("-").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+        const candidates = [
+          ...instruction.spells.map((spell) => ({ id: spell.id, tier: spell.tier, name: spellLabel(spell.id) })),
+          ...alignmentSpellOptionsFor(character.className, character.alignment),
+        ].filter((spell, index, all) => all.findIndex((candidate) => candidate.id === spell.id) === index);
+        const choices = candidates.filter((spell) => spell.tier <= maxTier && !character.knownSpells.some((known) => known.spellId === spell.id));
         if (deferChoices) {
-          pendingChoices.push({ kind: "learnSpell", id: `${effectId}:spell`, label: result.entry.text, options: choices.map((spell) => ({ value: spell.id, label: spell.id })) });
+          pendingChoices.push({ kind: "learnSpell", id: `${effectId}:spell`, label: result.entry.text, options: choices.map((spell) => ({ value: spell.id, label: spell.name })) });
         } else {
           const choice = choices[0];
           if (choice) character.learnSpell(choice.id);
@@ -216,42 +222,59 @@ function applyTalentResultInternal(
 }
 
 /** Applies one previously deferred level-up choice. */
-export function applyTalentChoice(character: Character, choice: TalentChoice, value: string, dice?: Dice, tables?: TableRegistry): void {
-  if (!choice.options.some((option) => option.value === value)) throw new Error(`Invalid choice "${value}" for ${choice.label}`);
+export function applyTalentChoice(character: Character, choice: TalentChoice, value: string, dice?: Dice, tables?: TableRegistry): TalentChoice[] {
+  const selectedOption = choice.options.find((option) => option.value === value);
+  if (!selectedOption) throw new Error(`Invalid choice "${value}" for ${choice.label}`);
+  const parentEffectId = choice.id.slice(0, choice.id.lastIndexOf(":"));
+  const replaceDeferredEffect = (name: string, hooks: EffectHook[]): void => {
+    character.removeEffect(parentEffectId);
+    character.addEffect({ id: choice.id, name, hooks });
+  };
   if (choice.kind === "stat") {
     if (!choice.stats.includes(value)) throw new Error(`Invalid stat choice "${value}"`);
-    character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus" as const, stat: value as StatName, bonus: choice.bonus }] });
+    replaceDeferredEffect(`+${choice.bonus} ${selectedOption.label}`, [{ kind: "statBonus" as const, stat: value as StatName, bonus: choice.bonus }]);
+    return [];
   } else if (choice.kind === "statOrCheck") {
-    if (value === "stat") character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus", stat: choice.stat, bonus: choice.statBonus }] });
-    else character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "checkBonus", applies: choice.applies as any, bonus: choice.checkBonus }] });
+    if (value === "stat") replaceDeferredEffect(selectedOption.label, [{ kind: "statBonus", stat: choice.stat, bonus: choice.statBonus }]);
+    else replaceDeferredEffect(selectedOption.label, [{ kind: "checkBonus", applies: choice.applies as any, bonus: choice.checkBonus }]);
+    return [];
   } else if (choice.kind === "statPair") {
     const [first, second] = value.split(",") as [StatName | undefined, StatName | undefined];
     if (!first || !second || first === second || !choice.stats.includes(first) || !choice.stats.includes(second)) throw new Error(`Invalid stat pair choice "${value}"`);
-    character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus", stat: first, bonus: choice.bonus }, { kind: "statBonus", stat: second, bonus: choice.bonus }] });
+    replaceDeferredEffect(selectedOption.label, [{ kind: "statBonus", stat: first, bonus: choice.bonus }, { kind: "statBonus", stat: second, bonus: choice.bonus }]);
+    return [];
   } else if (choice.kind === "statOrHp") {
-    if (value === "hp") character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "maxHpBonus", bonus: choice.hpBonus }] });
-    else if (choice.stats.includes(value as StatName)) character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "statBonus", stat: value as StatName, bonus: choice.statBonus }] });
+    if (value === "hp") replaceDeferredEffect(`+${choice.hpBonus} HP`, [{ kind: "maxHpBonus", bonus: choice.hpBonus }]);
+    else if (choice.stats.includes(value as StatName)) replaceDeferredEffect(`+${choice.statBonus} ${selectedOption.label}`, [{ kind: "statBonus", stat: value as StatName, bonus: choice.statBonus }]);
     else throw new Error(`Invalid stat or HP choice "${value}"`);
+    return [];
   } else if (choice.kind === "checkKind") {
     if (!choice.applies.includes(value)) throw new Error(`Invalid check choice "${value}"`);
-    character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "checkBonus", applies: value as any, bonus: choice.bonus }] });
+    replaceDeferredEffect(`+${choice.bonus} ${selectedOption.label}`, [{ kind: "checkBonus", applies: value as any, bonus: choice.bonus }]);
+    return [];
   } else if (choice.kind === "weaponMastery") {
-    character.addEffect({ id: choice.id, name: choice.label, hooks: [
+    replaceDeferredEffect(`Weapon Mastery: ${selectedOption.label} (+${choice.bonus} attack and damage)`, [
       { kind: "checkBonus", applies: "attack", bonus: choice.bonus, weaponId: value },
       { kind: "damageBonus", bonus: choice.bonus, weaponId: value },
-    ] });
+    ]);
+    return [];
   } else if (choice.kind === "armorAc") {
-    character.addEffect({ id: choice.id, name: choice.label, hooks: [{ kind: "armorAcBonus", armorId: value, bonus: choice.bonus }] });
+    replaceDeferredEffect(`${selectedOption.label}: +${choice.bonus} AC`, [{ kind: "armorAcBonus", armorId: value, bonus: choice.bonus }]);
+    return [];
   } else if (choice.kind === "knownSpellAdvantage") {
-    character.addEffect({ id: choice.id, name: `Advantage casting ${value}`, hooks: [{ kind: "advantageOnSpell", spellId: value }] });
+    replaceDeferredEffect(`Advantage casting ${selectedOption.label}`, [{ kind: "advantageOnSpell", spellId: value }]);
+    return [];
   } else if (choice.kind === "learnSpell") {
     character.learnSpell(value);
+    replaceDeferredEffect(`Learned spell: ${selectedOption.label}`, []);
+    return [];
   } else {
     if (!dice || !tables) throw new Error(`Choosing a talent requires the engine dice and table registry`);
     const table = tables.get(choice.tableId);
     const entry = table.entries.find((candidate) => candidate.min === Number(value));
     if (!entry) throw new Error(`Invalid talent choice "${value}" for ${choice.label}`);
-    applyTalentResultInternal(dice, tables, character, { table, roll: entry.min, entry }, choice.id, false);
+    character.removeEffect(parentEffectId);
+    return applyTalentResultInternal(dice, tables, character, { table, roll: entry.min, entry }, choice.id, true).pendingChoices;
   }
 }
 
@@ -263,4 +286,39 @@ export function rollAndApplyTalent(
   sourceId: string,
 ): AppliedTalent[] {
   return applyTalentResult(dice, tables, character, tables.roll(dice, tableId), sourceId);
+}
+
+/** Roll one talent while preserving any player decisions it requires. */
+export function rollAndApplyTalentWithChoices(
+  dice: Dice,
+  tables: TableRegistry,
+  character: Character,
+  tableId: string,
+  sourceId: string,
+): TalentApplication {
+  return applyTalentResultForLevelUp(dice, tables, character, tables.roll(dice, tableId), sourceId);
+}
+
+/**
+ * Roll and apply a fixed number of talents from one table. Every iteration
+ * asks the shared Dice stream for a fresh table roll; duplicate outcomes are
+ * valid, but a result is never reused or cached for a later roll.
+ */
+export function rollAndApplyTalents(
+  dice: Dice,
+  tables: TableRegistry,
+  character: Character,
+  tableId: string,
+  count: number,
+  sourcePrefix: string,
+): AppliedTalent[] {
+  if (!Number.isInteger(count) || count < 0) {
+    throw new Error(`Talent roll count must be a non-negative integer, got ${count}`);
+  }
+
+  const applied: AppliedTalent[] = [];
+  for (let index = 0; index < count; index++) {
+    applied.push(...rollAndApplyTalent(dice, tables, character, tableId, `${sourcePrefix}-${index}`));
+  }
+  return applied;
 }

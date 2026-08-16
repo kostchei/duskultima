@@ -5,7 +5,7 @@
  * Nat 20: effect/duration doubled.
  */
 
-import { getBaseRole, type Character, type StatName } from "./character";
+import { getBaseRole, type Alignment, type Character, type StatName } from "./character";
 import { resolveCheck, type CheckResult } from "./check";
 import type { Dice } from "./dice";
 import type { TableRegistry, TableRollResult } from "./tables";
@@ -32,6 +32,77 @@ export interface SpellDef {
   target?: "self" | "ally" | "enemy" | "point" | "object" | "direction";
   /** A second explicit decision such as Prismatic Orb's energy. */
   choices?: readonly string[];
+  /** Alignment-restricted class spell from a Cursed Scroll list. */
+  alignment?: "law" | "chaos";
+}
+
+export interface AlignmentSpellOption {
+  id: string;
+  name: string;
+  tier: number;
+  class: "wizard" | "priest";
+  alignment: "law" | "chaos";
+}
+
+/** Alignment expands the spell list available to wizard and priest casters. */
+export const ALIGNMENT_SPELLS: readonly AlignmentSpellOption[] = [
+  { id: "cleanse", name: "Cleanse", tier: 1, class: "wizard", alignment: "law" },
+  { id: "flare", name: "Flare", tier: 1, class: "wizard", alignment: "law" },
+  { id: "reveal", name: "Reveal", tier: 1, class: "wizard", alignment: "law" },
+  { id: "ward", name: "Ward", tier: 1, class: "wizard", alignment: "law" },
+  { id: "absorb", name: "Absorb", tier: 2, class: "wizard", alignment: "law" },
+  { id: "meld", name: "Meld", tier: 2, class: "wizard", alignment: "law" },
+  { id: "pacify", name: "Pacify", tier: 2, class: "wizard", alignment: "law" },
+  { id: "push-pull", name: "Push/Pull", tier: 2, class: "wizard", alignment: "law" },
+  { id: "banish", name: "Banish", tier: 3, class: "wizard", alignment: "law" },
+  { id: "forbid", name: "Forbid", tier: 3, class: "wizard", alignment: "law" },
+  { id: "identify", name: "Identify", tier: 3, class: "wizard", alignment: "law" },
+  { id: "speak-with-object", name: "Speak With Object", tier: 3, class: "wizard", alignment: "law" },
+  { id: "glyph", name: "Glyph", tier: 4, class: "wizard", alignment: "law" },
+  { id: "stasis", name: "Stasis", tier: 4, class: "wizard", alignment: "law" },
+  { id: "abjure", name: "Abjure", tier: 5, class: "wizard", alignment: "law" },
+  { id: "permanence", name: "Permanence", tier: 5, class: "wizard", alignment: "law" },
+  { id: "blight", name: "Blight", tier: 1, class: "wizard", alignment: "chaos" },
+  { id: "eyebite", name: "Eyebite", tier: 1, class: "wizard", alignment: "chaos" },
+  { id: "mischief", name: "Mischief", tier: 1, class: "wizard", alignment: "chaos" },
+  { id: "protection-from-good", name: "Protection From Good", tier: 1, class: "wizard", alignment: "chaos" },
+  { id: "envenom", name: "Envenom", tier: 2, class: "wizard", alignment: "chaos" },
+  { id: "phantoms", name: "Phantoms", tier: 2, class: "wizard", alignment: "chaos" },
+  { id: "wither", name: "Wither", tier: 2, class: "wizard", alignment: "chaos" },
+  { id: "wrack", name: "Wrack", tier: 2, class: "wizard", alignment: "chaos" },
+  { id: "betrayal", name: "Betrayal", tier: 3, class: "wizard", alignment: "chaos" },
+  { id: "defile", name: "Defile", tier: 3, class: "wizard", alignment: "chaos" },
+  { id: "mazzims-mesmerism", name: "Mazzim's Mesmerism", tier: 3, class: "wizard", alignment: "chaos" },
+  { id: "unlife", name: "Unlife", tier: 3, class: "wizard", alignment: "chaos" },
+  { id: "dismember", name: "Dismember", tier: 4, class: "wizard", alignment: "chaos" },
+  { id: "dominate", name: "Dominate", tier: 4, class: "wizard", alignment: "chaos" },
+  { id: "feeblemind", name: "Feeblemind", tier: 5, class: "wizard", alignment: "chaos" },
+  { id: "subjugate", name: "Subjugate", tier: 5, class: "wizard", alignment: "chaos" },
+  { id: "prayer", name: "Prayer", tier: 1, class: "priest", alignment: "law" },
+  { id: "fortify", name: "Fortify", tier: 1, class: "priest", alignment: "law" },
+  { id: "consecrate", name: "Consecrate", tier: 2, class: "priest", alignment: "law" },
+  { id: "peace", name: "Peace", tier: 2, class: "priest", alignment: "law" },
+  { id: "covenant", name: "Covenant", tier: 3, class: "priest", alignment: "law" },
+  { id: "revitalize", name: "Revitalize", tier: 3, class: "priest", alignment: "law" },
+  { id: "halo", name: "Halo", tier: 4, class: "priest", alignment: "law" },
+  { id: "wheel-of-flames", name: "Wheel of Flames", tier: 4, class: "priest", alignment: "law" },
+  { id: "death-ward", name: "Death Ward", tier: 5, class: "priest", alignment: "law" },
+  { id: "rapture", name: "Rapture", tier: 5, class: "priest", alignment: "law" },
+  { id: "darkness", name: "Darkness", tier: 1, class: "priest", alignment: "chaos" },
+  { id: "protection-from-good-priest", name: "Protection From Good", tier: 1, class: "priest", alignment: "chaos" },
+  { id: "extract", name: "Extract", tier: 2, class: "priest", alignment: "chaos" },
+  { id: "inflict-wounds", name: "Inflict Wounds", tier: 2, class: "priest", alignment: "chaos" },
+  { id: "blood-rite", name: "Blood Rite", tier: 3, class: "priest", alignment: "chaos" },
+  { id: "rend", name: "Rend", tier: 3, class: "priest", alignment: "chaos" },
+  { id: "contagion", name: "Contagion", tier: 4, class: "priest", alignment: "chaos" },
+  { id: "unhinge", name: "Unhinge", tier: 4, class: "priest", alignment: "chaos" },
+  { id: "damnation", name: "Damnation", tier: 5, class: "priest", alignment: "chaos" },
+  { id: "harm", name: "Harm", tier: 5, class: "priest", alignment: "chaos" },
+];
+
+export function alignmentSpellOptionsFor(className: string, alignment: Alignment): readonly AlignmentSpellOption[] {
+  const spellClass = className === "wizard" || className === "magic-user" ? "wizard" : className === "priest" || className === "cleric" ? "priest" : null;
+  return spellClass ? ALIGNMENT_SPELLS.filter((entry) => entry.class === spellClass && entry.alignment === alignment) : [];
 }
 
 type CastOutcome = "success" | "crit" | "fail" | "pendingMishap" | "mishap";

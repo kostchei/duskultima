@@ -16,6 +16,7 @@ export { Dice };
 import { Inventory, ItemStateTracker, type ItemDef } from "./inventory";
 import { namedBladeMagicBonus } from "./classAbilities";
 import type { MonsterBiome } from "./monster";
+import type { TalentChoice } from "./talents";
 
 export type StatName = "STR" | "DEX" | "CON" | "INT" | "WIS" | "CHA";
 export const STAT_NAMES: readonly StatName[] = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
@@ -346,6 +347,8 @@ export class Character {
   readonly method: StatGenerationMethod;
   readonly background: string | null;
   readonly trainedSkills = new Set<string>();
+  /** Starting-talent choices waiting for the character-creation UI. */
+  pendingTalentChoices: TalentChoice[] = [];
 
   level = 1;
   xp = 0;
