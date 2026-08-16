@@ -63,8 +63,14 @@ body.crt-off::before {
 }
 
 /* Container Frame */
+/* Base width is 1400px (unchanged on laptop/1080p-class screens, and
+   max-width still shrinks it below that on narrower viewports). On larger
+   desktops the middle term grows it — bounded by 92% of viewport width so
+   side chrome stays visible, by 1900px so line lengths and the sidebars
+   don't get sparse, and by viewport height (canvas is a square driven by
+   this width) so a short-but-wide window never forces vertical scrolling. */
 .ultima-container {
-  width: 1400px;
+  width: clamp(1400px, min(92vw, calc(100vh + 400px)), 1900px);
   max-width: 100%;
   display: flex;
   flex-direction: column;
